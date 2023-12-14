@@ -5,45 +5,44 @@ import spinal.lib._
 import Eyeriss._
 import spinal.lib.fsm._
 
-/* the decode of weight will pass to the global buffer */
+/*
+  the decode of weight will pass to the global buffer
+  the decode state machine will deal the encode format and always drive the data out
+*/
 
 
-class Decoder(config:EyerissParameters) extends Component {
+class Decode(config:EyerissParameters) extends Component {
 
   val io = new Bundle{
     val dataIn = slave (Stream (Bits(config.RLCDataWidth bits)))
     val dataOut = master (Stream (Bits(16 bits)))
     val end = out Bool()
+    val error = out Bool()
   }
+  noIoPrefix()
 
-  val busy = RegInit(False)
-  val end = RegInit(True)
+  def runSize = 5
+  def levelSize = 16
+
+  val busy = RegInit(False).setWhen(io.dataIn.fire)
+  val end = RegInit(True).clearWhen(io.dataIn.fire)
+  val error = RegInit(False)
   io.dataIn.ready := !busy
-  when(io.dataIn.fire){
-    busy := True
-    end  := False
-  }
   io.end := end
   io.dataOut.valid := False
   io.dataOut.payload := 0
+  io.error := error
 
   val codes = RegNextWhen(io.dataIn.payload,busy)
-  val levels = Vec(Bits(16 bits),3)
-  val runs = Vec(Bits(5 bits),3)
+  val levels = Vec(Bits(levelSize bits),3)
+  val runs = Vec(Bits(runSize bits),3)
 
-  //Todo mapping it to the RLC
-  //runs.map()
-
-  for(idx <- 0 until 6){
-    var ptr = 63
-    if(idx % 2 == 0){
-      runs(idx / 2) := codes(ptr downto ptr - 4)
-      ptr = ptr - 4
-    }else{
-      levels(idx / 2) := codes(ptr downto ptr - 15)
-      ptr = ptr - 15
-    }
-  }
+  val slices = codes(62 downto 0).subdivideIn(runSize + levelSize bits)
+  val term = codes.msb
+  (0 until 3).map(idx => {
+    runs(idx) := slices(idx)(4 downto 0)
+    levels(idx) := slices(idx)(20 downto 5)
+  })
 
   val decodeFsm = new StateMachine{
     val Idle = new State with EntryPoint
@@ -52,20 +51,25 @@ class Decoder(config:EyerissParameters) extends Component {
     val Finish = new State
 
     val iter = Counter(0,3)
+    val runCounter = Counter(0,32)
     Idle.whenIsActive{
       when(busy){
         goto(Run)
       }
     }
-
     Run.whenIsActive{
+      when(term){
+        error := True
+      }
       io.dataOut.valid := True
       io.dataOut.payload := 0
       when(io.dataOut.fire){
-        //Todo
+        runCounter.increment()
+        when(runCounter.value === runs(iter).asUInt){
+          goto(Level)
+        }
       }
     }
-
     Level.whenIsActive{
       io.dataOut.valid := True
       io.dataOut.payload := levels(iter)
@@ -85,7 +89,14 @@ class Decoder(config:EyerissParameters) extends Component {
 
 }
 
-object Decoder extends App{
+object Decode extends App{
   val config = EyerissParameters()
-  SpinalVerilog(new Decoder(config))
+  val withString = true
+  if(!withString){
+    SpinalConfig(enumPrefixEnable = false).withoutEnumString().generateVerilog(new Decode(config))
+  }
+  else{
+    SpinalVerilog(new Decode(config))
+  }
+
 }
