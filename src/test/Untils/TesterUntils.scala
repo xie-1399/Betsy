@@ -1,5 +1,7 @@
 package Untils
 
+import spinal.core._
+import spinal.core.sim._
 object TesterUntils {
 
 
@@ -24,4 +26,9 @@ object TesterUntils {
     }
     print("\n")
   }
+
+  /* when needed to test */
+  def loadBinary[T<:Data](path:String,mem:Mem[T],base:BigInt) = {}
+
 }
+
