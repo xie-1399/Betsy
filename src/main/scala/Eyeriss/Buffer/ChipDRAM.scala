@@ -72,9 +72,8 @@ class ChipDRAM(c:DRAMConfig) extends Component {
   io.busPort.w.ready := True
   io.busPort.b.valid := RegNext(io.busPort.w.fire)
 
-  io.rsp.data.valid := io.busPort.r.valid
+  io.rsp.data.valid := io.busPort.r.fire
   io.rsp.data.payload := io.busPort.r.payload.data
-
 
   val whiteBox = c.whiteBox generate new Area{
     DRAM.simPublic()
