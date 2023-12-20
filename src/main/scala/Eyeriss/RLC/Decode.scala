@@ -13,14 +13,16 @@ import spinal.lib.fsm._
 
 class Decode(config:EyerissParameters) extends Component {
 
+  /* the decode unit will trans the encode with the stream out */
+
   val io = new Bundle{
     val dataIn = slave (Stream (Bits(config.RLCDataWidth bits)))
-    val dataOut = master (Stream (Bits(16 bits)))
+    val dataOut = master (Stream (Bits(config.DataWidth bits)))
     val end = out Bool()
     val error = out Bool()
   }
-  noIoPrefix()
 
+  noIoPrefix()
   def runSize = 5
   def levelSize = 16
 
@@ -58,31 +60,39 @@ class Decode(config:EyerissParameters) extends Component {
       }
     }
     Run.whenIsActive{
-      when(term){
+      when(term || runs(iter) === 0){
         error := True
       }
       io.dataOut.valid := True
       io.dataOut.payload := 0
       when(io.dataOut.fire){
         runCounter.increment()
-        when(runCounter.value === runs(iter).asUInt){
+        when(runCounter.valueNext === runs(iter).asUInt){
           goto(Level)
         }
       }
     }
     Level.whenIsActive{
+      when(levels(iter) === 0){
+        error := True
+      }
       io.dataOut.valid := True
       io.dataOut.payload := levels(iter)
       when(io.dataOut.fire){
         iter.increment()
-        when(iter.willOverflow){
+        when(iter.valueNext === 3){
           goto(Finish)
-        }.otherwise(goto(Run))
+        }.otherwise{
+          runCounter.clear()
+          goto(Run)
+        }
       }
     }
     Finish.whenIsActive{
       busy := False
       end := True
+      runCounter.clear()
+      iter.clear()
       goto(Idle)
     }
   }

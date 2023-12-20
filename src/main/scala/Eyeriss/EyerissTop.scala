@@ -13,9 +13,13 @@ case class EyerissParameters(
                             RLCDataWidth:Int = 64,
                             RLCAddrWidth:Int = 16,
                             ReluEnable:Boolean = true,
-                            FIFODepth:Int = 1024
+                            FIFODepth:Int = 1024,
+                            UsingChipDRAM:Boolean = true,
                             ){
   require(DataType == UInt16 || DataType == SInt16)
+
+  def FmapRange = 0x1
+  def FilterRange = 0x8
 
   def DataWidth = DataType match {
     case `UInt16` => 16

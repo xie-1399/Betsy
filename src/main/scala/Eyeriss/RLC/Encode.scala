@@ -20,9 +20,7 @@ class Encode(config:EyerissParameters) extends Component {
     val dataOut = master Stream(Bits(config.RLCDataWidth bits))
   }
 
-  val valid = RegInit(False).setWhen(io.dataIn.fire)
-  val payload  = RegNextWhen(io.dataIn.payload,io.dataIn.fire)
-  val ready = True
+  val ready = RegInit(False).setWhen(io.dataIn.valid)
   val codes = Vec(Reg(rlcFormat(config)),3)
 
   io.compress := False
@@ -36,7 +34,7 @@ class Encode(config:EyerissParameters) extends Component {
     val iter  = Counter(0,3)
     val Idle:State = new State with EntryPoint {
         whenIsActive{
-          when(io.dataIn.fire){
+          when(io.dataIn.valid){
             goto(Run)
           }
         }
@@ -44,22 +42,25 @@ class Encode(config:EyerissParameters) extends Component {
 
     val Run:State = new State{
       whenIsActive{
-        when(payload.asUInt === 0) {
-          runCounter.increment()
-        }.otherwise{
-          codes(iter.value).run := runCounter.value
-          goto(Level)
+        when(io.dataIn.fire){
+          when(io.dataIn.payload.asUInt === 0) {
+            runCounter.increment()
+          }.otherwise{
+            codes(iter.value).run := runCounter.value
+            codes(iter.value).level := io.dataIn.payload
+            goto(Level)
+          }
         }
       }
     }
 
     val Level:State = new State{
       whenIsActive{
-        codes(iter.value).level := payload
         iter.increment()
-        when(iter === 3){
+        when(iter.valueNext === 3){
           goto(Finish)
         }.otherwise{
+          runCounter.clear()
           goto(Run)
         }
       }
@@ -70,7 +71,7 @@ class Encode(config:EyerissParameters) extends Component {
         io.dataOut.valid := True
         io.dataOut.payload := B"0" ## codes.asBits
         io.compress := True
-        ready := False
+        runCounter.clear()
         when(io.dataOut.fire) {
           goto(Idle)
         }

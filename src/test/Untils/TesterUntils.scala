@@ -17,11 +17,22 @@ object TesterUntils {
     }
   }
 
-  def StringSplitShow(str: String, num: Int) = {
-    for (idx <- 0 until str.length) {
-      print(str(idx))
-      if ((idx + 1) % num == 0) {
-        print("\t")
+  def StringSplitShow(str: String, num: Int,down:Boolean = false) = {
+    if(down){
+      val remainder = str.length % num
+      for(idx <- 0 until str.length){
+        print(str(idx))
+        if(idx + 1 == remainder || (idx + 1 - remainder) % num == 0){
+          print("\t")
+        }
+      }
+
+    }else{
+      for (idx <- 0 until str.length) {
+        print(str(idx))
+        if ((idx + 1) % num == 0) {
+          print("\t")
+        }
       }
     }
     print("\n")
@@ -31,4 +42,3 @@ object TesterUntils {
   def loadBinary[T<:Data](path:String,mem:Mem[T],base:BigInt) = {}
 
 }
-
