@@ -18,15 +18,18 @@ class Encode(config:EyerissParameters) extends Component {
     val compress = out Bool()
     val dataIn = slave Stream(Bits(config.DataWidth bits))
     val dataOut = master Stream(Bits(config.RLCDataWidth bits))
+    val error = out Bool()
   }
 
   val ready = RegInit(False).setWhen(io.dataIn.valid)
   val codes = Vec(Reg(rlcFormat(config)),3)
+  val error = RegInit(False)
 
   io.compress := False
   io.dataOut.valid := False
   io.dataOut.payload := 0
   io.dataIn.ready := ready
+  io.error := error
 
   val EncoderFsm = new StateMachine{
 
@@ -35,6 +38,7 @@ class Encode(config:EyerissParameters) extends Component {
     val Idle:State = new State with EntryPoint {
         whenIsActive{
           when(io.dataIn.valid){
+            when(io.dataIn.payload.asUInt =/= 0){error := True}
             goto(Run)
           }
         }
@@ -60,7 +64,7 @@ class Encode(config:EyerissParameters) extends Component {
         when(iter.valueNext === 3){
           goto(Finish)
         }.otherwise{
-          runCounter.clear()
+          runCounter.value := 1
           goto(Run)
         }
       }
@@ -71,7 +75,9 @@ class Encode(config:EyerissParameters) extends Component {
         io.dataOut.valid := True
         io.dataOut.payload := B"0" ## codes.asBits
         io.compress := True
+        ready := False
         runCounter.clear()
+        iter.clear()
         when(io.dataOut.fire) {
           goto(Idle)
         }

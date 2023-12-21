@@ -22,6 +22,7 @@ object DRAMConnect{
   def dramConfig = DRAMConfig()
 }
 
+// Todo with the AXI about the read address and write address
 
 class RLC(p:EyerissParameters) extends Component{
 
@@ -37,19 +38,45 @@ class RLC(p:EyerissParameters) extends Component{
   val encode = new Encode(p)
   val decode = new Decode(p)
 
+  /* decode unit connect */
   decode.io.dataIn.valid := io.busPort.r.valid
   io.busPort.r.ready := decode.io.dataIn.ready && decode.io.end
+  io.busPort.ar.valid := True
+  io.busPort.ar.addr := 0
+
   decode.io.dataIn.payload := io.busPort.r.payload.data
   decode.io.dataOut >> io.DecoderOut
 
-  io.error := decode.io.error
+  io.error := decode.io.error || encode.io.error
+
+  /* encode unit connect */
+  encode.io.dataIn.connectFrom(io.EncoderIn)
+
+  io.busPort.aw.valid := encode.io.dataOut.valid
+  io.busPort.aw.addr := 0
+
+  io.busPort.w.arbitrationFrom(encode.io.dataOut)
+  io.busPort.w.data := encode.io.dataOut.payload
+  io.busPort.w.last := True
+
+  io.busPort.b.ready := True
 
   val DRAM = ifGen(p.UsingChipDRAM){
     new Area {
       val chipDram = new ChipDRAM(DRAMConnect.dramConfig)
       io.busPort <> chipDram.io.busPort
     }
-
   }
 
+}
+
+object RLC extends App{
+  val config = EyerissParameters()
+  val withString = true
+  if (!withString) {
+    SpinalConfig(enumPrefixEnable = false).withoutEnumString().generateVerilog(new RLC(config))
+  }
+  else {
+    SpinalVerilog(new RLC(config))
+  }
 }

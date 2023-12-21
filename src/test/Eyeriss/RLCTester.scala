@@ -1,6 +1,6 @@
 package Eyeriss
 
-import Eyeriss.RLC.Decode
+import Eyeriss.RLC._
 import spinal.core.sim._
 import org.scalatest.funsuite.AnyFunSuite
 import Untils.SIMCFG
@@ -49,6 +49,7 @@ class RLCTester extends AnyFunSuite{
     payload
   }
 
+
   test("decode"){
     SIMCFG().compile{
       val dut = new Decode(config)
@@ -88,12 +89,71 @@ class RLCTester extends AnyFunSuite{
 
   test("encode"){
     SIMCFG().compile {
-      val dut = new Decode(config)
+      val dut = new Encode(config)
       dut
     }.doSimUntilVoid {
       dut =>
+        dut.clockDomain.forkStimulus(10)
 
+        dut.io.dataIn.valid #= false
+        dut.clockDomain.waitSampling()
 
+        val refQueue = mutable.Queue[Int]()
+
+        def setZeroNot(zeroNum:Int,num:Int = 0) = {
+            for(idx <- 0 until zeroNum){
+              dut.io.dataIn.valid #= true
+              dut.io.dataIn.payload #= num
+              dut.io.dataOut.ready #= true
+              dut.clockDomain.waitSamplingWhere(dut.io.dataIn.ready.toBoolean)
+            }
+        }
+
+        def checkIt(binStr:String) = {
+          val dutArray = ArrayBuffer[BigInt]()
+          require(binStr.length == 64)
+          var level = true
+          var temp = ""
+          for(idx <- 1 until binStr.length){
+            if(level){
+              temp += binStr(idx)
+              if(temp.length == 16){
+                dutArray += BigInt(temp,2)
+                temp = ""
+                level = false
+              }
+            }else{
+              temp += binStr(idx)
+              if (temp.length == 5) {
+                dutArray += BigInt(temp, 2)
+                temp = ""
+                level = true
+              }
+            }
+          }
+          dutArray
+        }
+
+        for(iter <- 0 until 1024 * 16){
+          for (idx <- 0 until 3) {
+            val randZero = Random.nextInt(31) + 1
+            val randPayload = Random.nextInt(4096) + 1
+            refQueue.enqueue(randZero); refQueue.enqueue(randPayload)
+            setZeroNot(randZero)
+            setZeroNot(zeroNum = 1, num = randPayload)
+          }
+          dut.clockDomain.waitSamplingWhere(dut.io.compress.toBoolean)
+          if (dut.io.dataOut.valid.toBoolean) {
+            StringSplitShow(StringWithWidth(dut.io.dataOut.payload.toBigInt.toString(2), 64), 21, down = true)
+          }
+          val dutarray = checkIt(StringWithWidth(dut.io.dataOut.payload.toBigInt.toString(2), 64))
+
+          for (idx <- dutarray.length - 1 to 0 by -1) {
+            assert(dutarray(idx) == refQueue.dequeue())
+          }
+        }
+
+        simSuccess()
     }
   }
 

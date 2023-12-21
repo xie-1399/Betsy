@@ -14,7 +14,7 @@ case class EyerissParameters(
                             RLCAddrWidth:Int = 16,
                             ReluEnable:Boolean = true,
                             FIFODepth:Int = 1024,
-                            UsingChipDRAM:Boolean = true,
+                            UsingChipDRAM:Boolean = false,
                             ){
   require(DataType == UInt16 || DataType == SInt16)
 
