@@ -1,7 +1,8 @@
-package Eyeriss.PE
+package Eyeriss.Activation
+
+import Eyeriss._
 import spinal.core._
 import spinal.lib._
-import Eyeriss._
 import spinal.lib.sim.{StreamDriver, StreamMonitor, StreamReadyRandomizer}
 
 case class ReluConfig(ReluVecNum:Int = 1)

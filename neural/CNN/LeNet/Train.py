@@ -9,8 +9,10 @@ import time
 
 '''
 the code is copy from the https://tangshusen.me/Dive-into-DL-PyTorch/#/chapter05_CNN/5.5_lenet
+
 training the LeNet with the MNIST dataSet
 
+update all the sigmoid function to the Relu Unit
 '''
 
 mnist_train = torchvision.datasets.FashionMNIST(root='~/Datasets/FashionMNIST', train=True, download=True, transform=transforms.ToTensor())
@@ -35,17 +37,17 @@ class LeNet(nn.Module):
         super(LeNet, self).__init__()
         self.conv = nn.Sequential(
             nn.Conv2d(1, 6, 5), # in_channels, out_channels, kernel_size
-            nn.Sigmoid(),
+            nn.ReLU(),
             nn.MaxPool2d(2, 2), # kernel_size, stride
             nn.Conv2d(6, 16, 5),
-            nn.Sigmoid(),
+            nn.ReLU(),
             nn.MaxPool2d(2, 2)
         )
         self.fc = nn.Sequential(
             nn.Linear(16*4*4, 120),
-            nn.Sigmoid(),
+            nn.ReLU(),
             nn.Linear(120, 84),
-            nn.Sigmoid(),
+            nn.ReLU(),
             nn.Linear(84, 10)
         )
 
