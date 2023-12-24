@@ -1,3 +1,4 @@
+
 import torch
 from torch import nn
 from torch.nn import init
@@ -15,8 +16,8 @@ training the LeNet with the MNIST dataSet
 update all the sigmoid function to the Relu Unit
 '''
 
-mnist_train = torchvision.datasets.FashionMNIST(root='~/Datasets/FashionMNIST', train=True, download=True, transform=transforms.ToTensor())
-mnist_test = torchvision.datasets.FashionMNIST(root='~/Datasets/FashionMNIST', train=False, download=True, transform=transforms.ToTensor())
+mnist_train = torchvision.datasets.FashionMNIST(root='Datasets/FashionMNIST', train=True, download=True, transform=transforms.ToTensor())
+mnist_test = torchvision.datasets.FashionMNIST(root='Datasets/FashionMNIST', train=False, download=True, transform=transforms.ToTensor())
 
 def load_data_fashion_mnist(mnist_train, mnist_test, batch_size):
     if sys.platform.startswith('win'):
@@ -94,7 +95,11 @@ def train(net, train_iter, test_iter, batch_size, optimizer, device, num_epochs)
         print('epoch %d, loss %.4f, train acc %.3f, test acc %.3f, time %.1f sec'
               % (epoch + 1, train_l_sum / batch_count, train_acc_sum / n, test_acc, time.time() - start))
 
-lr, num_epochs = 0.001, 5
-optimizer = torch.optim.Adam(net.parameters(), lr=lr)
-train(net, train_iter, test_iter, batch_size, optimizer, device, num_epochs)
+    torch.save(net.state_dict(),"./lenet.pth")
+    print("================== save the pytorch model! ====================")
 
+lr, num_epochs = 0.001, 200
+optimizer = torch.optim.Adam(net.parameters(), lr=lr)
+
+if __name__ == '__main__':
+    train(net, train_iter, test_iter, batch_size, optimizer, device, num_epochs)

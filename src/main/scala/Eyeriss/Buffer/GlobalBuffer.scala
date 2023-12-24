@@ -22,7 +22,6 @@ class GlobalBuffer(bufferParameters: BufferParameters) extends Component {
   import bufferParameters._
 
   val io = new Bundle{
-
   }
 
   val filterRegion = for(idx <- 0 until filterBanks) yield new Area {

@@ -1,5 +1,7 @@
 package Eyeriss.Activation
 
-class Pooling {
+import spinal.core._
+
+class Pooling extends Component{
 
 }

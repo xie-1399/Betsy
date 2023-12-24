@@ -14,12 +14,9 @@ case class EyerissParameters(
                             RLCAddrWidth:Int = 16,
                             ReluEnable:Boolean = true,
                             FIFODepth:Int = 1024,
-                            UsingChipDRAM:Boolean = false,
+                            UsingChipDRAM:Boolean = false
                             ){
   require(DataType == UInt16 || DataType == SInt16)
-
-  def FmapRange = 0x1
-  def FilterRange = 0x8
 
   def DataWidth = DataType match {
     case `UInt16` => 16
@@ -36,6 +33,8 @@ class EyerissTop(p:EyerissParameters) extends Component{
   val io = new Bundle{
     val clk = in Bool()
     val rst = in Bool()
+
+    val interrupt = out Bool() /* notice the cpu */
   }
 
 
