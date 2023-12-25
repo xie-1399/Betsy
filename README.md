@@ -1,7 +1,17 @@
 # Systolic-Array
 The Implement of the Systolic Array Accelerator Archtecture collections
 
+---
+
 ### Eyeriss
+The Eyeriss is a typical cnn accelerator arch with
+
+① RS Dataflow
+
+② RLC Compress
+
+③ Whole Arch Accelerator
+
 
 #### Arch Design
 
@@ -17,7 +27,6 @@ CNN-Accelerator-VLSI [link](https://github.com/lirui-shanghaitech/CNN-Accelerato
 
 
 
-
-#### Licences
 ---
+#### Licences
 MIT License
