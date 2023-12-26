@@ -5,4 +5,7 @@ package Eyeriss.Ctrl
 
 class ConfigRegs {
 
+  /* config of the PE unit */
+
+
 }

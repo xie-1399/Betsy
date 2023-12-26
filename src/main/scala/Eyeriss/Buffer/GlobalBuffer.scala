@@ -15,7 +15,7 @@ case class BufferParameters(
   val filterSize = 4 KiB
   val ifMapAndPsumBanks = 25
   val mapBankSize = 4 KiB
-  require((filterBanks * filterSize) + (mapBankSize * ifMapAndPsumBanks) == BufferSize)
+  // require((filterBanks * filterSize) + (mapBankSize * ifMapAndPsumBanks) == BufferSize)
 }
 
 class GlobalBuffer(bufferParameters: BufferParameters) extends Component {

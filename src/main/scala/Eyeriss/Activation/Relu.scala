@@ -5,7 +5,7 @@ import spinal.core._
 import spinal.lib._
 import spinal.lib.sim.{StreamDriver, StreamMonitor, StreamReadyRandomizer}
 
-case class ReluConfig(ReluVecNum:Int = 1)
+case class ReluConfig(ReluVecNum:Int = 1) {}
 
 class Relu(p:EyerissParameters,c:ReluConfig) extends Component {
 

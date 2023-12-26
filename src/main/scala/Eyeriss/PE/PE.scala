@@ -8,8 +8,8 @@ import Eyeriss._
 /**
  * the calculate unit in the eyeriss accelerator
  * the MAC unit of the pe
+ * three stages pipeline
  */
-
 
 case class PEConfig(
                    filterScratchPadDepth:Int = 224,
