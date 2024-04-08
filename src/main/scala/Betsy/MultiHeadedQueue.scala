@@ -3,18 +3,17 @@ package Betsy
  ** Betsy follow the MiT Licence.(c) xxl, All rights reserved **
  ** Update Time : 2024/4/6      SpinalHDL Version: 1.94       **
  ** You should have received a copy of the MIT License along with this library **
- ** the MultiHead receive from one master and send to heads(pop decides the real num in fact)
+ ** the MultiHead is one to N(0 <= N <= maxpop) (pop decides the real num in fact) **
  ** Test Status : PASS :)         Version:0.1                 **
  */
 import spinal.core._
 import spinal.lib._
 import Betsy.Until._
-import scala.util.Random
 
 case class Head[T <: Data](gen:HardType[T],entries:Int,heads:Int,maxpop:Int = 2) extends Bundle with IMasterSlave {
   val valids = Vec(Bool(),heads)
   val payloads = Vec(gen,heads)
-  val pop = UInt(log2Up(entries min maxpop) bits) //Todo
+  val pop = UInt(log2Up(entries min maxpop) + 1 bits)
   override def asMaster(): Unit = {
     out(valids,payloads)
     in(pop)

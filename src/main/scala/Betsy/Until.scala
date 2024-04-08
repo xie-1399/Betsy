@@ -25,7 +25,7 @@ object Until{
   }
 
   /* if overflow the add max , will from the start to calculate */
-  def wrappingAdd(s1:UInt,s2:UInt,overflow:Int):UInt = { //Todo check
+  def wrappingAdd(s1:UInt,s2:UInt,overflow:Int):UInt = {
     require(overflow > 0,"overflow must great than 0!!!")
     val max = overflow - 1
     val width = log2Up(overflow + 1)
@@ -33,6 +33,12 @@ object Until{
     val res = Mux(plus.resize(width) > U(overflow),plus - max - 1,plus) /* keep the bit width */
     res
   }
+
+  /* popCount function in chisel instead (get one numbers)*/
+  def popCount = CountOne
+
+
+
 
 }
 

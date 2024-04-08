@@ -4,7 +4,8 @@ package Betsy
  ** Betsy follow the MiT Licence.(c) xxl, All rights reserved **
  ** Update Time : 2024/4/6      SpinalHDL Version: 1.94       **
  ** You should have received a copy of the MIT License along with this library **
- ** **
+ ** the multi tail queue can receive N pushes(0<=N<=max) and pop one by one **
+ ** Test Status : PASS :)      Version:0.1  **
  */
 
 import spinal.core._
@@ -48,64 +49,10 @@ class MultiTailedQueue[T <:Data](gen:HardType[T],entries:Int,maxpush:Int) extend
   io.enq.up := Mux(avail < maxpush,avail.resized,U(maxpush))
   io.deq.valid := avail < entries
   io.deq.payload := tailQueue.readAsync(raddr)
-
-  // assert(io.enq.push < io.enq.up && io.enq.up <= avail)
+  assert(io.enq.push <= io.enq.up && io.enq.up <= avail)
 }
 
 object MultiTailedQueue{
   def apply[T <:Data](gen:HardType[T],entries:Int,maxpush:Int) = {
     new MultiTailedQueue(gen,entries,maxpush)
   }
-}
-
-
-object MultiTailedQueueTest extends App{
-  import spinal.core.sim._
-  import scala.util.Random
-  SIMCFG().compile{
-    val dut = new MultiTailedQueue(UInt(3 bits),64,maxpush = 4)
-    dut
-  }.doSimUntilVoid{
-    dut =>
-      dut.clockDomain.forkStimulus(10)
-      def testCase = 1024
-      val payloads = Array.fill(testCase)(Random.nextInt(8))
-      dut.io.enq.push #= 0
-      dut.clockDomain.waitSampling()
-      var pushes = 0
-      var popes = 0
-      var avail = 64
-      /* push into the queue */
-      val pushThread = fork {
-        while (true) {
-          dut.io.enq.push #= 0
-          val randomPush = Random.nextInt(4)
-          if(randomPush < avail && randomPush != 0){
-            dut.io.enq.push #= randomPush
-            for(idx <- 0 to randomPush) {dut.io.enq.payloads(idx) #= payloads(idx + pushes)}
-            dut.clockDomain.waitSampling()
-            pushes = pushes + randomPush
-            avail = avail - randomPush
-          }else{
-            dut.clockDomain.waitSampling()
-          }
-          if(pushes == testCase) {simSuccess()}
-        }
-      }
-      val popThread = fork { /* check the pop data */
-        while (true) {
-          dut.io.deq.ready.randomize()
-          dut.clockDomain.waitSampling()
-          if(dut.io.deq.valid.toBoolean && dut.io.deq.ready.toBoolean){
-            assert(dut.io.deq.payload.toBigInt == payloads(popes))
-            popes += 1
-            if(popes == testCase){simSuccess()}
-          }
-        }
-      }
-      pushThread.join()
-      popThread.join()
-      simSuccess()
-  }
-
-}

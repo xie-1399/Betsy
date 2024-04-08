@@ -6,7 +6,7 @@ object MultiHeadedQueueTest extends App{
   import spinal.core.sim._
 
   SIMCFG().compile{
-    val dut = new MultiHeadedQueue(UInt(3 bits),64,heads = 4,maxpop = 2)
+    val dut = new MultiHeadedQueue(UInt(3 bits),64,heads = 4,maxpop = 4)
     dut
   }.doSimUntilVoid{
     dut =>
@@ -27,7 +27,6 @@ object MultiHeadedQueueTest extends App{
           dut.clockDomain.waitSampling()
           if(dut.io.enq.valid.toBoolean && dut.io.enq.ready.toBoolean){
             pushes += 1
-            if(pushes == testCase){simSuccess()}
           }
         }
       }
@@ -35,8 +34,8 @@ object MultiHeadedQueueTest extends App{
       val popThread = fork{
         while(true){
           dut.io.deq.pop #= 0
-          val randomPop = 1
-          if(pushes > randomPop + popes && randomPop != 0){
+          val randomPop = Random.nextInt(5)
+          if(pushes >= randomPop + popes && randomPop != 0){
             dut.io.deq.pop #= randomPop
             dut.clockDomain.waitSampling()
             for(idx <- 0 until randomPop) {
@@ -49,9 +48,6 @@ object MultiHeadedQueueTest extends App{
           }
         }
       }
-      pushThread.join()
-      popThread.join()
-      simSuccess()
   }
 
 }
