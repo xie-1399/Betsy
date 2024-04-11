@@ -52,7 +52,8 @@ class MultiTailedQueue[T <:Data](gen:HardType[T],entries:Int,maxpush:Int) extend
   assert(io.enq.push <= io.enq.up && io.enq.up <= avail)
 }
 
-object MultiTailedQueue{
-  def apply[T <:Data](gen:HardType[T],entries:Int,maxpush:Int) = {
-    new MultiTailedQueue(gen,entries,maxpush)
+object MultiTailedQueue {
+  def apply[T <: Data](gen: HardType[T], entries: Int, maxpush: Int) = {
+    new MultiTailedQueue(gen, entries, maxpush)
   }
+}
