@@ -37,6 +37,9 @@ object Until{
   /* popCount function in chisel instead (get one numbers)*/
   def popCount = CountOne
 
+  object Dataflow extends SpinalEnum{
+    val OS,WS,RS,BOTH = newElement()
+  }
 
 
 }

@@ -1,6 +1,7 @@
 package Betsy
 
 import spinal.core._
+import BSUntils.SIMCFG
 
 object MultiTailedQueueTest extends App{
   import spinal.core.sim._
