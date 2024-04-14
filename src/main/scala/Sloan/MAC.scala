@@ -2,9 +2,10 @@ package Sloan
 
 /**
  ** Sloan follow the MiT Licence.(c) xxl, All rights reserved **
- ** Update Time : 2024/4/13      SpinalHDL Version: 1.94       **
+ ** Update Time : 2024/4/14      SpinalHDL Version: 1.94       **
  ** You should have received a copy of the MIT License along with this library **
- ** MAC Unit in the Accelerator **
+ ** MAC Unit in the Accelerator
+ ** Todo tobe tested !!! **
  */
 
 import Sloan.Until._
@@ -31,12 +32,12 @@ class MAC[T<: Data with Num[T]](val gen:HardType[T]) extends SloanModule{
     weight := io.addInput
     io.macOut := weight
   }.otherwise{
-    macOut := mac(gen.craft(),io.mulInput,weight,io.addInput).resized
+    macOut := upDown(mac(gen.craft(),io.mulInput,weight,io.addInput),gen()).resized
     io.macOut := macOut
   }
 }
 
 
 object MAC extends App{
-  SpinalSystemVerilog(new MAC(UInt(3 bits)))
+  SpinalSystemVerilog(new MAC(UInt( 8 bits)))
 }

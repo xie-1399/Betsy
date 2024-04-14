@@ -45,6 +45,36 @@ object Until {
     one.asInstanceOf[T]
   }
 
+  def min[T <: Data](gen: T) = {
+    val min = gen match {
+      case _: UInt => BigInt(0)
+      case _: SInt => gen.asInstanceOf[SInt].minValue.toBigInt
+      case _: SFix => gen.asInstanceOf[SFix].minValue.toBigInt
+      case _ => BigInt(0)
+    }
+    min
+  }
+
+  def max[T <: Data](gen: T) = {
+    val max = gen match {
+      case _: UInt => gen.asInstanceOf[UInt].maxValue.toBigInt
+      case _: SInt => gen.asInstanceOf[SInt].maxValue.toBigInt
+      case _: SFix => gen.asInstanceOf[SFix].maxValue.toBigInt
+      case _ => gen.asInstanceOf[UInt].maxValue.toBigInt
+    }
+    max
+  }
+
+  def clip[T <: Data with Num[T]](value:T,max:BigInt,min:BigInt):T = {
+    val clipNum = value match {
+      case _:UInt => Mux(value.asInstanceOf[UInt] > U(max),U(max),Mux(value.asInstanceOf[UInt] < min,U(min),value))
+      case _:SInt => Mux(value.asInstanceOf[SInt] > S(max),S(max),Mux(value.asInstanceOf[SInt] < min,S(min),value))
+      case _ => value
+    }
+    clipNum.asInstanceOf[T]
+  }
+
+
   def getType[T: TypeTag](obj: T): Type = {
     typeOf[T]
   }
@@ -56,6 +86,13 @@ object Until {
       case _ => m1 * m2 + acc
     }
     macValue
+  }
+
+  def upDown[T <: Data with Num[T]](value:T,gen:T) = {
+    val maxValue = max(gen)
+    val minValue = min(gen)
+    val upDownValue = clip(value,maxValue,minValue)
+    upDownValue
   }
 
 }
