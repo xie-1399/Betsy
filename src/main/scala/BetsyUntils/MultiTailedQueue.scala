@@ -1,4 +1,4 @@
-package Betsy
+package BetsyUntils
 
 /**
  ** Betsy follow the MiT Licence.(c) xxl, All rights reserved **
@@ -10,7 +10,7 @@ package Betsy
 
 import spinal.core._
 import spinal.lib._
-import Until._
+import Betsy.Until._
 
 case class Tail[T <:Data](gen:HardType[T],entries:Int,maxpush:Int) extends Bundle with IMasterSlave {
   val push = UInt(log2Up(maxpush) + 1 bits)

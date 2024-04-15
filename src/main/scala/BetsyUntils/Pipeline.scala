@@ -1,4 +1,5 @@
-package Betsy
+package BetsyUntils
+
 /**
  ** Betsy follow the MiT Licence.(c) xxl, All rights reserved **
  ** Update Time : 2024/4/6      SpinalHDL Version: 1.94       **
@@ -6,9 +7,11 @@ package Betsy
  ** the Pipeline can delay pass the signals out and with  history goes **
  ** Test Status : PASS :)         Version:0.1                 **
  */
-import Betsy.Until._
+
 import spinal.core._
 import spinal.lib._
+import Betsy.Until._
+
 
 class Pipeline[T<:Data](gen:HardType[T],latency:Int) extends BetsyModule {
   require(latency > 0,"Latency value error!!!")

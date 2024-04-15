@@ -1,7 +1,7 @@
-package Betsy
+package BetsyUntils
 
 import spinal.core._
-import BSUntils.SIMCFG
+import BetsyUntils.SIMCFG
 
 object MultiTailedQueueTest extends App{
   import spinal.core.sim._

@@ -1,19 +1,18 @@
-package Sloan
+package Betsy
 
 /**
- ** Sloan follow the MiT Licence.(c) xxl, All rights reserved **
+ ** Betsy follow the MiT Licence.(c) xxl, All rights reserved **
  ** Update Time : 2024/4/14      SpinalHDL Version: 1.94       **
  ** You should have received a copy of the MIT License along with this library **
  ** the fixed point datatype is still under tested (wrapper some functions)
  ** all use is based on the SFixed Point instead of the UFixed point **
  */
 
-import BSUntils.SIMCFG
+import Betsy.Until.BetsyModule
+import BetsyUntils.SIMCFG
 import spinal.core._
-import spinal.lib._
-import Until._
 
-object SloanFixedPoint {
+object BetsyFixedPoint {
 
   /* let the SInt value not overflow */
   def saturateFixedPoint(width:Int,x:SInt):SInt = {
@@ -52,7 +51,7 @@ object SloanFixedPoint {
 }
 
 
-class SloanFixedPointUsage extends SloanModule {
+class BetsyFixedPointUsage extends BetsyModule {
 
   val io = new Bundle{
     val m1 = in(SFix(4 exp,-2 exp))
@@ -61,20 +60,20 @@ class SloanFixedPointUsage extends SloanModule {
     val mac = out(SFix(4 exp,-2 exp))
   }
 
-  // val zero = SloanFixedPoint.zero(SFix(4 exp,-2 exp))
-  // val one = SloanFixedPoint.one(SFix(13 exp,-2 exp)) /* extends as 4 value instead */
-  // val zero1 = SloanFixedPoint.zero(Bits(3 bits))
+  // val zero = BetsyFixedPoint.zero(SFix(4 exp,-2 exp))
+  // val one = BetsyFixedPoint.one(SFix(13 exp,-2 exp)) /* extends as 4 value instead */
+  // val zero1 = BetsyFixedPoint.zero(Bits(3 bits))
   // println(zero.getBitsWidth.toString) /* all is 7 bits */
 
-  val rawMac = SloanFixedPoint.truncatedFixedPointMac(io.mac,io.m1.toSInt.resized,io.m2.toSInt.resized,io.acc.resized.toSInt).truncated(4 exp, -2 exp)
+  val rawMac = BetsyFixedPoint.truncatedFixedPointMac(io.mac,io.m1.toSInt.resized,io.m2.toSInt.resized,io.acc.resized.toSInt).truncated(4 exp, -2 exp)
   io.mac := rawMac
 }
 
 
-object SloanFixedPointUsage extends App{
+object BetsyFixedPointUsage extends App{
   import spinal.core.sim._
   SIMCFG().compile{
-    val dut = new SloanFixedPointUsage()
+    val dut = new BetsyFixedPointUsage()
     dut
   }.doSimUntilVoid{
     dut =>

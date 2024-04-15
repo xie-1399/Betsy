@@ -1,11 +1,11 @@
-package Betsy
+package BetsyUntils
+
 import spinal.core._
 import scala.util.Random
-import BSUntils.SIMCFG
+import BetsyUntils.SIMCFG
 
 object MultiHeadedQueueTest extends App{
   import spinal.core.sim._
-
   SIMCFG().compile{
     val dut = new MultiHeadedQueue(UInt(3 bits),64,heads = 4,maxpop = 4)
     dut

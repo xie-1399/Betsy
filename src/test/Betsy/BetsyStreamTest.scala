@@ -1,6 +1,6 @@
-package Sloan
+package Betsy
 
-import BSUntils.SIMCFG
+import BetsyUntils.SIMCFG
 import spinal.core.sim._
 import org.scalatest.funsuite.AnyFunSuite
 import spinal.core
@@ -8,11 +8,11 @@ import spinal.core._
 
 import scala.util.Random
 
-class SloanStreamTest extends AnyFunSuite {
+class BetsyStreamTest extends AnyFunSuite {
 
-  test("sloan stream mux"){
+  test("betsy stream mux"){
     SIMCFG().compile{
-     val dut = new SloanStreamMux[BitVector](Bits(16 bits),4)
+     val dut = new BetsyStreamMux[BitVector](Bits(16 bits),4)
      dut
     }.doSimUntilVoid{
       dut =>
@@ -46,9 +46,9 @@ class SloanStreamTest extends AnyFunSuite {
     }
   }
 
-  test("sloan stream demux") {
+  test("betsy stream demux") {
     SIMCFG().compile {
-      val dut = new SloanStreamDemux[BitVector](Bits(16 bits), 4)
+      val dut = new BetsyStreamDemux[BitVector](Bits(16 bits), 4)
       dut
     }.doSimUntilVoid {
       dut =>

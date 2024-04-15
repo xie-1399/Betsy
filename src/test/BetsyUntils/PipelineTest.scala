@@ -1,8 +1,7 @@
-package Betsy
+package BetsyUntils
 
 import spinal.core._
 import scala.util.Random
-import BSUntils.SIMCFG
 
 object PipelineTest extends App{
   val pipeline = SpinalSystemVerilog(new Pipeline(Bits(3 bits),10))

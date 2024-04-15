@@ -1,4 +1,5 @@
-package Betsy
+package BetsyUntils
+
 /**
  ** Betsy follow the MiT Licence.(c) xxl, All rights reserved **
  ** Update Time : 2024/4/6      SpinalHDL Version: 1.94       **
@@ -6,6 +7,7 @@ package Betsy
  ** the MultiHead is one to N(0 <= N <= maxpop) (pop decides the real num in fact) **
  ** Test Status : PASS :)         Version:0.1                 **
  */
+
 import spinal.core._
 import spinal.lib._
 import Betsy.Until._
