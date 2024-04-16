@@ -1,7 +1,7 @@
 package Betsy
 
 
-import BetsyUntils.SIMCFG
+import BetsyLibs.SIMCFG
 import spinal.core.sim._
 import org.scalatest.funsuite.AnyFunSuite
 import spinal.core

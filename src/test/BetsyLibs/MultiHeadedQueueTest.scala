@@ -1,8 +1,8 @@
-package BetsyUntils
+package BetsyLibs
 
 import spinal.core._
 import scala.util.Random
-import BetsyUntils.SIMCFG
+import BetsyLibs.SIMCFG
 
 object MultiHeadedQueueTest extends App{
   import spinal.core.sim._

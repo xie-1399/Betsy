@@ -15,6 +15,10 @@ object Until{
     noIoPrefix()
   }
 
+  trait Size{
+    val size:UInt
+  }
+
   case class BetsyFlow[T <: Data](flow:HardType[T]) extends Bundle{
     val transFlow = Flow(flow)
     def push(b:T) = transFlow.push(b) /* set valid and push the data in the flow */
@@ -22,6 +26,12 @@ object Until{
       transFlow.valid := False
       transFlow.payload
     }
+  }
+
+  case class withLast[T <: Data](gen: HardType[T]) extends Bundle {
+    /* wrapper the bundle with last signal */
+    val last = out Bool()
+    val payload = out(gen())
   }
 
   /* if overflow the add max , will from the start to calculate */
@@ -32,12 +42,6 @@ object Until{
     val plus = s1 + s2  /* not with carry */
     val res = Mux(plus.resize(width) > U(overflow),plus - max - 1,plus) /* keep the bit width */
     res
-  }
-
-  case class withLast[T <: Data](gen: HardType[T]) extends Bundle {
-    /* wrapper the bundle with last signal */
-    val last = out Bool()
-    val payload = out(gen())
   }
 
   /* all kinds type of zero value */

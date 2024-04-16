@@ -1,4 +1,4 @@
-package BetsyUntils
+package BetsyLibs
 
 import spinal.core._
 import scala.util.Random

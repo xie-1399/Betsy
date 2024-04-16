@@ -9,7 +9,7 @@ package Betsy
  */
 
 import Betsy.Until.BetsyModule
-import BetsyUntils.SIMCFG
+import BetsyLibs.SIMCFG
 import spinal.core._
 
 object BetsyFixedPoint {
