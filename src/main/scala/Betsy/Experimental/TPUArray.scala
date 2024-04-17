@@ -10,7 +10,7 @@ import scala.util.Random
  ** Sloan follow the MiT Licence.(c) xxl, All rights reserved **
  ** Update Time : 2024/4/15      SpinalHDL Version: 1.94       **
  ** You should have received a copy of the MIT License along with this library **
- ** TPU experimental Array with data control Todo tested !!! **
+ ** TPU experimental Array with data control **
  */
 
 
@@ -59,74 +59,14 @@ class TPUArray[T <: Data with Num[T]](gen:HardType[T],accType:HardType[T],height
 
 
 object TPUArray extends App{
-
+  /* the data order is hard to control */
   import spinal.core.sim._
-  import scala.collection.mutable.ArrayBuffer
   SIMCFG().compile{
     val dut = new TPUArray(UInt(8 bits),UInt(16 bits))
     dut
   }.doSimUntilVoid{
     dut =>
       dut.clockDomain.forkStimulus(10)
-
-      /* also fill with zero */
-      def mkArray(size:Int,cycles:Int) = {
-        val array = Array.fill(cycles)(0)
-        var arrayIndex = 0
-        val remain = cycles - (2 * size - 1)
-        require(remain >= 0)
-        for(idx <- 1 to size){
-          array(arrayIndex) = idx
-          arrayIndex += 1
-        }
-        for(idx <- size - 1 until 0 by -1){
-          array(arrayIndex) = idx
-          arrayIndex += 1
-        }
-        for(idx <- 0 until remain){
-          array(arrayIndex) = 0
-          arrayIndex += 1
-        }
-        array
-      }
-
-      /* reshape the data format to the Array */
-      def reshape(raw:Array[Int],size:Int,cycles:Int) = {
-        require(raw.length == size * size)
-        require(cycles >= size * 2 + 1)
-        val bufferArray = new ArrayBuffer[Array[Int]]()
-        var continue = 0
-        val numArray = mkArray(size, cycles)
-
-        for(idx <- 0 until cycles){
-          val array = Array.fill(size){0}
-          if(continue == raw.length){
-            bufferArray += array
-          }else{
-            val num = numArray(idx)
-            if(idx < size){
-              for(index <- 0 until num){
-                array(index) = raw(continue + index)
-              }
-            }else{
-              for (index <- 0 until num) {
-                array(size + index - num) = raw(continue + index)
-              }
-            }
-            continue += num
-            bufferArray += array
-          }
-        }
-        bufferArray
-      }
-
-      // mkArray(size = 4,cycles = 10).foreach(println)
-      // val arrays = reshape(Array(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16),size = 4,cycles = 19)
-      // for(idx <- 0 until arrays.length){
-      //arrays(idx).foreach(print)
-      //println()
-      //}
-
       def height = 3
       def width = 3
       def cycles = 8
@@ -138,15 +78,14 @@ object TPUArray extends App{
       val weightArray = weight.grouped(height).toArray
       val activateArray = activate.grouped(width).toArray
 
-      // Todo add diag function
-      val diagweight = Array(1,2,4,3,5,7,6,8,9)
+      val diagweight = Matrix.diagArrange(weightArray)
       val diagactivate = Array(1,4,2,7,5,3,8,6,9)
 
       val refMatrix = Matrix.multiply(weightArray,activateArray)
       Matrix.printMatrix(refMatrix)
 
-      val weightArrays = reshape(diagweight,height,8)
-      val activateArrays = reshape(diagactivate,width,8)
+      val weightArrays = Matrix.TPUreshape(diagweight,height,8)
+      val activateArrays = Matrix.TPUreshape(diagactivate,width,8)
 
       for(idx <- 0 until cycles){
         dut.io.weight.zipWithIndex.foreach{ w => w._1 #= weightArrays(idx)(w._2)}
@@ -158,6 +97,7 @@ object TPUArray extends App{
         a =>
           print(a.toBigInt + " ")
       }
+      println()
       simSuccess()
 
   }

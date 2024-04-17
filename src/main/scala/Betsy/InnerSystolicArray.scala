@@ -11,12 +11,13 @@ import Betsy.Until._
 import spinal.core._
 
 
-class InnerSystolicArray extends BetsyModule{
+class InnerSystolicArray[T <: Data with Num[T]](val gen:HardType[T],height:Int,width:Int) extends BetsyModule{
 
   val io = new Bundle{
     val load = in Bool()
-
-    // val weight = in(Vec())
+    val weight = in(Vec(gen,height))
+    val input = in(Vec(gen,width))
+    val output = out(Vec(gen,height))
   }
 
   /* connect the first row */
