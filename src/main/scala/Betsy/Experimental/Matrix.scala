@@ -23,6 +23,22 @@ object Matrix {
     result
   }
 
+  def vectorMatrixMul(matrix: Array[Array[Int]], vector: Array[Int]):Array[Int] = {
+    require(matrix.head.length == vector.length, "Matrix column count must match vector length")
+    val cols = matrix(0).length
+    val sums = Array.fill(cols){0}
+    var tempsum = 0
+    for(j <- 0 until cols){
+      // sums(idx) = (matrix(idx),vector).zipped.map{case(x,y) => x * y}.sum
+      tempsum = 0
+      for(i <- 0 until matrix.length){
+        tempsum = tempsum + vector(i) * matrix(i)(j)
+      }
+      sums(j) = tempsum
+    }
+    sums
+  }
+
   /* the conv calculate using scala */
   def convCalculate(filter: Array[Array[BigInt]], featuremap: Array[Array[BigInt]], logout: Boolean = true) = {
     val filterHeight = filter.length
@@ -152,4 +168,9 @@ object Matrix {
     }
     rearrangedElements
   }
+}
+
+
+object test extends App{
+  Matrix.vectorMatrixMul(Array(Array(1,2),Array(3,4)),Array(1,2)).foreach(println)
 }

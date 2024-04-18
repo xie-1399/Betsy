@@ -72,14 +72,14 @@ object TPUArray extends App{
       def cycles = 8
       // val weight = Array.fill(height * width){Random.nextInt(100)}
       // val activate = Array.fill(height * width){Random.nextInt(100)}
-      val weight = Array(1,2,3,4,5,6,7,8,9)
-      val activate = Array(1,2,3,4,5,6,7,8,9)
+      val weight = Array(1,9,6,4,25,6,30,3,27)
+      val activate = Array(10,25,32,16,29,18,17,33,25)
 
       val weightArray = weight.grouped(height).toArray
       val activateArray = activate.grouped(width).toArray
 
       val diagweight = Matrix.diagArrange(weightArray)
-      val diagactivate = Array(1,4,2,7,5,3,8,6,9)
+      val diagactivate = Array(10,16,25,17,29,32,33,18,25)
 
       val refMatrix = Matrix.multiply(weightArray,activateArray)
       Matrix.printMatrix(refMatrix)
