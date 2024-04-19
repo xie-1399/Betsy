@@ -17,7 +17,7 @@ case class SystolicArrayControl() extends Bundle {
 }
 
 /* add size bundle in the array */
-class SystolicArrayControlWithSize(val depth:Long) extends SystolicArrayControl with Size{
+class SystolicArrayControlWithSize(depth:Long) extends SystolicArrayControl with Size{
   override val size: UInt = UInt(log2Up(depth) bits)
 }
 

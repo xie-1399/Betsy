@@ -24,7 +24,7 @@ object Matrix {
   }
 
   def vectorMatrixMul(matrix: Array[Array[Int]], vector: Array[Int]):Array[Int] = {
-    require(matrix.head.length == vector.length, "Matrix column count must match vector length")
+    require(matrix.length == vector.length, "Matrix column count must match vector length")
     val cols = matrix(0).length
     val sums = Array.fill(cols){0}
     var tempsum = 0
@@ -168,9 +168,4 @@ object Matrix {
     }
     rearrangedElements
   }
-}
-
-
-object test extends App{
-  Matrix.vectorMatrixMul(Array(Array(1,2),Array(3,4)),Array(1,2)).foreach(println)
 }

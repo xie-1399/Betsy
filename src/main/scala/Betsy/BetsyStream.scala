@@ -11,7 +11,7 @@ import spinal.lib._
  ** Test Status : PASS :)         Version:0.1  **
  */
 
-case class BetsyStreamPass[T <: Data](val data: HardType[T]) extends Bundle with IMasterSlave {
+case class BetsyStreamPass[T <: Data](data: HardType[T]) extends Bundle with IMasterSlave {
   /* operation between in and out stream */
   val dataIn = Stream(data)
   val dataOut = Stream(data)

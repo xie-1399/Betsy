@@ -11,7 +11,7 @@ package Betsy
 import spinal.core._
 import Betsy.Until._
 
-class MAC[T<: Data with Num[T]](val gen:HardType[T],clip:Boolean = true) extends BetsyModule{
+class MAC[T<: Data with Num[T]](gen:HardType[T],clip:Boolean = true,name:String = "") extends BetsyModule{
 
   val io = new Bundle{
     val load =  in Bool()
@@ -22,8 +22,8 @@ class MAC[T<: Data with Num[T]](val gen:HardType[T],clip:Boolean = true) extends
     val macOut = out(gen)
   }
 
-  val weight = Reg(gen()).init(zero(gen.craft()))
-  val macOut = Reg(gen()).init(zero(gen.craft()))
+  val weight = Reg(gen()).init(zero(gen.craft())).setName(name + "weight")
+  val macOut = Reg(gen()).init(zero(gen.craft())).setName(name + "macOut")
 
   io.passthrough := RegNext(io.mulInput).init(zero(gen.craft()))
 

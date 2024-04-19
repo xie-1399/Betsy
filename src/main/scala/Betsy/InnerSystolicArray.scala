@@ -2,18 +2,19 @@ package Betsy
 
 /**
  ** Betsy follow the MiT Licence.(c) xxl, All rights reserved **
- ** Update Time : 2024/4/15      SpinalHDL Version: 1.94       **
+ ** Update Time : 2024/4/15      SpinalHDL Version: 1.94     **
  ** You should have received a copy of the MIT License along with this library **
- ** The  InnerSystolicArray is a WS data flow drive Array      **
- ** Todo The delay Unit need to think about it (To be Tested !!!)**
+ ** The  InnerSystolicArray is a WS data flow drive Array    **
+ ** The performance of the Array is calculate ([height * width ] * [width × height])
+ ** load cost width cycles , calculate cost height + width + height cycles **
+ ** Test Status : PASS :)         Version:0.1 **
  */
 
 import Betsy.Until._
 import spinal.core._
 import spinal.lib.Delay
 
-
-class InnerSystolicArray[T <: Data with Num[T]](val gen:HardType[T],height:Int,width:Int) extends BetsyModule{
+class InnerSystolicArray[T <: Data with Num[T]](gen:HardType[T],height:Int,width:Int) extends BetsyModule{
   val io = new Bundle{
     val load = in Bool()
     val weight = in(Vec(gen,height))
@@ -22,7 +23,7 @@ class InnerSystolicArray[T <: Data with Num[T]](val gen:HardType[T],height:Int,w
   }
 
   val mac = for(i <- 0 until height) yield for(j <- 0 until width) yield {
-    new MAC(gen)
+    new MAC(gen,name = s"_${i}_${j}_")
   }
 
   val bias = Vec(Reg(gen).init(zero(gen.craft())),height)
@@ -59,7 +60,7 @@ class InnerSystolicArray[T <: Data with Num[T]](val gen:HardType[T],height:Int,w
 
   /* let all outputs can be calculate once */
   for(i <- 0 until height){
-    io.output(i) := Delay(mac(i)(width - 1).io.macOut,height + 1 - i,init = zero(gen()))
+    io.output(i) := Delay(mac(i)(width - 1).io.macOut,height - (i + 1),init = zero(gen()))
   }
 }
 
