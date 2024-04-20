@@ -28,6 +28,10 @@ object Until{
     }
   }
 
+  class Demux() extends BetsyModule{
+
+  }
+
   case class withLast[T <: Data](gen: HardType[T]) extends Bundle {
     /* wrapper the bundle with last signal */
     val last = out Bool()
@@ -51,7 +55,7 @@ object Until{
       case _: SInt => S(0, gen.getBitsWidth bits)
       case _: SFix => SF(BigDecimal(0), ExpNumber(gen.asInstanceOf[SFix].maxExp), BitCount(gen.asInstanceOf[SFix].bitCount)) /* convert the fixed float */
       case _: Bits => B(0, gen.getBitsWidth bits)
-      case _ => U(0, gen.getBitsWidth bits)
+      case _ => B(0, gen.getBitsWidth bits)
     }
     zero.asInstanceOf[T]
   }

@@ -31,7 +31,7 @@ class DualPortMem[T <: Data](gen:HardType[T], depth:Long
                              ,memoryImpl: MemoryImpl,name:String = "") extends BetsyModule{
 
   val io = new Bundle{
-    val portA =
+    // val portA =
 
   }
 
