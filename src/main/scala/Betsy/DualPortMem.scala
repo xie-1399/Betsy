@@ -11,7 +11,7 @@ package Betsy
 import Betsy.Until._
 import spinal.core._
 import spinal.lib._
-
+import BetsyLibs._
 
 case class Port[T <: Data](gen:HardType[T], depth:Long) extends Bundle with IMasterSlave {
 

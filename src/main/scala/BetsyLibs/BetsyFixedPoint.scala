@@ -1,4 +1,4 @@
-package Betsy
+package BetsyLibs
 
 /**
  ** Betsy follow the MiT Licence.(c) xxl, All rights reserved **
@@ -9,7 +9,6 @@ package Betsy
  */
 
 import Betsy.Until.BetsyModule
-import BetsyLibs.SIMCFG
 import spinal.core._
 
 object BetsyFixedPoint {

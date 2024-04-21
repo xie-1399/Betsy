@@ -1,6 +1,5 @@
 package Betsy
 
-
 import BetsyLibs.SIMCFG
 import spinal.core.sim._
 import org.scalatest.funsuite.AnyFunSuite
@@ -63,7 +62,7 @@ class MACTest extends AnyFunSuite {
             dut.io.addInput #= adds(idx)
             dut.clockDomain.waitSampling(2)
             val refMac = weight(idx) * activation(idx) + adds(idx)
-            assert(dut.io.macOut.toBigInt == clipValue(width, sign, refMac), s"${dut.io.macOut.toBigInt} is not match ${clipValue(width, sign, refMac)}")
+            assert(dut.io.macOut.toBigInt == clipValue(width, sign, refMac) , s"${dut.io.macOut.toBigInt} is not match ${clipValue(width, sign, refMac)}")
             idx += 1
             if (idx == testCase) {
               simSuccess()

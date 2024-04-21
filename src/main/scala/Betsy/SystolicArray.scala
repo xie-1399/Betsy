@@ -13,7 +13,6 @@ import spinal.core._
 import spinal.lib._
 import spinal.lib.fsm._
 
-
 class SystolicArray[T <: Data with Num[T]](gen:HardType[T],height:Int,width:Int,WhiteBox:Boolean = false) extends BetsyModule{
   /* using a stateMachine also can work -> V2 works*/
   val io = new Bundle{

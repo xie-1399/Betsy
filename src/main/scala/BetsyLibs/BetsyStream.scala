@@ -1,4 +1,4 @@
-package Betsy
+package BetsyLibs
 
 import Betsy.Until._
 import spinal.core._
@@ -8,6 +8,7 @@ import spinal.lib._
  ** Betsy follow the MiT Licence.(c) xxl, All rights reserved **
  ** Update Time : 2024/4/13      SpinalHDL Version: 1.94       **
  ** You should have received a copy of the MIT License along with this library **
+ ** some stream modules for the Betsy   **
  ** Test Status : PASS :)         Version:0.1  **
  */
 
@@ -68,11 +69,4 @@ class BetsyStreamDelay[T<:Data](gen:HardType[T],cycles:Int) extends BetsyModule{
   val delays = Delay(io.input.payload,cycles,io.input.valid && io.output.ready,init = zero(gen()))
   io.delayed := delays
   io.output <> io.input
-}
-
-
-object BetsyStreamUsage extends App{
-  val BetsyStreamMux = SpinalSystemVerilog(new BetsyStreamMux(Bits(3 bits),4))
-  val BetsyStreamDeMux = SpinalSystemVerilog(new BetsyStreamDemux(Bits(3 bits),4))
-  val BetsyStreamDelay = SpinalSystemVerilog(new BetsyStreamDelay(Bits(3 bits),4))
 }

@@ -2,9 +2,9 @@ package Betsy
 
 /**
  ** Betsy follow the MiT Licence.(c) xxl, All rights reserved **
- ** Update Time : 2024/4/14      SpinalHDL Version: 1.94       **
+ ** Update Time : 2024/4/21      SpinalHDL Version: 1.94       **
  ** You should have received a copy of the MIT License along with this library **
- **  **
+ ** Todo be Tested !!!**
  */
 
 import spinal.core._
@@ -18,7 +18,7 @@ class ALU[T <: Data with Num[T]](gen:HardType[T],numOps:Int, numRegisters:Int,
     val input = in(gen())
     val sourceLeft = in(UInt(log2Up(numRegisters + 1) bits)) /* 0 is input and 1 is registers 0 ...*/
     val sourceRight = in(UInt(log2Up(numRegisters + 1) bits)) /* 0 is input and 1 is registers 0 ...*/
-    val dest = in(UInt(log2Up(numRegisters + 1) bits))
+    val dest = in(UInt(log2Up(numRegisters + 1) bits)) /* 0 is input and 1 is registers 0 ...*/
     val output = out(gen())
   }
 
@@ -31,41 +31,42 @@ class ALU[T <: Data with Num[T]](gen:HardType[T],numOps:Int, numRegisters:Int,
   val input = if(inputPipe) RegNext(io.input).init(Zero) else io.input
   val sourceLeftInput = if(inputPipe) RegNext(io.sourceLeft).init(0) else io.sourceLeft
   val sourceRightInput = if(inputPipe) RegNext(io.sourceRight).init(0) else io.sourceRight
-  val dest = if(inputPipe) RegNext(io.dest).init(0) else io.dest
+  val destInput = if(inputPipe) RegNext(io.dest).init(0) else io.dest
 
-  val sourceLeft = Mux(sourceLeftInput === 0,input,registers(sourceLeftInput - 1))
-  val sourceRight = Mux(sourceRightInput === 0,input,registers(sourceRightInput - 1))
-  /* alu operations */
+  val sourceLeft = Mux(sourceLeftInput === 0,input,registers((sourceLeftInput - U(1)).resized))
+  val sourceRight = Mux(sourceRightInput === 0,input,registers((sourceLeftInput - U(1)).resized))
+
   val result = gen()
   result := input /* default op is NoOp */
+  val output = if (outputPipe) RegNext(result).init(Zero) else result
+  io.output := output
+  val dest = Demux(destInput === 0 || op === ALUOp.NoOp,io.output,registers((sourceLeftInput - U(1)).resized))
+  dest := result /* write the result into the register or io.out */
 
-  // Todo with the overflow QAQ
+  /* alu operations(overflow is cut down ) Todo with the SFix */
   switch(op){
     is(ALUOp.Zero){result := Zero}
     is(ALUOp.Move){result := sourceLeft} /* left -> out */
     is(ALUOp.Not){ result := Mux(isTrue(sourceLeft),Zero,One) } /* source left is zero -> One not zero -> zero */
     is(ALUOp.And){ result := Mux(isTrue(sourceLeft) && isTrue(sourceRight),One,Zero) }
     is(ALUOp.Or){ result := Mux(isTrue(sourceLeft) || isTrue(sourceRight),One,Zero) }
-    is(ALUOp.Increment){result := sourceLeft + One}
-    is(ALUOp.Decrement){result := sourceLeft - One}
-    is(ALUOp.Add){result := sourceLeft + sourceRight}
-    is(ALUOp.Sub){result := sourceLeft - sourceRight}
-    is(ALUOp.Mul){result := (sourceLeft * sourceRight).resized}
+    is(ALUOp.Increment){result := upDown(sourceLeft + One,gen.craft())}
+    is(ALUOp.Decrement){result := upDown(sourceLeft - One,gen.craft())}
+    is(ALUOp.Add){result := upDown(sourceLeft + sourceRight,gen.craft())}
+    is(ALUOp.Sub){result := upDown(sourceLeft - sourceRight,gen.craft())}
+    is(ALUOp.Mul){result := upDown(sourceLeft * sourceRight,gen.craft()).resized}
     is(ALUOp.Abs){
-      val signal = gen().isInstanceOf[SInt] || gen().isInstanceOf[SFix]
-      val abs = if(signal) sourceLeft.asInstanceOf[SInt].abs else sourceLeft //Todo with the SFix
-      result := abs.asInstanceOf[T]
+      val signal = gen().isInstanceOf[SInt]
+      val abs = if(signal) sourceLeft.asInstanceOf[SInt].abs else sourceLeft
+      result.assignFromBits(abs.asBits)
     }
     is(ALUOp.GreaterThan){result := Mux(sourceLeft > sourceRight,One,Zero)}
     is(ALUOp.GreaterThanEqual){result := Mux(sourceLeft >= sourceRight,One,Zero)}
     is(ALUOp.Min){result := Mux(sourceLeft > sourceRight,sourceRight,sourceLeft)}
     is(ALUOp.Max){result := Mux(sourceLeft > sourceRight,sourceLeft,sourceRight)}
   }
-
-  val output = if(outputPipe) RegNext(result).init(Zero) else result
-  io.output := output
 }
 
 object ALU extends App{
-  SpinalVerilog(new ALU(UInt(32 bits),numOps = 15,numRegisters = 3)) /* no insert registers */
+  SpinalVerilog(new ALU(SInt(8 bits),numOps = 15,numRegisters = 1)) /* no insert registers */
 }

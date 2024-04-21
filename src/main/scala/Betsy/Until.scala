@@ -28,16 +28,24 @@ object Until{
     }
   }
 
-  class Demux() extends BetsyModule{
-
-  }
-
   case class withLast[T <: Data](gen: HardType[T]) extends Bundle {
     /* wrapper the bundle with last signal */
     val last = out Bool()
     val payload = out(gen())
   }
 
+
+  def Demux[T <: Data](cond:Bool,con:T,alt:T) = {
+    val input = cloneOf(con)
+    when(cond){
+      con := input
+    }.otherwise{
+      alt := input
+    }
+    input
+  }
+
+  /***************** Arithmetic operations function *****************/
   /* if overflow the add max , will from the start to calculate */
   def wrappingAdd(s1:UInt,s2:UInt,overflow:Int):UInt = {
     require(overflow > 0,"overflow must great than 0!!!")
@@ -100,7 +108,6 @@ object Until{
     clipNum.asInstanceOf[T]
   }
 
-
   def mac[T <: Data with Num[T]](gen: T, m1: T, m2: T, acc: T) = {
     // require(getType(gen) == getType(m1) == getType(m2) == getType(acc),"mac dataType not match !!!")
     val macValue = (gen, m1, m2, acc) match {
@@ -116,7 +123,7 @@ object Until{
     val upDownValue = clip(value, maxValue, minValue)
     upDownValue
   }
-
+  /***************** Arithmetic operations function ends *****************/
 
 }
 

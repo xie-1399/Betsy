@@ -22,8 +22,8 @@ class MAC[T<: Data with Num[T]](gen:HardType[T],clip:Boolean = true,name:String 
     val macOut = out(gen)
   }
 
-  val weight = Reg(gen()).init(zero(gen.craft())).setName(name + "weight")
-  val macOut = Reg(gen()).init(zero(gen.craft())).setName(name + "macOut")
+  val weight = Reg(gen()).init(zero(gen.craft())).setName(name + "inner_weight")
+  val macOut = Reg(gen()).init(zero(gen.craft())).setName(name + "inner_macOut")
 
   io.passthrough := RegNext(io.mulInput).init(zero(gen.craft()))
 

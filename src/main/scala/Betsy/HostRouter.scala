@@ -3,6 +3,7 @@ package Betsy
 import spinal.core._
 import spinal.lib._
 import Betsy.Until._
+import BetsyLibs._
 /**
  ** Betsy follow the MiT Licence.(c) xxl, All rights reserved **
  ** Update Time : 2024/4/13      SpinalHDL Version: 1.94      **

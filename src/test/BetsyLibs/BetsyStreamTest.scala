@@ -1,10 +1,8 @@
-package Betsy
+package BetsyLibs
 
-import BetsyLibs.SIMCFG
-import spinal.core.sim._
 import org.scalatest.funsuite.AnyFunSuite
-import spinal.core
 import spinal.core._
+import spinal.core.sim._
 
 import scala.util.Random
 
