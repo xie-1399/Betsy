@@ -4,9 +4,11 @@ package Betsy
  ** Betsy follow the MiT Licence.(c) xxl, All rights reserved **
  ** Update Time : 2024/4/21      SpinalHDL Version: 1.94       **
  ** You should have received a copy of the MIT License along with this library **
- ** Todo be Tested !!!**
+ ** the alu can operation between the input / registers / output values **
+ ** Test Status : PASS :)         Version:0.1**
  */
 
+import BetsyLibs.SIMCFG
 import spinal.core._
 import spinal.lib._
 import Until._
@@ -46,27 +48,27 @@ class ALU[T <: Data with Num[T]](gen:HardType[T],numOps:Int, numRegisters:Int,
   /* alu operations(overflow is cut down ) Todo with the SFix */
   switch(op){
     is(ALUOp.Zero){result := Zero}
-    is(ALUOp.Move){result := sourceLeft} /* left -> out */
+    is(ALUOp.Move){result := sourceLeft} /* move the register value out */
     is(ALUOp.Not){ result := Mux(isTrue(sourceLeft),Zero,One) } /* source left is zero -> One not zero -> zero */
     is(ALUOp.And){ result := Mux(isTrue(sourceLeft) && isTrue(sourceRight),One,Zero) }
     is(ALUOp.Or){ result := Mux(isTrue(sourceLeft) || isTrue(sourceRight),One,Zero) }
-    is(ALUOp.Increment){result := upDown(sourceLeft + One,gen.craft())}
-    is(ALUOp.Decrement){result := upDown(sourceLeft - One,gen.craft())}
-    is(ALUOp.Add){result := upDown(sourceLeft + sourceRight,gen.craft())}
-    is(ALUOp.Sub){result := upDown(sourceLeft - sourceRight,gen.craft())}
+    is(ALUOp.Increment){result := upDown(sourceLeft +^ One,gen.craft()).resized}
+    is(ALUOp.Decrement){result := upDown(sourceLeft -^ One,gen.craft()).resized} // Todo
+    is(ALUOp.Add){result := upDown(sourceLeft +^ sourceRight,gen.craft()).resized}
+    is(ALUOp.Sub){result := upDown(sourceLeft -^ sourceRight,gen.craft()).resized} // Todo with UInt sub
     is(ALUOp.Mul){result := upDown(sourceLeft * sourceRight,gen.craft()).resized}
-    is(ALUOp.Abs){
-      val signal = gen().isInstanceOf[SInt]
-      val abs = if(signal) sourceLeft.asInstanceOf[SInt].abs else sourceLeft
-      result.assignFromBits(abs.asBits)
+    is(ALUOp.Abs){ //Todo
+      val sign = sourceLeft.isInstanceOf[SInt] || sourceLeft.isInstanceOf[SFix]
+      if(sign){
+        val abs = sourceLeft.asInstanceOf[SInt].abs
+        result.assignFromBits(abs.asBits)
+      }else{
+        result := sourceLeft
+      }
     }
     is(ALUOp.GreaterThan){result := Mux(sourceLeft > sourceRight,One,Zero)}
     is(ALUOp.GreaterThanEqual){result := Mux(sourceLeft >= sourceRight,One,Zero)}
     is(ALUOp.Min){result := Mux(sourceLeft > sourceRight,sourceRight,sourceLeft)}
     is(ALUOp.Max){result := Mux(sourceLeft > sourceRight,sourceLeft,sourceRight)}
   }
-}
-
-object ALU extends App{
-  SpinalVerilog(new ALU(SInt(8 bits),numOps = 15,numRegisters = 1)) /* no insert registers */
 }

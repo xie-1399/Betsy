@@ -24,7 +24,6 @@ class SystolicArray[T <: Data with Num[T]](gen:HardType[T],height:Int,width:Int,
 
   val array = new InnerSystolicArray(gen,height,width)
   val arrayPropagationDelay = height + width - 1 /* load finish and get the first row result dealy */
-
   val outQueue = StreamFifo(cloneOf(array.io.output),arrayPropagationDelay)
 
   /* control signals */
@@ -32,29 +31,36 @@ class SystolicArray[T <: Data with Num[T]](gen:HardType[T],height:Int,width:Int,
   val loadZeroes = io.control.valid && !io.control.load && io.control.zeroes
   val runInput = io.control.valid && !io.control.load && !io.control.zeroes
   val runZeroes = io.control.valid && !io.control.load && io.control.zeroes
-
   val running = (runInput && io.input.fire || runZeroes) && io.output.ready /* out is ready */
+  val loading = loadZeroes || (io.weight.fire && loadWeight)
 
   /* a counter shows input is Done */
   val arrayCounter = Counter(arrayPropagationDelay)
   when(running){
-    arrayCounter.increment()
+    arrayCounter := arrayPropagationDelay
   }.otherwise{
-
+    when(arrayCounter > 0){
+     arrayCounter := arrayCounter - 1
+    }
   }
-
+  val inputDone = arrayCounter.value === 0
   when(io.control.zeroes){
-    array.io.input := zero(array.io.input)
-    array.io.weight := zero(array.io.weight)
+    array.io.input.foreach(_ := zero(gen()))
+    array.io.weight.foreach(_ := zero(gen()))
   }.otherwise{
     array.io.input := io.input.payload
     array.io.weight := io.weight.payload
   }
+
+  array.io.load := loading && inputDone
   io.input.ready := io.output.ready && runInput
-  // io.weight.ready := loadWeight &&
+  io.weight.ready := loadWeight && inputDone
+  io.control.ready := (!io.control.load && (io.control.zeroes || io.input.valid) && io.output.ready) ||
+    (io.control.load && (io.control.zeroes || io.weight.valid) && inputDone)
 
   /* connect the output */
   outQueue.io.push.valid := Delay(running,arrayPropagationDelay)
+  outQueue.io.push.payload := array.io.output
   io.output <> outQueue.io.pop
 }
 
@@ -79,7 +85,7 @@ class SystolicArrayV2[T <: Data with Num[T]](gen:HardType[T],height:Int,width:In
     val Idle = new State with EntryPoint
     val Load = new State
     val Input = new State
-    val Mac = new State
+    val Run = new State
 
     Idle.whenIsActive{
       when(io.control.load && io.control.valid){
@@ -106,11 +112,11 @@ class SystolicArrayV2[T <: Data with Num[T]](gen:HardType[T],height:Int,width:In
         inputCounter.increment()
       }
       when(inputCounter.willOverflow){
-        goto(Mac)
+        goto(Run)
       }
     }
 
-    Mac.whenIsActive{
+    Run.whenIsActive{
 
     }
 
@@ -118,8 +124,8 @@ class SystolicArrayV2[T <: Data with Num[T]](gen:HardType[T],height:Int,width:In
 
   array.io.load := io.control.load && io.control.fire
   when(io.control.zeroes && io.control.fire) {
-    array.io.input := zero(array.io.input)
-    array.io.weight := zero(array.io.weight)
+    array.io.input.foreach(_ := zero(gen()))
+    array.io.weight.foreach(_ := zero(gen()))
   }.otherwise {
     array.io.input := io.input.payload
     array.io.weight := io.weight.payload
@@ -133,9 +139,13 @@ class SystolicArrayV2[T <: Data with Num[T]](gen:HardType[T],height:Int,width:In
       val macCycles = Reg(UInt(64 bits)).init(0)
     }
   }
+
+  /* assert running error */
+  assert(io.control.fire && io.control.load && io.input.fire)
+
 }
 
 
 object SystolicArrayV2 extends App{
-  SpinalSystemVerilog(new SystolicArrayV2(SInt(8 bits),4,4))
+  SpinalSystemVerilog(new SystolicArray(SInt(8 bits),16,16))
 }

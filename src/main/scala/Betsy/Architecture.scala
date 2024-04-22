@@ -11,8 +11,6 @@ package Betsy
 import spinal.core._
 import spinal.lib._
 
-
-
 abstract class ArchitectureDataType(name:String){
   def sizeBytes:Int
   override def toString: String = name

@@ -10,22 +10,6 @@ import scala.util.Random
 // Todo add fixed point Mac
 class MACTest extends AnyFunSuite {
 
-  /* with clip */
-  def clipValue(width: Int, sign: Boolean, value: Int) = {
-    val max = if (sign) Math.pow(2, width - 1) - 1 else Math.pow(2, width) - 1
-    val min = if (sign) -Math.pow(2, width - 1) else 0
-    val clip = if (value > max) {
-      max.toInt
-    }
-    else if (value < min) {
-      min.toInt
-    }
-    else {
-      value
-    }
-    clip
-  }
-
   test("SINT Clip"){
     SIMCFG().compile {
       val dut = new MAC(SInt(8 bits))
@@ -62,7 +46,7 @@ class MACTest extends AnyFunSuite {
             dut.io.addInput #= adds(idx)
             dut.clockDomain.waitSampling(2)
             val refMac = weight(idx) * activation(idx) + adds(idx)
-            assert(dut.io.macOut.toBigInt == clipValue(width, sign, refMac) , s"${dut.io.macOut.toBigInt} is not match ${clipValue(width, sign, refMac)}")
+            assert(dut.io.macOut.toBigInt == SimTools.clipValue(width, sign, refMac) , s"${dut.io.macOut.toBigInt} is not match ${SimTools.clipValue(width, sign, refMac)}")
             idx += 1
             if (idx == testCase) {
               simSuccess()
@@ -110,7 +94,7 @@ class MACTest extends AnyFunSuite {
             dut.io.addInput #= adds(idx)
             dut.clockDomain.waitSampling(2)
             val refMac = weight(idx) * activation(idx) + adds(idx)
-            assert(dut.io.macOut.toBigInt == clipValue(width, sign, refMac), s"${dut.io.macOut.toBigInt} is not match ${clipValue(width, sign, refMac)}")
+            assert(dut.io.macOut.toBigInt == SimTools.clipValue(width, sign, refMac), s"${dut.io.macOut.toBigInt} is not match ${SimTools.clipValue(width, sign, refMac)}")
             idx += 1
             if (idx == testCase) {
               simSuccess()

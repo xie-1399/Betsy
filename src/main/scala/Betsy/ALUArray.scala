@@ -8,6 +8,7 @@ package Betsy
  */
 
 import Betsy.Until.BetsyModule
+import BetsyLibs.BetsyFIFO
 import spinal.core._
 import spinal.lib._
 
@@ -20,6 +21,8 @@ class ALUArray[T <: Data with Num[T]](gen:HardType[T],arch: Architecture) extend
     val inputs = slave(Stream(Vec(gen,arch.arraySize)))
     val outputs = master(Stream(Vec(gen,arch.arraySize)))
   }
+  // val outputsFifo = StreamFifo(cloneOf(io.outputs.payload),2)  /* pipeline control with a stream fifo (2 stages)*/
+  val outputsFifo = new BetsyFIFO(cloneOf(io.outputs.payload),2)  /* using the BetsyFIFO */
 
   /* connect the Alu array with io*/
   val alus = for(idx <- 0 until arch.arraySize) yield {
@@ -29,12 +32,18 @@ class ALUArray[T <: Data with Num[T]](gen:HardType[T],arch: Architecture) extend
     alu.io.sourceLeft := io.instruction.payload.sourceLeft
     alu.io.sourceRight := io.instruction.payload.sourceRight
     alu.io.dest := io.instruction.payload.dest
-    io.outputs.payload(idx) := alu.io.output
+    outputsFifo.io.push.payload(idx) := alu.io.output
   }
-
-  /* pipeline control with a stream fifo */
-  val outputsFifo = StreamFifo(io.outputs.payload,2)
   io.outputs <> outputsFifo.io.pop
 
-  /* Todo ALU logic ... */
+  val inputNotNeeded = io.instruction.op === ALUOp.NoOp || io.instruction.op === ALUOp.Zero ||
+    (ALUOp.isUnary(io.instruction.op) && io.instruction.sourceLeft =/= 0) || (io.instruction.sourceLeft =/= 0 && io.instruction.sourceRight =/= 0)
+  val inputNeeded = !inputNotNeeded
+  outputsFifo.io.push.valid := (io.instruction.valid && (io.inputs.valid || inputNotNeeded))
+  io.instruction.ready := ((io.inputs.valid || inputNotNeeded) && io.outputs.ready)
+  io.inputs.ready := io.outputs.ready && io.instruction.valid && inputNeeded
+}
+
+object ALUArray extends App{
+  SpinalSystemVerilog(new ALUArray(UInt(8 bits),Architecture())) /* 16 * ALU Array */
 }

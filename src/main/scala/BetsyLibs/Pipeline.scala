@@ -12,7 +12,6 @@ import spinal.core._
 import spinal.lib._
 import Betsy.Until._
 
-
 class Pipeline[T<:Data](gen:HardType[T],latency:Int) extends BetsyModule {
   require(latency > 0,"Latency value error!!!")
 

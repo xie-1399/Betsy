@@ -4,105 +4,88 @@ package BetsyLibs
  ** Betsy follow the MiT Licence.(c) xxl, All rights reserved **
  ** Update Time : 2024/4/19      SpinalHDL Version: 1.94       **
  ** You should have received a copy of the MIT License along with this library **
- ** **
+ ** Todo be tested !!! **
  */
 
 import Betsy.Until.{BetsyModule, zero}
 import spinal.core._
 import spinal.lib._
 
-//Todo add Bram and SRAM later...
+//Todo SRAM lib Support later...
 
-class MemoryKind extends SpinalEnum{
-  val RegistersBank,SpinalMem,SRAM,BlockRAM = newElement()
-  defaultEncoding = SpinalEnumEncoding("MemoryImpl")(
-    RegistersBank -> 0,  // Regs
-    SpinalMem -> 1,    // Mem
-    BlockRAM -> 2,    // FPGA
-    SRAM -> 3        // ASIC
-  )
-}
+trait MemoryKind
+object RegistersBank extends MemoryKind
+object SpinalMem extends MemoryKind
+object BlockRAM  extends MemoryKind
+object SRAM extends MemoryKind
 
-case class SinglePortedSyncMemIO[T <: Data](depth:Int,dataType:HardType[T],maskWidth:Int = -1) extends Bundle with IMasterSlave {
-  val addr = UInt(log2Up(depth) max 1 bits)
-  val wdata = dataType()
-  val rdata = dataType()
-  val wen = Bool()
+/* no mask usage if maskWidth == -1 ...*/
+case class Port[T<:Data](gen:HardType[T],depth:Int,maskWidth:Int = -1) extends Bundle with IMasterSlave {
+  val address = UInt(log2Up(depth) bits)
   val ren = Bool()
-  val mask = ifGen(maskWidth != -1) {Bits(maskWidth bits)}
+  val rdata = gen()
+  val wen = Bool()
+  val wdata = gen()
+  val wmask = ifGen(maskWidth != -1){Bits(maskWidth bits)}
   override def asMaster(): Unit = {
-    out(addr,wdata,wen,ren,mask)
+    out(address,wdata,wen,ren,wmask)
     in(rdata)
   }
 }
 
-case class TwoPortedSyncMemIO[T <: Data](depth:Int,dataType:HardType[T],maskWidth:Int = -1) extends Bundle with IMasterSlave {
-  val waddr = UInt(log2Up(depth) max 1 bits)
-  val raddr = UInt(log2Up(depth) max 1 bits)
-  val wdata = dataType()
-  val rdata = dataType()
-  val wen = Bool()
-  val ren = Bool()
-  val mask = ifGen(maskWidth != -1) {Bits(maskWidth bits)}
-  override def asMaster(): Unit = {
-    out(waddr,raddr,wdata,wen,ren,mask)
-    in(rdata)
-  }
-}
-
-class SinglePortSyncMem[T <: Data](depth:Int,dataType:HardType[T],kind: MemoryKind,maskWidth:Int = -1) extends BetsyModule{
-  /* the single (read or write behavior) at the same time / so each time is read or write */
+class MemoryImpl[T <: Data](gen:HardType[T],depth:Int,ports:Int,impl:MemoryKind,maskWidth:Int = -1) extends BetsyModule{
   val io = new Bundle{
-    val memIo = slave(SinglePortedSyncMemIO(depth,dataType,maskWidth))
+    val Ports = Vec(slave(Port(gen,depth,maskWidth)),ports)
   }
-  assert(!io.memIo.ren && !io.memIo.wen,"undefined behavior in single-port SRAM")
-  kind match {
-    case kind.RegistersBank => {
-      val mem = Vec(Reg(dataType).init(zero(dataType())),depth)
-      val output = RegInit(zero(gen = dataType()))
-      io.memIo.rdata := output
-      when(io.memIo.wen){
-        
-      }
-    }
-
-    case kind.SpinalMem => {
-      val mem = Mem(dataType,depth)
-      mem.write(io.memIo.addr,io.memIo.wdata,enable = io.memIo.wen,mask = io.memIo.mask)
-      io.memIo.rdata := mem.readSync(io.memIo.addr,enable = io.memIo.ren)
-    }
+  require(ports > 0 && ports <= 2 && depth < Int.MaxValue,"ports is illegal in the memory !!!")
+  ports match {
+    case 1 => assert(!io.Ports(0).ren && !io.Ports(0).wen,"undefined behavior in single-port SRAM")
+    case 2 => assert(io.Ports(0).ren && io.Ports(0).wen && io.Ports(0).ren && io.Ports(0).wen && io.Ports(0).address === io.Ports(1).address,"undefined behavior in dual-ported SRAM")
     case _ =>
   }
 
+  impl match {
+    case `RegistersBank` => {
+      val mem = Vec(Reg(gen()).init(zero(gen())),depth)
+      for(idx <- 0 until ports) yield {
+        val rdata = Reg(gen()).init(zero(gen()))
+        io.Ports(idx).rdata := rdata
+        when(io.Ports(idx).wen) {
+          when(io.Ports(idx).ren) {
+            rdata := mem(io.Ports(idx).address)
+          }.otherwise {
+            mem(io.Ports(idx).address) := io.Ports(idx).wdata
+          }
+        }.otherwise {
+          when(io.Ports(idx).ren){
+            rdata := mem(io.Ports(idx).address)
+          }
+        }
+      }
+    }
+    case `SpinalMem` => {
+      val mem = Mem(gen,depth)
+      for(idx <- 0 until ports){
+        io.Ports(idx).rdata := mem.readSync(io.Ports(idx).address,enable = io.Ports(idx).ren)
+        mem.write(io.Ports(idx).address,io.Ports(idx).wdata,enable = io.Ports(idx).wen,mask = io.Ports(idx).wmask)
+      }
+    }
+    case `BlockRAM` => {
+      val mem = Mem(gen, depth)
+      mem.addAttribute("ram_style = \"block\"")
+      for (idx <- 0 until ports) {
+        io.Ports(idx).rdata := mem.readSync(io.Ports(idx).address, enable = io.Ports(idx).ren)
+        mem.write(io.Ports(idx).address, io.Ports(idx).wdata, enable = io.Ports(idx).wen, mask = io.Ports(idx).wmask)
+      }
+    }
 
-}
-
-class TwoPortSyncMem[T <: Data](depth:Int,dataType:HardType[T],maskWidth:Int) extends BetsyModule{
-  /* the two port sram (one for the read and one for the write ) */
-  val io = new Bundle{
-    val memIo = slave(TwoPortedSyncMemIO(depth,dataType,maskWidth))
+    case _ => /* black box for sram */
   }
-  assert(!(io.memIo.ren && io.memIo.wen && io.memIo.waddr === io.memIo.raddr),"undefined behavior in two-port SRAM")
-  val mem = Mem(dataType,depth)
-  mem.write(io.memIo.waddr,io.memIo.wdata,enable = io.memIo.wen,mask = io.memIo.mask)
-  io.memIo.rdata := mem.readSync(io.memIo.raddr,enable = io.memIo.ren)
-}
 
-object SinglePortSyncMem{
-  def apply[T <: Data](depth:Int,dataType:HardType[T], maskWidth:Int):SinglePortSyncMem[T] = {
-    val singlePortMem = new SinglePortSyncMem(depth,dataType,maskWidth)
-    singlePortMem
-  }
-}
-
-object TwoPortedSyncMem{
-  def apply[T <: Data](depth: Int, dataType: HardType[T], maskWidth:Int): TwoPortSyncMem[T] = {
-    val twoPortMem = new TwoPortSyncMem(depth, dataType, maskWidth)
-    twoPortMem
-  }
 }
 
 
 object MemoryImpl extends App{
-
+  val twoPortsMem = SpinalSystemVerilog(new MemoryImpl(Bits(32 bits),1024,2,BlockRAM))
+  // val onePortsMem = SpinalSystemVerilog(new SyncReadMem(Bits(32 bits),1024,1,SpinalMem))
 }

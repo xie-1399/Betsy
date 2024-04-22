@@ -13,28 +13,31 @@ import spinal.core._
 import spinal.lib._
 import BetsyLibs._
 
-case class Port[T <: Data](gen:HardType[T], depth:Long) extends Bundle with IMasterSlave {
-
+case class MemControl(depth:Long) extends Bundle with Size{
   val write = Bool()
   val address = UInt(log2Up(depth) bits)
+  val size = UInt(log2Up(depth) bits)
+}
+
+case class Port[T <: Data](gen:HardType[T], depth:Long) extends Bundle with IMasterSlave {
+  val control = Stream(MemControl(depth))
   val dataIn = Stream(gen)
   val dataOut = Stream(gen)
-  // val size = UInt()
 
   override def asMaster(): Unit = {
-
+    master(control,dataIn)
+    slave(dataOut)
   }
 }
 
 
+
+
 class DualPortMem[T <: Data](gen:HardType[T], depth:Long
-                             ,memoryImpl: MemoryImpl,name:String = "") extends BetsyModule{
+                             ,name:String = "") extends BetsyModule{
 
   val io = new Bundle{
     // val portA =
 
   }
-
-
-
 }

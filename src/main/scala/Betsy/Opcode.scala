@@ -49,7 +49,7 @@ object ALUOp{
   val Max = 15
 
   def isUnary(op:UInt):Bool = {
-    val unaryOps = Array(NoOp,Zero,Move, Not, Increment, Decrement, Abs)
+    val unaryOps = Array(Move, Not, Increment, Decrement, Abs)
     unaryOps.map(op === _).reduce(_ && _)
   }
 
