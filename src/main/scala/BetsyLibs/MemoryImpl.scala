@@ -20,7 +20,7 @@ object BlockRAM  extends MemoryKind
 object SRAM extends MemoryKind
 
 /* no mask usage if maskWidth == -1 ...*/
-case class Port[T<:Data](gen:HardType[T],depth:Int,maskWidth:Int = -1) extends Bundle with IMasterSlave {
+case class InnerPort[T<:Data](gen:HardType[T],depth:Int,maskWidth:Int = -1) extends Bundle with IMasterSlave {
   val address = UInt(log2Up(depth) bits)
   val ren = Bool()
   val rdata = gen()
@@ -35,7 +35,7 @@ case class Port[T<:Data](gen:HardType[T],depth:Int,maskWidth:Int = -1) extends B
 
 class MemoryImpl[T <: Data](gen:HardType[T],depth:Int,ports:Int,impl:MemoryKind,maskWidth:Int = -1) extends BetsyModule{
   val io = new Bundle{
-    val Ports = Vec(slave(Port(gen,depth,maskWidth)),ports)
+    val Ports = Vec(slave(InnerPort(gen,depth,maskWidth)),ports)
   }
   require(ports > 0 && ports <= 2 && depth < Int.MaxValue,"ports is illegal in the memory !!!")
   ports match {

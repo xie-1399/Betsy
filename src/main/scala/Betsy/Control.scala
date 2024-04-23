@@ -42,3 +42,23 @@ object AccumulatorControl{
     control
   }
 }
+
+/* the local dataflow controls the data move using the kind*/
+case class LocalDataFlowControl() extends Bundle{
+  val kind = UInt(4 bits)
+}
+
+object LocalDataFlowControl{
+  val memoryToArrayWeight = U(0x1)
+  val memoryToArrayToAcc = U(0x2)
+  val arrayToAcc = U(0x3)
+  val accumulatorToMemory = U(0x4)
+  val memoryToAccumulator = U(0x5)
+  val unused = U(0x6)
+
+  def apply(kind:UInt):LocalDataFlowControl = {
+    val w = LocalDataFlowControl()
+    w.kind := kind
+    w
+  }
+}

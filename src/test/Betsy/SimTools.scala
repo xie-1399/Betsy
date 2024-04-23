@@ -1,5 +1,7 @@
 package Betsy
 
+import scala.collection.mutable.ArrayBuffer
+
 object SimTools {
 
   /* with clip */
@@ -16,6 +18,18 @@ object SimTools {
       value
     }
     clip
+  }
+
+  def reorderMatrix(array: Array[Array[Int]]) = {
+    val rows = array.length
+    val cols = array(0).length
+    val buffer = new ArrayBuffer[Int]()
+    for (j <- cols - 1 to 0 by -1) {
+      for (i <- 0 until rows) {
+        buffer += array(i)(j)
+      }
+    }
+    buffer.toArray
   }
 
 

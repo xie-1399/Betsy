@@ -6,7 +6,7 @@ import org.scalatest.funsuite.AnyFunSuite
 import spinal.core
 import spinal.core.sim._
 import spinal.core._
-
+import SimTools._
 import scala.util.Random
 import scala.collection.mutable.ArrayBuffer
 
@@ -23,18 +23,6 @@ class InnerSystolicArrayTest extends AnyFunSuite{
     dut.io.input.foreach(_ #= 0)
     dut.io.weight.foreach(_ #= 0)
     dut.clockDomain.waitSampling(2)
-  }
-
-  def reorderMatrix(array:Array[Array[Int]]) = {
-    val rows = array.length
-    val cols = array(0).length
-    val buffer = new ArrayBuffer[Int]()
-    for( j <- cols - 1 to 0 by -1 ){
-      for( i <- 0 until rows ){
-        buffer += array(i)(j)
-      }
-    }
-    buffer.toArray
   }
 
   def loadWeight(dut:InnerSystolicArray[SInt],weights:Array[Array[Int]]) = {

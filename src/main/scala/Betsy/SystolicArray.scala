@@ -13,7 +13,7 @@ import spinal.core._
 import spinal.lib._
 import spinal.lib.fsm._
 
-class SystolicArray[T <: Data with Num[T]](gen:HardType[T],height:Int,width:Int,WhiteBox:Boolean = false) extends BetsyModule{
+class SystolicArray[T <: Data with Num[T]](gen:HardType[T],height:Int,width:Int) extends BetsyModule{
   /* using a stateMachine also can work -> V2 works*/
   val io = new Bundle{
     val control = slave Stream(SystolicArrayControl())
@@ -28,14 +28,14 @@ class SystolicArray[T <: Data with Num[T]](gen:HardType[T],height:Int,width:Int,
 
   /* control signals */
   val loadWeight = io.control.valid && io.control.load && !io.control.zeroes
-  val loadZeroes = io.control.valid && !io.control.load && io.control.zeroes
+  val loadZeroes = io.control.valid && io.control.load && io.control.zeroes
   val runInput = io.control.valid && !io.control.load && !io.control.zeroes
   val runZeroes = io.control.valid && !io.control.load && io.control.zeroes
-  val running = (runInput && io.input.fire || runZeroes) && io.output.ready /* out is ready */
+  val running = ((runInput && io.input.fire) || runZeroes) && io.output.ready /* out is ready */
   val loading = loadZeroes || (io.weight.fire && loadWeight)
 
   /* a counter shows input is Done */
-  val arrayCounter = Counter(arrayPropagationDelay)
+  val arrayCounter = Counter(arrayPropagationDelay).init(0)
   when(running){
     arrayCounter := arrayPropagationDelay
   }.otherwise{
@@ -59,7 +59,7 @@ class SystolicArray[T <: Data with Num[T]](gen:HardType[T],height:Int,width:Int,
     (io.control.load && (io.control.zeroes || io.weight.valid) && inputDone)
 
   /* connect the output */
-  outQueue.io.push.valid := Delay(running,arrayPropagationDelay)
+  outQueue.io.push.valid := Delay(running,arrayPropagationDelay,init = False)
   outQueue.io.push.payload := array.io.output
   io.output <> outQueue.io.pop
 }
@@ -78,50 +78,53 @@ class SystolicArrayV2[T <: Data with Num[T]](gen:HardType[T],height:Int,width:In
   io.control.ready := False
   io.weight.ready := False
   io.input.ready := io.output.ready
+  val runZero = False
   val inputCounter = Counter(height + width - 1)
-  val outQueue = StreamFifo(io.output.payload.clone(),height + width - 1)
+  val inputDone = inputCounter === height + width - 1
+  val outQueue = StreamFifo(cloneOf(io.output.payload),height + width - 1)
 
   val arrayFSM = new StateMachine{
     val Idle = new State with EntryPoint
     val Load = new State
-    val Input = new State
     val Run = new State
 
     Idle.whenIsActive{
+      inputCounter := 0
       when(io.control.load && io.control.valid){
         io.control.ready := True
         goto(Load)
       }
-      when(io.input.fire){
+      when(io.control.fire && !io.control.load && (io.input.fire || io.control.zeroes) ){
         inputCounter.increment()
-        goto(Input)
+        goto(Run)
       }
     }
 
     Load.whenIsActive{
-      io.control.ready := True
-      when(io.input.fire){
-        inputCounter.increment()
-        goto(Input)
+      io.control.ready := True //last io.load weight is the bias
+      when(io.control.fire && io.control.load && inputDone){
+        io.weight.ready := True
       }
-    }
-
-    Input.whenIsActive{
-      /* fill the input and zeroes */
-      when(io.input.fire){
-        inputCounter.increment()
-      }
-      when(inputCounter.willOverflow){
+      when(io.input.fire && io.control.fire && !io.control.load){
+        inputCounter := 1
         goto(Run)
       }
     }
 
     Run.whenIsActive{
-
+      /* fill the input and zeroes */
+      io.control.ready := io.output.ready
+      when(io.control.fire && !io.control.load && (io.input.fire || io.control.zeroes)){
+        runZero.setWhen(io.control.zeroes)
+        inputCounter.increment() //run zeroes or input
+      }
+      when(inputCounter.willOverflow){
+        when(io.control.fire && !io.control.load && (io.input.fire || io.control.zeroes)){
+          inputCounter
+        }
+      }
     }
-
   }
-
   array.io.load := io.control.load && io.control.fire
   when(io.control.zeroes && io.control.fire) {
     array.io.input.foreach(_ := zero(gen()))
@@ -130,22 +133,33 @@ class SystolicArrayV2[T <: Data with Num[T]](gen:HardType[T],height:Int,width:In
     array.io.input := io.input.payload
     array.io.weight := io.weight.payload
   }
-  // io.output <> outQueue.io.pop
+  io.output <> outQueue.io.pop
 
   /* performance counter */
   val performanceCount = performance.generate{
     new Area {
       val loadCycles = Reg(UInt(64 bits)).init(0)
       val macCycles = Reg(UInt(64 bits)).init(0)
+      arrayFSM.Load.whenIsActive{
+        loadCycles := loadCycles + 1
+      }
+      arrayFSM.Run.whenIsActive{
+        macCycles := macCycles + 1
+      }
+      /* printf the debug info*/
+      when(io.input.valid && io.input.ready) {
+        printf(s"SystolicArray: received input ${io.input.payload}\n")
+      }
+      when(io.weight.valid && io.weight.ready) {
+        printf(s"SystolicArray: loaded weights ${io.weight.payload}\n")
+      }
     }
   }
-
   /* assert running error */
-  assert(io.control.fire && io.control.load && io.input.fire)
-
+  assert(io.control.fire && io.control.load && io.input.fire,"error while load weight and load input at the same time !!!")
 }
 
 
 object SystolicArrayV2 extends App{
-  SpinalSystemVerilog(new SystolicArray(SInt(8 bits),16,16))
+  SpinalSystemVerilog(new SystolicArrayV2(SInt(8 bits),4,4))
 }
