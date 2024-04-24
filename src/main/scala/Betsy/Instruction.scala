@@ -10,9 +10,25 @@ package Betsy
 import spinal.core._
 import spinal.lib._
 
-class Instruction {
-
+/* the object with box (only get and set with the Value)*/
+class Box[T](value:T){
+  private var _value = value
+  def set(value:T) = _value = value
+  def get() = _value
 }
+
+object Box{
+  def apply[T](value:T) = new Box(value)
+}
+
+/* feed into the decode unit*/
+case class Instruction (instWidth:Int) extends Bundle {
+  val opcode = Bits(4 bits) /* show which instruction */
+  val flags = Bits(4 bits) /* flags show the behaviour */
+  val arguments = Bits((instWidth - 8) bits)
+}
+
+
 
 /* the simd unit driver instruction using the ALU opcode */
 case class ALUInstruction(layout: InstructionLayOut) extends Bundle with IMasterSlave {
