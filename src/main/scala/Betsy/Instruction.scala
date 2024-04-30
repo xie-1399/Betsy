@@ -4,7 +4,7 @@ package Betsy
  ** Betsy follow the MiT Licence.(c) xxl, All rights reserved **
  ** Update Time : 2024/4/21      SpinalHDL Version: 1.94       **
  ** You should have received a copy of the MIT License along with this library **
- ** **
+ ** The instruction defines (NoOp/MatMul/DataMove/LoadWeights/SIMD/Configure) here !!! **
  */
 
 import spinal.core._
@@ -28,6 +28,25 @@ case class Instruction (instWidth:Int) extends Bundle {
   val arguments = Bits((instWidth - 8) bits)
 }
 
+/* create the Instruction with kinds of signals */
+object Instruction{
+  def apply(opcode:Bits,flags:Bundle,arguments:Bundle)(implicit layout:InstructionLayOut) = {
+    // val inst = Instruction(layout.instructionSizeBytes * 8)
+    // inst.opcode
+  }
+
+  def apply(opcode:Bits,arguments:Bundle) = {
+
+  }
+
+  def apply(opcode:Bits) = {
+
+  }
+
+  def fromBits() = {
+
+  }
+}
 
 
 /* the simd unit driver instruction using the ALU opcode */

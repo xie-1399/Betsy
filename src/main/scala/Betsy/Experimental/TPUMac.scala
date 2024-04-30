@@ -5,7 +5,7 @@ import spinal.core._
 import spinal.lib._
 
 /**
- ** Sloan follow the MiT Licence.(c) xxl, All rights reserved **
+ ** Betsy follow the MiT Licence.(c) xxl, All rights reserved **
  ** Update Time : 2024/4/15      SpinalHDL Version: 1.94       **
  ** You should have received a copy of the MIT License along with this library **
  ** TPU experimental mac calculate PE in the TPU Array **

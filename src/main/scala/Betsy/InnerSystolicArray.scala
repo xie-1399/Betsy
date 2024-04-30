@@ -6,7 +6,7 @@ package Betsy
  ** You should have received a copy of the MIT License along with this library **
  ** The  InnerSystolicArray is a WS data flow drive Array    **
  ** The performance of the Array is calculate ([height * width ] * [width × height])
- ** load cost width cycles , calculate cost height + width + height cycles **
+ ** load cost width + 1 cycles , calculate cost height + width + height - 1 cycles **
  ** Test Status : PASS :)         Version:0.1 **
  */
 

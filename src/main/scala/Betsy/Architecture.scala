@@ -35,6 +35,7 @@ case class Architecture( dataType:ArchitectureDataType = new SInt4(),
 
 case class InstructionLayOut(architecture: Architecture){
 
-  val simdOpSizeBits = log2Up(15) /* 16 ops */
+  val instructionSizeBytes = 4  // Todo with Instruction width format
+  val simdOpSizeBits = log2Up(16) /* 16 ops */
   val simdOperandSizeBits = log2Up(architecture.simdRegistersDepth + 1)
 }

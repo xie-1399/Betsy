@@ -1,7 +1,7 @@
 package Betsy.Experimental
 
 /**
- ** Sloan follow the MiT Licence.(c) xxl, All rights reserved **
+ ** Betsy follow the MiT Licence.(c) xxl, All rights reserved **
  ** Update Time : 2024/4/15      SpinalHDL Version: 1.94       **
  ** You should have received a copy of the MIT License along with this library **
  ** the Eyeriss array using the RS dataflow **
@@ -13,13 +13,13 @@ package Betsy.Experimental
 import spinal.core._
 import spinal.lib._
 import Betsy.Until.BetsyModule
-
 /*
  * PE contains calculate the MAC between filter and weight
  * this shows very simple way to calculate the MAC with PE Array
  * calculate with the row by row
  * the dataflow is RS and the eyeriss is also RS like
 */
+
 class EyerissPEV1(filterLen:Int,fmapLen:Int,dataWidth:Int) extends BetsyModule {
   require(filterLen <= fmapLen)
   val io = new Bundle{

@@ -14,7 +14,7 @@ import spinal.lib._
 
 case class SamplerFlags() extends Bundle{
 
-  val instruction = new
+  // val instruction = new
 
 }
 

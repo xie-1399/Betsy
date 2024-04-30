@@ -7,10 +7,11 @@ import spinal.core._
 import scala.util.Random
 
 /**
- ** Sloan follow the MiT Licence.(c) xxl, All rights reserved **
+ ** Betsy follow the MiT Licence.(c) xxl, All rights reserved **
  ** Update Time : 2024/4/15      SpinalHDL Version: 1.94       **
  ** You should have received a copy of the MIT License along with this library **
  ** TPU experimental Array with data control **
+ ** The TPU Dataflow material is on : https://zhuanlan.zhihu.com/p/26522315 **
  */
 
 
@@ -18,7 +19,6 @@ class TPUArray[T <: Data with Num[T]](gen:HardType[T],accType:HardType[T],height
   val io = new Bundle{
     val weight = in Vec(gen,height)
     val activation = in Vec(gen,width)
-
     val accSum = out Vec(accType(),height * width)
   }
 
@@ -26,7 +26,6 @@ class TPUArray[T <: Data with Num[T]](gen:HardType[T],accType:HardType[T],height
      yield for(j <- 0 until width) yield {new TPUMac(gen(),accType())}
 
   /* connect the PEs with TPU-like */
-
   /* first row*/
   PEs(0)(0).io.m1 := io.weight(0)
   PEs(0)(0).io.m2 := io.activation(0)
@@ -61,7 +60,7 @@ class TPUArray[T <: Data with Num[T]](gen:HardType[T],accType:HardType[T],height
 object TPUArray extends App{
   /* the data order is hard to control */
   import spinal.core.sim._
-  SIMCFG().compile{
+  SIMCFG(gtkFirst = true).compile{
     val dut = new TPUArray(UInt(8 bits),UInt(16 bits))
     dut
   }.doSimUntilVoid{
@@ -70,36 +69,40 @@ object TPUArray extends App{
       def height = 3
       def width = 3
       def cycles = 8
-      // val weight = Array.fill(height * width){Random.nextInt(100)}
-      // val activate = Array.fill(height * width){Random.nextInt(100)}
-      val weight = Array(1,9,6,4,25,6,30,3,27)
-      val activate = Array(10,25,32,16,29,18,17,33,25)
+        val weight = Array.fill(height * width) {
+          Random.nextInt(100)
+        }
+        val activate = Array.fill(height * width) {
+          Random.nextInt(100)
+        }
 
-      val weightArray = weight.grouped(height).toArray
-      val activateArray = activate.grouped(width).toArray
+        val weightArray = weight.grouped(height).toArray
+        val activateArray = activate.grouped(width).toArray
 
-      val diagweight = Matrix.diagArrange(weightArray)
-      val diagactivate = Array(10,16,25,17,29,32,33,18,25)
+        val diagweight = Matrix.diagArrange(weightArray, false)
+        val diagactivate = Matrix.diagArrange(activateArray, true)
 
-      val refMatrix = Matrix.multiply(weightArray,activateArray)
-      Matrix.printMatrix(refMatrix)
+        val refMatrix = Matrix.multiply(weightArray, activateArray)
+        Matrix.printMatrix(refMatrix)
 
-      val weightArrays = Matrix.TPUreshape(diagweight,height,8)
-      val activateArrays = Matrix.TPUreshape(diagactivate,width,8)
+        val weightArrays = Matrix.TPUreshape(diagweight, height, 8)
+        val activateArrays = Matrix.TPUreshape(diagactivate, width, 8)
 
-      for(idx <- 0 until cycles){
-        dut.io.weight.zipWithIndex.foreach{ w => w._1 #= weightArrays(idx)(w._2)}
-        dut.io.activation.zipWithIndex.foreach{ a => a._1 #= activateArrays(idx)(a._2)}
-        dut.clockDomain.waitSampling()
-      }
+        for (idx <- 0 until cycles) {
+          dut.io.weight.zipWithIndex.foreach { w => w._1 #= weightArrays(idx)(w._2) }
+          dut.io.activation.zipWithIndex.foreach { a => a._1 #= activateArrays(idx)(a._2) }
+          dut.clockDomain.waitSampling()
+        }
+        val ref = refMatrix.flatten
+        val acc = dut.io.accSum.map(_.toInt).toArray
 
-      dut.io.accSum.foreach{
-        a =>
-          print(a.toBigInt + " ")
-      }
+        dut.io.accSum.foreach {
+          a =>
+            print(a.toBigInt + " ")
+        }
       println()
+      assert(ref.sameElements(acc), "matrix mul value error !!!")
       simSuccess()
-
   }
 
 }

@@ -131,40 +131,26 @@ object Matrix {
     bufferArray
   }
 
-  def orderchange(arr: Array[Int]): Array[Int] = {
-    val n = arr.length
-    val middleStart = (n - 1) / 2
-    val middleEnd = (n + 2) / 2
-    if (n >= 4) {
-      val temp = arr(middleStart)
-      arr(middleStart) = arr(middleStart + 1)
-      arr(middleStart + 1) = temp
-    }
-    for (i <- middleStart + 1 until middleEnd) {
-      val temp = arr(i)
-      arr(i) = arr(n - i - 1)
-      arr(n - i - 1) = temp
-    }
-    if (n >= 8) {
-      val temp2 = arr(n - 2)
-      arr(n - 2) = arr(n - 3)
-      arr(n - 3) = temp2
-    }
-    arr
-  }
-
-  def diagArrange(matrix: Array[Array[Int]],up:Boolean = true): Array[Int] = {
+  def diagArrange(matrix: Array[Array[Int]],up:Boolean): Array[Int] = {
     val numRows = matrix.length
     val numCols = matrix(0).length
+    require(numCols == numRows)
 
     var rearrangedElements = Array[Int]()
-      for (sum <- 0 until numRows + numCols - 1) {
-        val startRow = if (sum < numRows) 0 else sum - numRows + 1
-        val endRow = if (sum < numCols) sum else numCols - 1
+    for (sum <- 0 until numRows + numCols - 1) {
+      val startRow = if (sum < numRows) 0 else sum - numRows + 1
+      val endRow = if (sum < numCols) sum else numCols - 1
+      if(up){
+        for (i <- startRow to endRow) {
+          val j = sum - i
+          rearrangedElements :+= matrix(j)(i)
+        }
+      }else{
         for (i <- startRow to endRow) {
           val j = sum - i
           rearrangedElements :+= matrix(i)(j)
         }
+      }
     }
     rearrangedElements
   }

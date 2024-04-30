@@ -68,7 +68,47 @@ class HostRouter[T <: Data](val gen:HardType[T]) extends BetsyModule{
   io.control.ready := (isDataIn && BetsyStreamMux.io.sel.ready) || (isDataOut && BetsyStreamDeMux.io.sel.ready)
 }
 
-
+//Todo tested ...
 object HostRouter extends App{
-  SpinalSystemVerilog(new HostRouter(Bits(16 bits)))
+  import spinal.core.sim._
+  import scala.collection.mutable.Queue
+  SIMCFG().compile {
+    val dut = new HostRouter(Bits(8 bits))
+    dut
+  }.doSimUntilVoid{
+    dut =>
+      dut.clockDomain.forkStimulus(10)
+      val dram0 = new Queue[Int]()
+      val dram1 = new Queue[Int]()
+      val mem = new Queue[Int]()
+      dut.io.control.valid #= false
+      dut.io.dram0.dataIn.valid #= false
+      dut.io.dram1.dataIn.valid #= false
+      dut.io.mem.dataOut.valid #= false
+      dut.clockDomain.waitSampling(3)
+
+      val in0 = fork{ /* dram0 -> mem */
+        while(true){
+          dut.io.control.valid.randomize()
+          dut.io.control.payload.kind #= 0
+
+          dut.clockDomain.waitSampling()
+
+        }
+      }
+
+      val in1 = fork{
+        while(true){
+
+        }
+      }
+
+      val out0 = fork{
+
+      }
+
+      val out1 = fork{
+
+      }
+  }
 }

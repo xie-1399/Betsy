@@ -40,7 +40,7 @@ class MemoryImpl[T <: Data](gen:HardType[T],depth:Int,ports:Int,impl:MemoryKind,
   require(ports > 0 && ports <= 2 && depth < Int.MaxValue,"ports is illegal in the memory !!!")
   ports match {
     case 1 => assert(!io.Ports(0).ren && !io.Ports(0).wen,"undefined behavior in single-port SRAM")
-    case 2 => assert(io.Ports(0).ren && io.Ports(0).wen && io.Ports(0).ren && io.Ports(0).wen && io.Ports(0).address === io.Ports(1).address,"undefined behavior in dual-ported SRAM")
+    case 2 => assert(io.Ports(0).ren && io.Ports(0).wen && io.Ports(1).ren && io.Ports(1).wen && io.Ports(0).address === io.Ports(1).address,"undefined behavior in dual-ported SRAM")
     case _ =>
   }
 
@@ -78,7 +78,6 @@ class MemoryImpl[T <: Data](gen:HardType[T],depth:Int,ports:Int,impl:MemoryKind,
         mem.write(io.Ports(idx).address, io.Ports(idx).wdata, enable = io.Ports(idx).wen, mask = io.Ports(idx).wmask)
       }
     }
-
     case _ => /* black box for sram */
   }
 
