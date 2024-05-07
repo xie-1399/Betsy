@@ -8,7 +8,7 @@ import spinal.lib._
  ** Betsy follow the MiT Licence.(c) xxl, All rights reserved **
  ** Update Time : 2024/4/13      SpinalHDL Version: 1.94       **
  ** You should have received a copy of the MIT License along with this library **
- ** some stream modules for the Betsy   **
+ ** some stream modules for the Betsy  **
  ** Test Status : PASS :)         Version:0.1  **
  */
 
@@ -24,7 +24,7 @@ case class BetsyStreamPass[T <: Data](data: HardType[T]) extends Bundle with IMa
 }
 
 class BetsyStreamMux[T<:Data](val gen:HardType[T],val num:Int) extends BetsyModule{
-
+  /* the select stream is Drive by the sel stream*/
   val io = new Bundle{
     val InStreams = Vec(slave(Stream(gen)),num)
     val sel = slave(Stream(UInt(log2Up(num) bits)))
@@ -32,16 +32,16 @@ class BetsyStreamMux[T<:Data](val gen:HardType[T],val num:Int) extends BetsyModu
   }
 
   io.InStreams.foreach(_.ready := False)
-  // val inputs = Vec(Stream(gen),num)
-  val select = io.InStreams(io.sel.payload)
-  select.ready := io.OutStream.ready && io.sel.valid
+  val selectStream = io.InStreams(io.sel.payload)
+  selectStream.ready := io.sel.valid && io.OutStream.ready
+  io.sel.ready := selectStream.valid && io.OutStream.ready
 
-  io.OutStream.payload := select.payload
-  io.OutStream.valid := io.sel.valid && select.valid
-  io.sel.ready := io.OutStream.ready && select.valid
+  io.OutStream.payload := selectStream.payload
+  io.OutStream.valid := selectStream.valid && io.sel.valid
 }
 
 class BetsyStreamDemux[T <: Data](val gen:HardType[T],val num:Int) extends BetsyModule{
+  /* from one stream with Multi streams out(select by the sel stream ) */
   val io = new Bundle {
     val InStream = slave(Stream(gen))
     val sel = slave(Stream(UInt(log2Up(num) bits)))
@@ -52,12 +52,11 @@ class BetsyStreamDemux[T <: Data](val gen:HardType[T],val num:Int) extends Betsy
       s.valid := False
       s.payload.clearAll()
   }
-
-  val select = io.OutStreams(io.sel.payload)
-  select.payload := io.InStream.payload
-  select.valid := io.sel.valid && io.InStream.valid
-  io.sel.ready := io.InStream.valid && select.ready
-  io.InStream.ready := io.sel.valid && select.ready
+  val selectStream = io.OutStreams(io.sel.payload)
+  selectStream.valid := io.sel.valid && io.InStream.valid
+  selectStream.payload := io.InStream.payload
+  io.InStream.ready := io.sel.valid && selectStream.ready
+  io.sel.ready := io.InStream.valid && selectStream.ready
 }
 
 class BetsyStreamDelay[T<:Data](gen:HardType[T],cycles:Int) extends BetsyModule{

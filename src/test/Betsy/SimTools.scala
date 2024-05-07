@@ -1,6 +1,13 @@
 package Betsy
 
 import scala.collection.mutable.ArrayBuffer
+import spinal.core._
+import spinal.core.sim._
+import spinal.lib._
+
+import scala.collection.mutable
+import scala.collection.mutable.Queue
+import scala.util.Random
 
 object SimTools {
 
@@ -31,6 +38,28 @@ object SimTools {
     }
     buffer.toArray
   }
+}
 
+/* with a stream queue simulation usage */
+class StreamQueue() {
+  val queue = new mutable.Queue[BigInt]()
+  def push(num: BigInt) = queue.enqueue(num)
+  def pop() = queue.dequeue()
+  def clear() = queue.clear()
+  def length() = queue.size
+  def fill(size:Int,init:BigInt = 0,random:Boolean = false) = {
+    require(size > 0,"queue fill size should > 0 !!!")
+    for(idx <- 0 until size){
+     if(random){
+       {push(Random.nextInt(1024 * 1024))}
+     }else{
+       {push(init)}
+     }
+    }
+  }
+  def toArray() = {queue.toArray}
+}
 
+object StreamQueue {
+  def apply[T <: Data]() = new StreamQueue()
 }

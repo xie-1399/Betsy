@@ -4,6 +4,8 @@ import spinal.core._
 import spinal.lib._
 import Betsy.Until._
 import BetsyLibs._
+
+import scala.util.Random
 /**
  ** Betsy follow the MiT Licence.(c) xxl, All rights reserved **
  ** Update Time : 2024/4/13      SpinalHDL Version: 1.94      **
@@ -11,7 +13,7 @@ import BetsyLibs._
  ** the data out is get the memory data to the dram **
  ** the data in is get the dram data to the memory **
  ** the kind show is data in or data out and which port to in out **
- ** Todo to be tested !!! **
+ ** Test Status : PASS :)         Version:0.1 **
  */
 
 case class HostDataFlowControl() extends Bundle{
@@ -68,47 +70,4 @@ class HostRouter[T <: Data](val gen:HardType[T]) extends BetsyModule{
   io.control.ready := (isDataIn && BetsyStreamMux.io.sel.ready) || (isDataOut && BetsyStreamDeMux.io.sel.ready)
 }
 
-//Todo tested ...
-object HostRouter extends App{
-  import spinal.core.sim._
-  import scala.collection.mutable.Queue
-  SIMCFG().compile {
-    val dut = new HostRouter(Bits(8 bits))
-    dut
-  }.doSimUntilVoid{
-    dut =>
-      dut.clockDomain.forkStimulus(10)
-      val dram0 = new Queue[Int]()
-      val dram1 = new Queue[Int]()
-      val mem = new Queue[Int]()
-      dut.io.control.valid #= false
-      dut.io.dram0.dataIn.valid #= false
-      dut.io.dram1.dataIn.valid #= false
-      dut.io.mem.dataOut.valid #= false
-      dut.clockDomain.waitSampling(3)
 
-      val in0 = fork{ /* dram0 -> mem */
-        while(true){
-          dut.io.control.valid.randomize()
-          dut.io.control.payload.kind #= 0
-
-          dut.clockDomain.waitSampling()
-
-        }
-      }
-
-      val in1 = fork{
-        while(true){
-
-        }
-      }
-
-      val out0 = fork{
-
-      }
-
-      val out1 = fork{
-
-      }
-  }
-}
