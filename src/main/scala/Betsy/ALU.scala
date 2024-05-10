@@ -24,7 +24,7 @@ class ALU[T <: Data with Num[T]](gen:HardType[T],numOps:Int, numRegisters:Int,
     val output = out(gen())
   }
 
-  def isTrue(signal: T): Bool = !(signal === zero(signal))
+  def isTrue(signal: T): Bool = signal =/= zero(signal)
   val Zero = zero(gen())
   val One = one(gen())
   val registers = Vec(Reg(gen).init(Zero),numRegisters)
@@ -42,10 +42,17 @@ class ALU[T <: Data with Num[T]](gen:HardType[T],numOps:Int, numRegisters:Int,
   result := input /* default op is NoOp */
   val output = if (outputPipe) RegNext(result).init(Zero) else result
   io.output := output
+
+//  when(destInput === 0 || op === ALUOp.NoOp){
+//    io.output := result
+//  }.otherwise{
+//    registers((sourceLeftInput - U(1)).resized) := result
+//  }
+
   val dest = Demux(destInput === 0 || op === ALUOp.NoOp,io.output,registers((sourceLeftInput - U(1)).resized))
   dest := result /* write the result into the register or io.out */
 
-  /* alu operations(overflow is cut down ) Todo with the SFix */
+  /* alu operations(overflow is cut down ) Todo with the SFix and UInt */
   switch(op){
     is(ALUOp.Zero){result := Zero}
     is(ALUOp.Move){result := sourceLeft} /* move the register value out */
@@ -57,7 +64,7 @@ class ALU[T <: Data with Num[T]](gen:HardType[T],numOps:Int, numRegisters:Int,
     is(ALUOp.Add){result := upDown(sourceLeft +^ sourceRight,gen.craft()).resized}
     is(ALUOp.Sub){result := upDown(sourceLeft -^ sourceRight,gen.craft()).resized} // Todo with UInt sub
     is(ALUOp.Mul){result := upDown(sourceLeft * sourceRight,gen.craft()).resized}
-    is(ALUOp.Abs){ //Todo
+    is(ALUOp.Abs){ //Todo set architecture dataType
       val sign = sourceLeft.isInstanceOf[SInt] || sourceLeft.isInstanceOf[SFix]
       if(sign){
         val abs = sourceLeft.asInstanceOf[SInt].abs

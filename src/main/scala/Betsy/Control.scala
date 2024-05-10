@@ -45,7 +45,11 @@ object AccumulatorControl{
 
 /* the local dataflow controls the data move using the kind*/
 case class LocalDataFlowControl() extends Bundle{
-  val kind = UInt(4 bits)
+  val kind = UInt(4 bits) //Todo with 4 bits
+}
+
+class LocalDataFlowControlWithSize(depth:Int) extends LocalDataFlowControl with Size{
+  val size = UInt(log2Up(depth) bits) /* add the size bundle to the local dataflow */
 }
 
 object LocalDataFlowControl{
@@ -59,6 +63,15 @@ object LocalDataFlowControl{
   def apply(kind:UInt):LocalDataFlowControl = {
     val w = LocalDataFlowControl()
     w.kind := kind
+    w
+  }
+}
+
+object LocalDataFlowControlWithSize{
+  def apply(depth: Int, kind: UInt, size: UInt): LocalDataFlowControlWithSize = {
+    val w = new LocalDataFlowControlWithSize(depth)
+    w.kind := kind
+    w.size := size
     w
   }
 }

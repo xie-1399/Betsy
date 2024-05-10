@@ -38,6 +38,27 @@ object SimTools {
     }
     buffer.toArray
   }
+
+
+  def vectorAdd(array1: Array[Int], array2: Array[Int]): Array[Int] = {
+    require(array1.length == array2.length, "array size should be equal !!!")
+    val result = new Array[Int](array1.length)
+    for (i <- array1.indices) {
+      result(i) = array1(i) + array2(i)
+    }
+    result
+  }
+
+  def matrixVecAdd(matrix:Array[Array[Int]]):Array[Int] = {
+    require(matrix.length >= 2,"vec size should > 2 !!! ")
+    val rows = matrix.length
+    var result = vectorAdd(matrix(0),matrix(1))
+    for(idx <- 2 until rows){
+      result = vectorAdd(result,matrix(idx))
+    }
+    result
+  }
+
 }
 
 /* with a stream queue simulation usage */

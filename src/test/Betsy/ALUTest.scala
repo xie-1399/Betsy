@@ -9,17 +9,16 @@ import spinal.core._
 object ALUTest extends App{
 
   /* the register pipe tested later ...*/
-  /* Todo with abs boundary QAQ */
 
   SIMCFG().compile{
-    val dut = new ALU(SInt(8 bits),numOps = 16,numRegisters = 1) /* no insert registers */
+    val dut = new ALU(SInt(16 bits),numOps = 16,numRegisters = 1) /* no insert registers */
     dut.registers.simPublic()
     dut
   }.doSimUntilVoid{
     dut =>
       dut.clockDomain.forkStimulus(10)
-      def testCase = 4096
-      def bitWidth = 8
+      def testCase = 4096 * 4
+      def bitWidth = 16
       val sign = true
       def ALUInit() = {
         dut.io.input #= 0
@@ -65,7 +64,10 @@ object ALUTest extends App{
           case 8 => assert(dut.io.output.toInt == clipValue(bitWidth,sign,sourceLeftValue + sourceRightValue),s"${dut.io.output.toInt} /= ${clipValue(bitWidth,true,sourceLeftValue + sourceRightValue)} -> Add error !!!")
           case 9 => assert(dut.io.output.toInt == clipValue(bitWidth,sign,sourceLeftValue - sourceRightValue),s"${dut.io.output.toInt} /= ${clipValue(bitWidth,sign,sourceLeftValue - sourceRightValue)} -> Sub error !!!")
           case 10 => assert(dut.io.output.toInt == clipValue(bitWidth,sign,sourceLeftValue * sourceRightValue),"Mul error !!!")
-          // case 11 => assert(dut.io.output.toInt == (sourceLeftValue.abs),s"${dut.io.output.toInt} /= ${(sourceLeftValue.abs)} -> Abs error !!!")
+          case 11 =>
+            if(sourceLeftValue.abs != math.pow(2,bitWidth - 1)){
+              assert(dut.io.output.toInt == (sourceLeftValue.abs),s"${dut.io.output.toInt} /= ${(sourceLeftValue.abs)} -> Abs error !!!")
+            }
           case 12 => assert(dut.io.output.toInt == greater.toInt,"greater error !!!")
           case 13 => assert(dut.io.output.toInt == greaterThan.toInt,"greater than error !!!")
           case 14 => assert(dut.io.output.toInt == min,"min error !!!")
