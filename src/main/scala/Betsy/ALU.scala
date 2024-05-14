@@ -37,22 +37,20 @@ class ALU[T <: Data with Num[T]](gen:HardType[T],numOps:Int, numRegisters:Int,
 
   val sourceLeft = Mux(sourceLeftInput === 0,input,registers((sourceLeftInput - U(1)).resized))
   val sourceRight = Mux(sourceRightInput === 0,input,registers((sourceLeftInput - U(1)).resized))
-
   val result = gen()
-  result := input /* default op is NoOp */
+
+  when(destInput === 0 || op === ALUOp.NoOp){
+    io.output := result
+  }.otherwise{
+    registers((sourceLeftInput - U(1)).resized) := result
+  }
   val output = if (outputPipe) RegNext(result).init(Zero) else result
   io.output := output
-
-//  when(destInput === 0 || op === ALUOp.NoOp){
-//    io.output := result
-//  }.otherwise{
-//    registers((sourceLeftInput - U(1)).resized) := result
-//  }
-
-  val dest = Demux(destInput === 0 || op === ALUOp.NoOp,io.output,registers((sourceLeftInput - U(1)).resized))
-  dest := result /* write the result into the register or io.out */
+  // val dest = Demux(destInput === 0 || op === ALUOp.NoOp,io.output,registers((sourceLeftInput - U(1)).resized))
+  // dest := result /* write the result into the register or io.out */
 
   /* alu operations(overflow is cut down ) Todo with the SFix and UInt */
+  result := input /* default op is NoOp */
   switch(op){
     is(ALUOp.Zero){result := Zero}
     is(ALUOp.Move){result := sourceLeft} /* move the register value out */

@@ -12,6 +12,26 @@ import spinal.lib._
  ** Test Status : PASS :)         Version:0.1  **
  */
 
+case class BetsyReadyValid() extends Bundle with IMasterSlave {
+  val valid = Bool()
+  val ready = Bool()
+
+  override def asMaster(): Unit = {
+    out(valid)
+    in(ready)
+  }
+
+  def fire(): Bool = this.valid && this.ready
+
+  def toStream[T <: Data](payload: T): Stream[T] = {
+    val stream = Stream(cloneOf(payload))
+    stream.valid := this.valid
+    stream.ready := this.ready
+    stream.payload := payload
+    stream
+  }
+}
+
 case class BetsyStreamPass[T <: Data](data: HardType[T]) extends Bundle with IMasterSlave {
   /* operation between in and out stream */
   val dataIn = Stream(data)

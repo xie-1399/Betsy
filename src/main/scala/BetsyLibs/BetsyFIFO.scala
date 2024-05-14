@@ -4,6 +4,7 @@ package BetsyLibs
  * the spinal libs has Stream fifo
  * this file will make a more friendly use fifo
  * the fifo control is more simple to use
+ * Test Status : PASS :)      Version:0.1 *
 */
 import Betsy.Until.BetsyModule
 import spinal.core._

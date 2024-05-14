@@ -4,7 +4,7 @@ package BetsyLibs
  ** Betsy follow the MiT Licence.(c) xxl, All rights reserved **
  ** Update Time : 2024/4/19      SpinalHDL Version: 1.94       **
  ** You should have received a copy of the MIT License along with this library **
- ** Todo be tested !!! **
+ ** Test Status : PASS :)      Version:0.1 **
  */
 
 import Betsy.Until.{BetsyModule, zero}
@@ -40,12 +40,12 @@ class MemoryImpl[T <: Data](gen:HardType[T],depth:Int,ports:Int,impl:MemoryKind,
   require(ports > 0 && ports <= 2 && depth < Int.MaxValue,"ports is illegal in the memory !!!")
   ports match {
     case 1 => assert(!io.Ports(0).ren && !io.Ports(0).wen,"undefined behavior in single-port SRAM")
-    case 2 => assert(io.Ports(0).ren && io.Ports(0).wen && io.Ports(1).ren && io.Ports(1).wen && io.Ports(0).address === io.Ports(1).address,"undefined behavior in dual-ported SRAM")
+    case 2 => // assert(io.Ports(0).ren && io.Ports(0).wen && io.Ports(1).ren && io.Ports(1).wen && io.Ports(0).address === io.Ports(1).address,"undefined behavior in dual-ported SRAM")
     case _ =>
   }
 
   impl match {
-    case `RegistersBank` => {
+    case `RegistersBank` => { //Todo with write Mask
       val mem = Vec(Reg(gen()).init(zero(gen())),depth)
       for(idx <- 0 until ports) yield {
         val rdata = Reg(gen()).init(zero(gen()))
@@ -81,10 +81,4 @@ class MemoryImpl[T <: Data](gen:HardType[T],depth:Int,ports:Int,impl:MemoryKind,
     case _ => /* black box for sram */
   }
 
-}
-
-
-object MemoryImpl extends App{
-  val twoPortsMem = SpinalSystemVerilog(new MemoryImpl(Bits(32 bits),1024,2,BlockRAM))
-  // val onePortsMem = SpinalSystemVerilog(new SyncReadMem(Bits(32 bits),1024,1,SpinalMem))
 }

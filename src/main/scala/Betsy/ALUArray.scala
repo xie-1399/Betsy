@@ -12,8 +12,6 @@ import BetsyLibs.BetsyFIFO
 import spinal.core._
 import spinal.lib._
 
-// Todo with the Alu logic
-
 class ALUArray[T <: Data with Num[T]](gen:HardType[T],arch: Architecture) extends BetsyModule{
 
   val layOut = InstructionLayOut(arch)
@@ -38,7 +36,6 @@ class ALUArray[T <: Data with Num[T]](gen:HardType[T],arch: Architecture) extend
     outputsFifo.io.push.payload(idx) := alu.io.output
   }
   io.outputs <> outputsFifo.io.pop
-
   val inputNotNeeded = io.instruction.op === ALUOp.NoOp || io.instruction.op === ALUOp.Zero ||
     (ALUOp.isUnary(io.instruction.op) && io.instruction.sourceLeft =/= 0) || (io.instruction.sourceLeft =/= 0 && io.instruction.sourceRight =/= 0)
   val inputNeeded = !inputNotNeeded
