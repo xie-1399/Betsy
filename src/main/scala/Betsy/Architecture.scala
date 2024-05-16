@@ -27,8 +27,8 @@ class SInt4(name:String = "SInt4") extends ArchitectureDataType(name){
 
 case class Architecture( dataType:ArchitectureDataType = new SInt4(),
                          arraySize:Int = 16,
-                         dram0Depth: Long = 1048576,
-                         dram1Depth: Long = 1048576,
+                         dram0Depth: Long = 1024 * 1024,
+                         dram1Depth: Long = 1024 * 1024,
                          simdRegistersDepth:Int = 1
                        ) {}
 
