@@ -25,7 +25,7 @@ class SystolicArrayControlWithSize(depth:Long) extends SystolicArrayControl with
   override val size: UInt = UInt(log2Up(depth) bits)
 }
 
-case class AccumulatorControl(depth:Long) extends Bundle{
+case class AccumulatorControl(depth:Int) extends Bundle{
   val address = UInt(log2Up(depth) bits)
   val accumulate = Bool()
   val write = Bool()

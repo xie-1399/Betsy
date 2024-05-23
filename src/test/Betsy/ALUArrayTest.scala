@@ -8,9 +8,20 @@ import spinal.core
 
 import scala.util.Random
 
-// Todo with more simd ops
+// Todo with more simd ops like not input...
 
 class ALUArrayTest extends AnyFunSuite{
+
+  test("no Input check") {
+    SIMCFG().compile {
+      val dut = new ALUArray(SInt(16 bits), Architecture(arraySize = 4))
+      dut
+    }.doSimUntilVoid {
+      dut =>
+        def testCase = 10
+        dut.clockDomain.forkStimulus(10)
+    }
+  }
 
   test("vectors add"){
     SIMCFG().compile{
@@ -18,7 +29,7 @@ class ALUArrayTest extends AnyFunSuite{
       dut
     }.doSimUntilVoid{
       dut =>
-        def testCase = 2
+        def testCases = 1024
         var index = 0
         dut.clockDomain.forkStimulus(10)
         dut.io.instruction.valid #= false
@@ -26,68 +37,66 @@ class ALUArrayTest extends AnyFunSuite{
         dut.io.outputs.ready #= false
         dut.clockDomain.waitSampling()
         val simpleAdd = fork {
-          val left = Array.fill(4) {
-            Random.nextInt(1024) - 1024
-          }
-          val right = Array.fill(4) {
-            Random.nextInt(1024) - 1024
-          }
+          while (index != testCases) {
+            val left = Array.fill(4) {
+              Random.nextInt(1024) - 1024
+            }
+            val right = Array.fill(4) {
+              Random.nextInt(1024) - 1024
+            }
+            while (!(dut.io.instruction.valid.toBoolean && dut.io.instruction.ready.toBoolean && dut.io.inputs.valid.toBoolean && dut.io.inputs.ready.toBoolean)) {
+              dut.io.outputs.ready.randomize()
+              dut.io.inputs.valid.randomize()
+              dut.io.instruction.valid.randomize()
+              dut.io.instruction.payload.op #= 8
+              dut.io.instruction.dest #= 1
 
-          dut.io.outputs.ready #= true
-          dut.io.inputs.valid #= true
-          dut.io.instruction.valid #= true
-          dut.io.instruction.payload.op #= 8
-          dut.io.instruction.dest #= 1
-          dut.io.instruction.sourceLeft #= 0
-          dut.io.instruction.sourceRight #= 1
-          dut.io.inputs.payload.zipWithIndex.map(i => i._1 #= left(i._2))
-          dut.clockDomain.waitSampling()
-          dut.io.inputs.payload.zipWithIndex.map(i => i._1 #= right(i._2))
-          dut.clockDomain.waitSampling()
+              dut.io.instruction.sourceLeft #= 0
+              dut.io.instruction.sourceRight #= 1
+              dut.io.inputs.payload.zipWithIndex.map(i => i._1 #= left(i._2))
+              dut.clockDomain.waitSampling()
+            }
+            dut.io.instruction.valid #= false
+            dut.io.inputs.valid #= false
+            dut.clockDomain.waitSampling(3) // 2 cycles for the delay and one for the fifo
+            assert(dut.io.outputs.valid.toBoolean && dut.io.outputs.ready.toBoolean && dut.io.outputs.payload.map(_.toInt).toArray.sameElements(left))
+            while (!(dut.io.instruction.valid.toBoolean && dut.io.instruction.ready.toBoolean && dut.io.inputs.valid.toBoolean && dut.io.inputs.ready.toBoolean)) {
+              dut.io.outputs.ready.randomize()
+              dut.io.inputs.valid.randomize()
+              dut.io.instruction.valid.randomize()
+              dut.io.instruction.payload.op #= 8
+              dut.io.instruction.dest #= 1
 
-          dut.io.instruction.valid #= false
-          dut.io.inputs.valid #= false
-          dut.clockDomain.waitSampling(3)
-          val res = SimTools.vectorAdd(left,right)
-          println("ref value:" + res.mkString(","))
-          dut.io.outputs.payload.map(_.toInt).toArray.foreach(print)
+              dut.io.instruction.sourceLeft #= 0
+              dut.io.instruction.sourceRight #= 1
+              dut.io.inputs.payload.zipWithIndex.map(i => i._1 #= right(i._2))
+              dut.clockDomain.waitSampling()
+            }
+            dut.io.instruction.valid #= false
+            dut.io.inputs.valid #= false
+            dut.clockDomain.waitSampling(3)
+            assert(dut.io.outputs.valid.toBoolean && dut.io.outputs.ready.toBoolean)
+            assert(dut.io.outputs.payload.map(_.toInt).toArray.sameElements(SimTools.vectorAdd(left, right)))
+
+            while (!(dut.io.instruction.valid.toBoolean && dut.io.instruction.ready.toBoolean)) { // clear the register
+              dut.io.outputs.ready.randomize()
+              dut.io.inputs.valid #= false
+              dut.io.instruction.valid.randomize()
+              dut.io.instruction.payload.op #= 1
+              dut.io.instruction.dest #= 1
+
+              dut.io.instruction.sourceLeft #= 0
+              dut.io.instruction.sourceRight #= 1
+              dut.clockDomain.waitSampling()
+            }
+            dut.io.instruction.valid #= false
+            dut.clockDomain.waitSampling(3)
+            assert(dut.io.outputs.valid.toBoolean && dut.io.outputs.ready.toBoolean)
+            assert(dut.io.outputs.payload.map(_.toInt).toArray.map(a => a == 0).reduce(_&&_))
+            index += 1
+          }
           simSuccess()
         }
-
-//        val Add = fork{
-//          while(index != testCase) {
-//            val inputs = adds(index)
-//            dut.io.instruction.valid.randomize()
-//            dut.io.inputs.valid.randomize()
-//            dut.io.outputs.ready #= true
-//            dut.io.instruction.payload.op #= 8
-//            dut.io.instruction.dest #= 1
-//            dut.io.instruction.sourceLeft #= 0
-//            dut.io.instruction.sourceRight #= 1
-//            dut.io.inputs.payload.zipWithIndex.map(i => i._1 #= inputs(i._2))
-//            dut.clockDomain.waitSampling()
-//            if(dut.io.instruction.valid.toBoolean && dut.io.instruction.ready.toBoolean && dut.io.inputs.valid.toBoolean && dut.io.inputs.ready.toBoolean){
-//              index += 1
-//            }
-//            if(dut.io.outputs.valid.toBoolean && dut.io.outputs.ready.toBoolean){
-//              addNum += 1
-//            }
-//          }
-//          while (addNum != testCase){
-//            dut.io.instruction.valid #= false
-//            dut.clockDomain.waitSampling()
-//            if (dut.io.outputs.valid.toBoolean && dut.io.outputs.ready.toBoolean) {
-//              addNum += 1
-//            }
-//          }
-//          dut.clockDomain.waitSampling(10)
-//          val ref = SimTools.matrixVecAdd(adds)
-//          ref.foreach(print)
-//          println()
-//          dut.io.outputs.payload.map(_.toInt).toArray.foreach(print)
-//          simSuccess()
-//        }
-
     }
   }
 }

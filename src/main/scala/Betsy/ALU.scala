@@ -8,9 +8,7 @@ package Betsy
  ** Test Status : PASS :)         Version:0.1**
  */
 
-import BetsyLibs.SIMCFG
 import spinal.core._
-import spinal.lib._
 import Until._
 
 class ALU[T <: Data with Num[T]](gen:HardType[T],numOps:Int, numRegisters:Int,
@@ -39,13 +37,11 @@ class ALU[T <: Data with Num[T]](gen:HardType[T],numOps:Int, numRegisters:Int,
   val sourceRight = Mux(sourceRightInput === 0,input,registers((sourceLeftInput - U(1)).resized))
   val result = gen()
 
-  when(destInput === 0 || op === ALUOp.NoOp){
-    io.output := result
-  }.otherwise{
-    registers((sourceLeftInput - U(1)).resized) := result
-  }
   val output = if (outputPipe) RegNext(result).init(Zero) else result
   io.output := output
+  when(destInput =/= 0 && op =/= ALUOp.NoOp){
+    registers((sourceLeftInput - U(1)).resized) := result
+  }
   // val dest = Demux(destInput === 0 || op === ALUOp.NoOp,io.output,registers((sourceLeftInput - U(1)).resized))
   // dest := result /* write the result into the register or io.out */
 
