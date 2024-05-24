@@ -26,7 +26,7 @@ case class BetsyReadyValid() extends Bundle with IMasterSlave {
   def toStream[T <: Data](payload: T): Stream[T] = {
     val stream = Stream(cloneOf(payload))
     stream.valid := this.valid
-    stream.ready := this.ready
+    this.ready := stream.ready
     stream.payload := payload
     stream
   }

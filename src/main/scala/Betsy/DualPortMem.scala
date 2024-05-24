@@ -19,6 +19,10 @@ case class MemControl(depth:Int,maskWidth:Int = -1) extends Bundle with Size{
   val address = UInt(log2Up(depth) bits)
   val size = UInt(log2Up(depth) bits)
   val wmask = ifGen(maskWidth != -1){Bits(maskWidth bits)}
+
+  def equal(other:MemControl):Bool = {
+    this.write === other.write && this.address === other.address && this.size === other.size
+  }
 }
 
 case class Port[T <: Data](gen:HardType[T], depth:Int,maskWidth:Int = -1) extends Bundle with IMasterSlave {

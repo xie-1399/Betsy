@@ -5,9 +5,10 @@ package BetsyLibs
  ** Update Time : 2024/5/23      SpinalHDL Version: 1.94       **
  ** You should have received a copy of the MIT License along with this library **
  ** the Vec Until contains some component about the vec operation **
+ ** Test Status : PASS :)         Version:0.1                 **
  */
 
-import Betsy.Until.{BetsyModule, upDown}
+import Betsy.Until._
 import spinal.core._
 import spinal.lib._
 
@@ -29,8 +30,4 @@ class VecAdder[T <: Data with Num[T]](gen:HardType[T],size:Int) extends BetsyMod
   io.output.valid := io.left.valid && io.right.valid
   io.left.ready := io.output.ready && io.right.valid
   io.right.ready := io.output.ready && io.left.valid
-}
-
-object VecAdder extends App{
-  SpinalSystemVerilog(new VecAdder(SInt(4 bits),4))
 }

@@ -15,5 +15,12 @@ class Accumulator[T<:Data with Num[T]](gen:T,SimdWidth:Int,depth:Int) extends Be
 
   val accumulator = new DualPortMem(gen,depth)
 
-  
+  /* two ports accumulator port A write and port B read*/
+
+  val portA = accumulator.io.portA
+  val portB = accumulator.io.portB
+
+  /* Port A*/
+  // io.dataOut <> portA.dataOut
+
 }
