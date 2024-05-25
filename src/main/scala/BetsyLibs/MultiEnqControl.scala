@@ -1,18 +1,19 @@
 package BetsyLibs
 
-/*
+ /*
  ** Betsy follow the MiT Licence.(c) xxl, All rights reserved **
  ** Update Time : 2024/5/11      SpinalHDL Version: 1.94       **
  ** You should have received a copy of the MIT License along with this library **
- ** Todo be tested...
-*/
+ ** Test Status : PASS :)         Version:0.1  **
+ */
 
 import Betsy.Until._
 import spinal.core._
 import spinal.lib._
+import spinal.lib.sim.StreamReadyRandomizer
+import scala.util.Random
 
 /* whether all signals are enqueued or not */
-
 class MultiEnqControl(size:Int) extends BetsyModule{
   require(size > 0,"multiEnq size should > 0 !!!")
 
@@ -88,7 +89,6 @@ class MultiEnqControl(size:Int) extends BetsyModule{
 
 /* demo using the Control to create 4 multi queue*/
 class MyMultiQueue(val size:Int = 4) extends BetsyModule{
-  
   val io = new Bundle{
     val into = slave(BetsyReadyValid())
     val payload0 = in Bits(3 bits)
@@ -107,22 +107,43 @@ class MyMultiQueue(val size:Int = 4) extends BetsyModule{
   io.into.ready := allIn
 }
 
-
 object MyMultiQueue extends App{
-  SpinalSystemVerilog(new MyMultiQueue())
-}
-
-
-object MultiEnqControl extends App{
   import spinal.core.sim._
-
   SIMCFG().compile{
-    val dut = new MultiEnqControl(4)
+    val dut = new MyMultiQueue()
     dut
   }.doSimUntilVoid{
     dut =>
       dut.clockDomain.forkStimulus(10)
-      simSuccess()
+      StreamReadyRandomizer(dut.io.stream0, dut.clockDomain)
+      StreamReadyRandomizer(dut.io.stream1, dut.clockDomain)
+      StreamReadyRandomizer(dut.io.stream2, dut.clockDomain)
+      StreamReadyRandomizer(dut.io.stream3, dut.clockDomain)
+      dut.io.into.valid #= false
+      dut.io.payload0.randomize()
+      dut.io.payload1.randomize()
+      dut.io.payload2.randomize()
+      dut.io.payload3.randomize()
+      dut.clockDomain.waitSampling()
+      def testCase = 1024
+      var num = 0
+      val data = Array.fill(testCase){Array.fill(4){Random.nextInt(8)}}
 
+      while (num < testCase){
+        dut.io.into.valid.randomize()
+        dut.io.payload0 #= data(num)(0)
+        dut.io.payload1 #= data(num)(1)
+        dut.io.payload2 #= data(num)(2)
+        dut.io.payload3 #= data(num)(3)
+        dut.clockDomain.waitSampling()
+        if(dut.io.into.valid.toBoolean && dut.io.into.ready.toBoolean){
+          assert(dut.io.stream0.payload.toInt == data(num)(0))
+          assert(dut.io.stream1.payload.toInt == data(num)(1))
+          assert(dut.io.stream2.payload.toInt == data(num)(2))
+          assert(dut.io.stream3.payload.toInt == data(num)(3))
+          num += 1
+        }
+      }
+      simSuccess()
   }
 }
