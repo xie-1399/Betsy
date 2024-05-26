@@ -119,7 +119,7 @@ object ConditionalReleaseLock{
     releaseLock
   }
 
-  def apply[T <: Data](gen: HardType[T], numActors: Int, maxDelay: Int) = {
+  def apply[T <: Data](gen: HardType[T], numActors: Int, maxDelay: Int): ConditionalReleaseLock[T] = {
     apply(gen, numActors, maxDelay, False, U(0), U(0), zero(gen()))
   }
 }

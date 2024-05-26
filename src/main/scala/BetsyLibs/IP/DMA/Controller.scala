@@ -4,6 +4,7 @@ import spinal.core._
 import spinal.lib._
 import spinal.lib.bus.amba3.apb.Apb3
 
+/* the controller can be define with the bus if and reg if */
 
 case class RegIf(controlDataWidth:Int) extends Bundle with IMasterSlave {
   val read = Bool()
@@ -30,7 +31,7 @@ case class BusIf(controlRegCount: Int, controlDataWidth: Int) extends Bundle wit
   }
 }
 
-/* the controller can be define with the bus if and reg if */
+
 class Controller(config:DMAConfig) extends Component {
 
   val io = new Bundle{
