@@ -36,9 +36,11 @@ class Controller(config:DMAConfig) extends Component {
 
   val io = new Bundle{
     val bus = slave(BusIf(config.controlRegCount,config.controlDataWidth))
-    // val regs =
+    // val regs = Vec(master(RegIf(config.controlDataWidth),config.controlRegCount))
   }
 
   /* add the bus interface bundle and reg interface*/
+
+
 
 }
