@@ -54,8 +54,6 @@ class LockPool[T <: Data](gen:HardType[T],numActors:Int,numLocks:Int,select:T =>
     io.locked.payload <> io.lock.payload
     io.deadlocked.valid := False /* instead of Idle*/
     io.deadlocked.payload := False
-
-    lockControl.ready := False //Todo
   }
 
 }

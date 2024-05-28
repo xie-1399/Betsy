@@ -19,6 +19,18 @@ object Until{
     val size:UInt
   }
 
+  trait Stride {
+    val stride: UInt
+  }
+
+  trait Address {
+    val address: UInt
+  }
+
+  trait Reverse{
+    val reverse:Bool
+  }
+
   case class BetsyFlow[T <: Data](flow:HardType[T]) extends Bundle{
     val transFlow = Flow(flow)
     def push(b:T) = transFlow.push(b) /* set valid and push the data in the flow */
