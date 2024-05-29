@@ -26,7 +26,6 @@ case class outputBundle() extends Bundle with Address with Size{
 
 class StrideHandlerTest extends AnyFunSuite{
   // val rtl = SpinalSystemVerilog(new StrideHandler(inGen = cloneOf(intoBundle()),outGen = cloneOf(outputBundle()),depth = 1024))
-
   test("stride handler"){
     SIMCFG().compile{
       val dut = new StrideHandler(inGen = cloneOf(intoBundle()),outGen = cloneOf(outputBundle()),depth = 1024)
@@ -36,8 +35,8 @@ class StrideHandlerTest extends AnyFunSuite{
         dut.clockDomain.forkStimulus(10)
         StreamReadyRandomizer(dut.io.output,dut.clockDomain)
         def getAddress(baseAddress: BigInt, stride: Int, size: Int, reverse: Boolean): ArrayBuffer[BigInt] = {
-          // Todo with the address list size
           val address = ArrayBuffer[BigInt]()
+          address.clear()
           dut.io.into.reverse.randomize()
           dut.io.into.valid #= false
           dut.io.into.stride.randomize()
@@ -51,20 +50,37 @@ class StrideHandlerTest extends AnyFunSuite{
           dut.io.into.stride #= stride
           dut.io.into.size #= size
           dut.io.into.address #= baseAddress
-          dut.clockDomain.waitSamplingWhere {
-            if (dut.io.output.valid.toBoolean && dut.io.output.ready.toBoolean) {
-              address += dut.io.output.address.toBigInt
-            }
-            dut.io.into.ready.toBoolean
-          }
 
+          if(size == 0){
+            dut.clockDomain.waitSamplingWhere(dut.io.into.ready.toBoolean)
+            address += dut.io.output.address.toBigInt
+            assert(dut.io.output.address.toBigInt == baseAddress)
+            assert(dut.io.output.size.toBigInt == size)
+          }else{
+            while(!(dut.io.into.ready.toBoolean && dut.io.into.valid.toBoolean)){
+              dut.clockDomain.waitSampling()
+              if (dut.io.output.valid.toBoolean && dut.io.output.ready.toBoolean && !(dut.io.into.ready.toBoolean && dut.io.into.valid.toBoolean)) {
+                address += dut.io.output.address.toBigInt
+              }
+            }
+          }
           dut.io.into.valid #= false
           dut.clockDomain.waitSampling()
           address
         }
+        def testCase = 1024
+        for (idx <- 0 until testCase){
+          val baseAddr = Random.nextInt(1024 * 1024)
+          val size = Random.nextInt(15) + 1
+          getAddress(baseAddr,0,0,false) // when the size is 0 and stride should be also 0
+          val address = getAddress(baseAddr,stride = 2,size = size,reverse = false)
+          val ref = (baseAddr until baseAddr + 4 * size by 4).toArray
+//          println(s"BASE ADDR:  ${baseAddr}")
+//          println(address.mkString(","))
+//          println(ref.mkString(","))
+          assert(address.sameElements(ref))
 
-        val address = getAddress(1000,2,5,false)
-        println(address.mkString(","))
+        }
         simSuccess()
     }
   }

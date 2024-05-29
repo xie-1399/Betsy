@@ -7,7 +7,7 @@ package Betsy
  ** You should have received a copy of the MIT License along with this library **
  ** the size is show the address stride length
  ** when the size is 4 , step is 2 -> stride 2 with 4 times
- ** Todo test... **
+ ** Test Status : PASS :)         Version:0.1  **
  */
 
 import BetsyLibs.{BetsyCounter, CountBy}
@@ -57,7 +57,7 @@ class StrideHandler[T <: Bundle with Address with Size with Stride with Reverse,
       }
     }
     when(sizeCounter.io.value.payload === io.into.size) {
-      io.into.ready.set()
+      io.into.ready := io.output.ready
       sizeCounter.io.resetValue := io.output.fire
       countBy.io.resetValue := io.output.fire
     }.otherwise {
@@ -69,7 +69,9 @@ class StrideHandler[T <: Bundle with Address with Size with Stride with Reverse,
     io.output.payload.address := Mux(io.into.reverse, io.into.address - countBy.io.value.payload, io.into.address + countBy.io.value.payload)
     io.output.valid := io.into.valid
   }
-  assert(!(io.into.size === 0 && stride > 0),"the size is 0 but stride is over 0 !!!")
+  when(io.into.valid){
+    assert(!(io.into.size === 0 && stride =/= 1),"the size is 0 but stride is over 0 !!!")
+  }
 }
 
 
