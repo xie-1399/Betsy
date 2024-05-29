@@ -30,6 +30,9 @@ case class BetsyReadyValid() extends Bundle with IMasterSlave {
     stream.payload := payload
     stream
   }
+
+  def noenq() = {this.valid := False}
+  def nodeq() = {this.ready := False}
 }
 
 case class BetsyStreamPass[T <: Data](data: HardType[T]) extends Bundle with IMasterSlave {

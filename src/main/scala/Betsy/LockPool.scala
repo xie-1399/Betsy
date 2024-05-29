@@ -49,6 +49,19 @@ class LockPool[T <: Data](gen:HardType[T],numActors:Int,numLocks:Int,select:T =>
     .init(ConditionalReleaseLock(gen,numActors,maxDelay)),numLocks)
   val actor = io.actor.map(_.dataIn)
 
+  /* get the lock from the lock controller */
+  def acquire(l: ConditionalReleaseLock[T]): Unit = {
+    when(io.lockControl.valid) {
+      l.held := io.lockControl.payload.acquire
+      l.by := io.lockControl.payload.by
+      l.cond <> io.lockControl.payload.cond
+    }
+  }
+
+  def release(l: ConditionalReleaseLock[T]): Unit = {
+    l.held := False
+  }
+
   val default = new Area {
     val block = for((a,id) <- actor.zipWithIndex) yield {
       io.actor(id).dataOut.valid := False
@@ -56,7 +69,8 @@ class LockPool[T <: Data](gen:HardType[T],numActors:Int,numLocks:Int,select:T =>
       a.ready := False
       val requiredLockId = select(a.payload)
       val requiredLock = lock(requiredLockId)
-      val blocked = (requiredLock.held && requiredLock.by =/= U(id)) || (io.lockControl.fire && io.lockControl.payload.lock === requiredLockId && io.lockControl.payload.by =/= U(id))
+      val blocked = (requiredLock.held && requiredLock.by =/= U(id)) ||
+        (io.lockControl.fire && io.lockControl.payload.lock === requiredLockId && io.lockControl.payload.by =/= U(id))
       when(!blocked) {
         io.actor(id).dataOut.connectFrom(a)
       }
@@ -66,19 +80,6 @@ class LockPool[T <: Data](gen:HardType[T],numActors:Int,numLocks:Int,select:T =>
     io.lockedControl.payload <> io.lockControl.payload
     io.deadlocked.valid := False /* instead of Idle*/
     io.deadlocked.payload := False
-  }
-
-  /* get the lock from the lock controller */
-  def acquire(l:ConditionalReleaseLock[T]):Unit = {
-    when(io.lockControl.valid){
-      l.held := io.lockControl.payload.acquire
-      l.by := io.lockControl.payload.by
-      l.cond <> io.lockControl.payload.cond
-    }
-  }
-
-  def release(l: ConditionalReleaseLock[T]): Unit = {
-    l.held := False
   }
 
   val incomingObserved = io.lockControl.valid && actor(io.lockControl.by).fire && actor(io.lockControl.by).payload === io.lockControl.cond
@@ -126,9 +127,7 @@ class LockPool[T <: Data](gen:HardType[T],numActors:Int,numLocks:Int,select:T =>
     io.deadlocked.payload.set()
     io.deadlocked.valid.set()
   }
-
 }
-
 
 object LockPool extends App{
   def select[T <: Data](a:T):UInt = U(0)

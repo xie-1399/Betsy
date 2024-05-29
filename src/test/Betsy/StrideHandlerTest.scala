@@ -24,6 +24,15 @@ case class outputBundle() extends Bundle with Address with Size{
   val payload:Bits = Bits(16 bits)
 }
 
+case class intoSize() extends Bundle with Size {
+  override val size: UInt = UInt(4 bits)
+  val payload: Bits = Bits(16 bits)
+}
+
+case class outputSize() extends Bundle {
+  val payload: Bits = Bits(16 bits)
+}
+
 class StrideHandlerTest extends AnyFunSuite{
   // val rtl = SpinalSystemVerilog(new StrideHandler(inGen = cloneOf(intoBundle()),outGen = cloneOf(outputBundle()),depth = 1024))
   test("stride handler"){
@@ -75,11 +84,43 @@ class StrideHandlerTest extends AnyFunSuite{
           getAddress(baseAddr,0,0,false) // when the size is 0 and stride should be also 0
           val address = getAddress(baseAddr,stride = 2,size = size,reverse = false)
           val ref = (baseAddr until baseAddr + 4 * size by 4).toArray
-//          println(s"BASE ADDR:  ${baseAddr}")
-//          println(address.mkString(","))
-//          println(ref.mkString(","))
+          /* println(s"BASE ADDR:  ${baseAddr}")
+          println(address.mkString(","))
+          println(ref.mkString(",")) */
           assert(address.sameElements(ref))
+        }
+        simSuccess()
+    }
+  }
 
+  /* the sizeHandler is the simple Stride Handler */
+  test("size handler") {
+    SIMCFG().compile {
+      val dut = new SizeHandler(inGen = cloneOf(intoSize()), outGen = cloneOf(outputSize()), depth = 1024)
+      dut
+    }.doSimUntilVoid {
+      dut =>
+        dut.clockDomain.forkStimulus(10)
+        StreamReadyRandomizer(dut.io.output,dut.clockDomain)
+        dut.io.into.valid #= false
+        dut.io.into.payload.randomize()
+        dut.clockDomain.waitSampling()
+
+        def testCase = 1024
+        val sizes = Array.fill(testCase){Random.nextInt(8)}
+        for(idx <- 0 until testCase){
+          var cycles = 0
+          dut.io.into.valid #= true
+          dut.io.into.size #= sizes(idx)
+          dut.clockDomain.waitSamplingWhere{
+            if(dut.io.output.ready.toBoolean && dut.io.output.valid.toBoolean && !(dut.io.into.ready.toBoolean && dut.io.into.valid.toBoolean)){
+              cycles += 1
+            }
+            dut.io.into.ready.toBoolean && dut.io.into.valid.toBoolean
+          }
+          assert(cycles == sizes(idx),s"${cycles} not match the ${sizes(idx)}!!!")
+          dut.io.into.valid #= false
+          dut.clockDomain.waitSampling()
         }
         simSuccess()
     }

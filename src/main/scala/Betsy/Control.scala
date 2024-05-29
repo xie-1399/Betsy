@@ -7,10 +7,12 @@ package Betsy
  **  **
  */
 
+import Betsy.LocalDataFlowControl._
 import spinal.core._
 import spinal.lib._
 import Until._
 
+/*=======================Systolic Array Control========================== */
 case class SystolicArrayControl() extends Bundle with IMasterSlave {
   val load = Bool()
   val zeroes = Bool()
@@ -19,7 +21,6 @@ case class SystolicArrayControl() extends Bundle with IMasterSlave {
     out(load,zeroes)
   }
 }
-
 /* add size bundle in the array */
 class SystolicArrayControlWithSize(depth:Long) extends SystolicArrayControl with Size{
   override val size: UInt = UInt(log2Up(depth) bits)
@@ -45,12 +46,14 @@ object AccumulatorControl{
   }
 }
 
+
+/*=======================Local DataFlow Control========================== */
 /* the local dataflow controls the data move using the kind*/
 case class LocalDataFlowControl() extends Bundle{
-  val kind = UInt(4 bits) //Todo with 4 bits
+  val kind = UInt(log2Up(localDataFlows.length) bits)
 }
 
-class LocalDataFlowControlWithSize(depth:Int) extends LocalDataFlowControl with Size{
+class LocalDataFlowControlWithSize(depth:Long) extends LocalDataFlowControl with Size{
   val size = UInt(log2Up(depth) bits) /* add the size bundle to the local dataflow */
 }
 
@@ -61,6 +64,7 @@ object LocalDataFlowControl{
   val accumulatorToMemory = U(0x4)
   val memoryToAccumulator = U(0x5)
   val unused = U(0x6)
+  val localDataFlows = Array(memoryToArrayWeight,memoryToArrayToAcc,arrayToAcc,accumulatorToMemory,memoryToAccumulator,unused)
 
   def apply(kind:UInt):LocalDataFlowControl = {
     val w = LocalDataFlowControl()
@@ -70,7 +74,7 @@ object LocalDataFlowControl{
 }
 
 object LocalDataFlowControlWithSize{
-  def apply(depth: Int, kind: UInt, size: UInt): LocalDataFlowControlWithSize = {
+  def apply(depth: Long, kind: UInt, size: UInt): LocalDataFlowControlWithSize = {
     val w = new LocalDataFlowControlWithSize(depth)
     w.kind := kind
     w.size := size

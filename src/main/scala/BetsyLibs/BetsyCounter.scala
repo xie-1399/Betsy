@@ -32,9 +32,11 @@ class BetsyCounter(number:Long) extends BetsyModule {
   io.value.payload := value
 }
 
-
-object BetsyCounter extends App{
-
-  val betsyCounter = SpinalSystemVerilog(new BetsyCounter(1024))
-
+object BetsyCounter{
+  def apply(number: Long): BetsyCounter = {
+    val counter = new BetsyCounter(number)
+    counter.io.value.ready := False
+    counter.io.resetValue := False
+    counter
+  }
 }
