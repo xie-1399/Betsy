@@ -46,3 +46,12 @@ class BetsyFIFO[T <: Data](gen: HardType[T], val entries: Int) extends BetsyModu
   io.push.ready := !full
   io.pop.valid := !empty
 }
+
+/* one cycles late */
+object BetsyOutFIFO{
+  def apply[T <: Data](pop: Stream[T], entries: Int): Stream[T] = {
+    val fifo = new BetsyFIFO(cloneOf(pop.payload), entries)
+    fifo.io.pop >> pop
+    fifo.io.push
+  }
+}

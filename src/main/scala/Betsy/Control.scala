@@ -53,18 +53,26 @@ case class LocalDataFlowControl() extends Bundle{
   val kind = UInt(log2Up(localDataFlows.length) bits)
 }
 
-class LocalDataFlowControlWithSize(depth:Long) extends LocalDataFlowControl with Size{
+class LocalDataFlowControlWithSize(depth:Long) extends LocalDataFlowControl() with Size{
   val size = UInt(log2Up(depth) bits) /* add the size bundle to the local dataflow */
 }
 
+/* select the dataflow and control with size */
+case class DataFlowSel(num:Int) extends Bundle{
+  val sel = UInt(log2Up(num) bits)
+}
+class DataFlowSelWithSize(num:Int,depth:Long) extends DataFlowSel(num) with Size{
+  override val size: UInt = UInt(log2Up(depth) bits)
+}
+
 object LocalDataFlowControl{
-  val memoryToArrayWeight = U(0x1)
-  val memoryToArrayToAcc = U(0x2)
-  val arrayToAcc = U(0x3)
-  val accumulatorToMemory = U(0x4)
-  val memoryToAccumulator = U(0x5)
-  val unused = U(0x6)
-  val localDataFlows = Array(memoryToArrayWeight,memoryToArrayToAcc,arrayToAcc,accumulatorToMemory,memoryToAccumulator,unused)
+  def memoryToArrayWeight = U(0x1)
+  def memoryToArrayToAcc = U(0x2)
+  def arrayToAcc = U(0x3)
+  def accumulatorToMemory = U(0x4)
+  def memoryToAccumulator = U(0x5)
+  def unused = U(0x6)
+  def localDataFlows = Array(memoryToArrayWeight,memoryToArrayToAcc,arrayToAcc,accumulatorToMemory,memoryToAccumulator,unused)
 
   def apply(kind:UInt):LocalDataFlowControl = {
     val w = LocalDataFlowControl()
@@ -82,6 +90,22 @@ object LocalDataFlowControlWithSize{
   }
 }
 
+object DataFlowSel{
+  def apply(num: Int, sel: UInt): DataFlowSel = {
+    val select = new DataFlowSel(num)
+    select.sel := sel
+    select
+  }
+}
+
+object DataFlowSelWithSize{
+  def apply(num: Int, depth: Long, sel: UInt, size: UInt): DataFlowSelWithSize = {
+    val select = new DataFlowSelWithSize(num, depth)
+    select.sel := sel
+    select.size := size
+    select
+  }
+}
 
 /*=======================Lock Control========================== */
 case class Lock(numActors:Int) extends Bundle{
