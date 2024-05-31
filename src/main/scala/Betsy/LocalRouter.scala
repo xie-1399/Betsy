@@ -7,7 +7,6 @@ package Betsy
  ** the local router control the data move between Accumulator/ Array / Scratch Pad**
  */
 
-//Todo fix all
 import Betsy.Until._
 import BetsyLibs.{BetsyStreamDemux, BetsyStreamMux}
 import spinal.core._
@@ -60,7 +59,7 @@ class LocalRouter[T <: Data](gen:HardType[T],arch:Architecture) extends BetsyMod
   }
 
   def IsWriteAcc(sel: UInt): Bool = {
-    val select = sel === LocalDataFlowControl.arrayToAcc
+    val select = sel === LocalDataFlowControl.arrayToAcc || sel === LocalDataFlowControl.memoryToAccumulator
     select
   }
 
@@ -72,40 +71,46 @@ class LocalRouter[T <: Data](gen:HardType[T],arch:Architecture) extends BetsyMod
   /* memory -> array.weight || memory -> array.input */
   val memReadStreams = new BetsyStreamDemux(gen,3)
   memReadStreams.io.InStream << io.memoryDataFlow.memOut
-  memReadStreams.io.OutStreams(0) >> io.arrayDataFlow.weight
-  memReadStreams.io.OutStreams(1) >> io.arrayDataFlow.input
+  memReadStreams.io.OutStreams(1) >> io.arrayDataFlow.weight
+  memReadStreams.io.OutStreams(2) >> io.arrayDataFlow.input
   /* array to Acc || memory -> Acc*/
   val writeAccStream = new BetsyStreamMux(gen,2)
-  writeAccStream.io.InStreams(0) << io.arrayDataFlow.output
-  writeAccStream.io.InStreams(1) << memReadStreams.io.OutStreams(2)
+  writeAccStream.io.InStreams(1) << io.arrayDataFlow.output
+  writeAccStream.io.InStreams(0) << memReadStreams.io.OutStreams(0)
   writeAccStream.io.OutStream >> io.accumulatorDataFlow.accIn
   /* acc to memory connect */
   val writeMemStream = new BetsyStreamMux(gen,2)
-  writeMemStream.io.InStreams(0) << io.accumulatorDataFlow.accOut
-  writeMemStream.io.InStreams(1).valid := False
-  writeMemStream.io.InStreams(1).payload := zero(gen())
+  writeMemStream.io.InStreams(1) << io.accumulatorDataFlow.accOut
+  writeMemStream.io.InStreams(0).valid := False
+  writeMemStream.io.InStreams(0).payload := zero(gen())
   writeMemStream.io.OutStream >> io.memoryDataFlow.memIn
 
   /* control the read and write size*/
-  val memReadSizeHandler = new SizeHandler(new LocalDataFlowControlWithSize(arch.localDepth),new DataFlowSel(3),depth = arch.localDepth)
+  val memReadSizeHandler = new SizeHandler(new LocalDataFlowControlWithSize(arch.localDepth),
+    new DataFlowSel(LocalDataFlowControl.locaDataFlowNums),depth = arch.localDepth)
   memReadSizeHandler.io.into.payload := io.control.payload
-  memReadSizeHandler.io.into.valid := io.control.valid && IsMemRead(io.control.kind)
+  memReadSizeHandler.io.into.valid := io.control.valid 
+  memReadSizeHandler.io.output.ready := memReadStreams.io.sel.ready
+  memReadStreams.io.sel.valid := memReadSizeHandler.io.output.valid && IsMemRead(io.control.sel)
+  memReadStreams.io.sel.payload := memReadSizeHandler.io.output.sel.resized
 
-  memReadStreams.io.sel.valid := memReadSizeHandler.io.output.valid
-  memReadStreams.io.sel.payload := memReadSizeHandler.io.output.sel
-
-  val writeAccSizeHandler = new SizeHandler(new LocalDataFlowControlWithSize(arch.localDepth),new DataFlowSel(2),depth = arch.localDepth)
+  val writeAccSizeHandler = new SizeHandler(new LocalDataFlowControlWithSize(arch.localDepth),
+    new DataFlowSel(LocalDataFlowControl.locaDataFlowNums),depth = arch.localDepth)
   writeAccSizeHandler.io.into.payload := io.control.payload
-  writeAccSizeHandler.io.into.valid := io.control.valid && IsWriteAcc(io.control.kind)
-  writeAccStream.io.sel.valid := writeAccSizeHandler.io.output.valid
-  writeAccStream.io.sel.payload := writeAccSizeHandler.io.output.sel
+  writeAccSizeHandler.io.into.valid := io.control.valid
+  writeAccSizeHandler.io.output.ready := writeAccStream.io.sel.ready
+  writeAccStream.io.sel.valid := writeAccSizeHandler.io.output.valid && IsWriteAcc(io.control.sel)
+  writeAccStream.io.sel.payload := writeAccSizeHandler.io.output.sel.resized
 
-  val writeMemSizeHandler = new SizeHandler(new LocalDataFlowControlWithSize(arch.localDepth),new DataFlowSel(2),depth = arch.localDepth)
+  val writeMemSizeHandler = new SizeHandler(new LocalDataFlowControlWithSize(arch.localDepth),
+    new DataFlowSel(LocalDataFlowControl.locaDataFlowNums),depth = arch.localDepth)
   writeMemSizeHandler.io.into.payload := io.control.payload
-  writeMemSizeHandler.io.into.valid := io.control.valid && IsWriteMem(io.control.kind)
-  writeMemStream.io.sel.valid := writeMemSizeHandler.io.output.valid
-  writeMemStream.io.sel.payload := writeMemSizeHandler.io.output.sel
-  io.control.ready := True // Todo
+  writeMemSizeHandler.io.into.valid := io.control.valid
+  writeMemSizeHandler.io.output.ready := writeMemStream.io.sel.ready
+  writeMemStream.io.sel.valid := writeMemSizeHandler.io.output.valid && IsWriteMem(io.control.sel)
+  writeMemStream.io.sel.payload := writeMemSizeHandler.io.output.sel.resized
+
+  io.control.ready := writeMemSizeHandler.io.into.ready || writeAccSizeHandler.io.into.ready || memReadSizeHandler.io.into.ready
 }
 
 

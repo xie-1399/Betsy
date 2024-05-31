@@ -59,6 +59,11 @@ object SimTools {
     result
   }
 
+  def StreamInit[T <: Data](stream: Stream[T]) = {
+    stream.valid #= false
+    stream.payload.randomize()
+  }
+
 }
 
 /* with a stream queue simulation usage */

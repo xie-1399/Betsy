@@ -43,31 +43,8 @@ class SizeHandler[T <: Bundle with Size, S <: Bundle](inGen: HardType[T], outGen
 }
 
 
-object SizeHandler{
-  /* shrink it */
-//  def makeSizeHandler(num: Int, dataFlowSel: Stream[UInt],
-//                      depth: Long, bufferSize: Int, size: UInt): (Stream[DataFlowSelWithSize], UInt => DataFlowSelWithSize) = {
-//    val sizeHandler = new SizeHandler(new DataFlowSelWithSize(num, depth), new DataFlowSel(num), depth)
-//    val buffer = BetsyOutFIFO(sizeHandler.io.into, bufferSize)
-//    dataFlowSel.payload := sizeHandler.io.output.payload
-//    dataFlowSel.valid := sizeHandler.io.output.valid
-//    sizeHandler.io.output.ready := dataFlowSel.ready
-//    def selectedDataflow(sel: UInt) = DataFlowSelWithSize(num = num, depth = depth, sel = sel, size = size)
-//    (buffer, selectedDataflow)
-//  }
-}
-
-
 object SizeHandlerDemo extends App{
   // test for the generate...
-  case class intoSize() extends Bundle with Size {
-    override val size: UInt = UInt(4 bits)
-    val payload:Bits = Bits(16 bits)
-  }
-
-  case class outputSize() extends Bundle{
-    val payload:Bits = Bits(16 bits)
-  }
-
-  val rtl = SpinalSystemVerilog(new SizeHandler(intoSize(),outputSize(),1024))
+  val rtl = SpinalSystemVerilog(new SizeHandler(new LocalDataFlowControlWithSize(1024),
+    new DataFlowSel(LocalDataFlowControl.locaDataFlowNums),depth = 1024))
 }
