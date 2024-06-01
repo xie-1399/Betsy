@@ -23,7 +23,7 @@ class SystolicArray[T <: Data with Num[T]](gen:HardType[T],height:Int,width:Int)
   }
 
   val array = new InnerSystolicArray(gen,height,width)
-  val arrayPropagationDelay = height + width - 1 /* load finish and get the first row result dealy */
+  val arrayPropagationDelay = height + width - 1 /* load finish and get the first row result delay */
   val outQueue = new BetsyFIFO(cloneOf(array.io.output),arrayPropagationDelay)
 
   /* control signals */

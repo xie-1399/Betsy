@@ -7,6 +7,6 @@ package Betsy
  ** integration the compute/control/datamove module in the BetsyNPU**
  */
 
-class BetsyNPU {
+class Betsy{
 
 }
