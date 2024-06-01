@@ -45,7 +45,7 @@ class MemoryImpl[T <: Data](gen:HardType[T],depth:Int,ports:Int,impl:MemoryKind,
   }
 
   impl match {
-    case `RegistersBank` => { //Todo with write Mask
+    case `RegistersBank` => { //when wen and ren at same time -> read first
       val mem = Vec(Reg(gen()).init(zero(gen())),depth)
       for(idx <- 0 until ports) yield {
         val rdata = Reg(gen()).init(zero(gen()))
@@ -80,5 +80,4 @@ class MemoryImpl[T <: Data](gen:HardType[T],depth:Int,ports:Int,impl:MemoryKind,
     }
     case _ => /* black box for sram */
   }
-
 }

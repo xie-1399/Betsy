@@ -34,10 +34,24 @@ case class Port[T <: Data](gen:HardType[T], depth:Int,maskWidth:Int = -1) extend
     master(control,dataIn)
     slave(dataOut)
   }
+
+  def blockPort() = {
+    this.dataIn.valid := False
+    this.dataIn.payload := zero(gen())
+    this.dataOut.ready := False
+    this.control.valid := False
+    this.control.payload.write := False
+    this.control.payload.address := 0
+    this.control.payload.size := 0
+    if(maskWidth != -1) this.control.payload.wmask := 0
+  }
 }
 
 class DualPortMem[T <: Data](gen:HardType[T], depth:Int,maskWidth:Int = -1
                              ) extends BetsyModule{
+
+  /* with a small fifo to store read data */
+
   val io = new Bundle{
     val portA = slave(Port(gen,depth = depth,maskWidth))
     val portB = slave(Port(gen,depth = depth,maskWidth))
@@ -48,13 +62,14 @@ class DualPortMem[T <: Data](gen:HardType[T], depth:Int,maskWidth:Int = -1
     inner.address := port.control.address
     inner.wdata := port.dataIn.payload
     if(maskWidth != -1){inner.wmask := port.control.wmask}
-    inner.wen := port.control.write && port.dataIn.valid && port.control.valid
-    inner.ren := !port.control.write && port.control.valid
+    inner.wen := port.control.write && port.dataIn.valid
+    inner.ren := !port.control.write
 
+    def readDelay = 1
     port.dataOut.payload := inner.rdata
-    port.dataOut.valid := RegNext(!port.control.write && port.control.valid).init(False)
+    port.dataOut.valid := Delay(inner.ren,readDelay).init(False)
 
-    port.control.ready := inner.wen || inner.ren
+    port.control.ready := inner.wen || (inner.ren && port.dataOut.ready)
     port.dataIn.ready := port.control.valid && port.control.write
   }
 
