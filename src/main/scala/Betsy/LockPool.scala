@@ -11,7 +11,7 @@ import spinal.core._
  ** **
  */
 
-/* actor use for the lock */
+/* actor use for the lock (Abandon)*/
 case class Actor[T <: Data](gen:HardType[T]) extends Bundle with IMasterSlave {
   val dataIn = Stream(gen)
   val dataOut = Stream(gen)

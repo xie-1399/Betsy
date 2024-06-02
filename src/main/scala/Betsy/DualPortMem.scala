@@ -37,8 +37,7 @@ case class Port[T <: Data](gen:HardType[T], depth:Int,maskWidth:Int = -1) extend
 
   def blockPort() = {
     this.dataIn.valid := False
-    this.dataIn.payload := zero(gen())
-    this.dataOut.ready := False
+    this.dataIn.payload.assignFromBits(B(0).resize(this.dataIn.payload.getBitsWidth))
     this.control.valid := False
     this.control.payload.write := False
     this.control.payload.address := 0
