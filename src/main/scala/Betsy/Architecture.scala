@@ -30,7 +30,9 @@ case class Architecture( dataType:ArchitectureDataType = new SInt4(),
                          dram0Depth: Long = 1024 * 1024,
                          dram1Depth: Long = 1024 * 1024,
                          localDepth: Long = 2048,  /* control the local router move data size */
-                         simdRegistersDepth:Int = 1
+                         simdRegistersDepth:Int = 1,
+                         pcWidth:Int = 32   /* the program counter width */
+
                        ) {}
 
 
