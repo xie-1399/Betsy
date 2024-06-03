@@ -45,7 +45,3 @@ class ALUArray[T <: Data with Num[T]](gen:HardType[T],arch: Architecture) extend
   io.instruction.ready := ((io.inputs.valid || inputNotNeeded) && io.outputs.ready)
   io.inputs.ready := io.outputs.ready && io.instruction.valid && inputNeeded
 }
-
-object ALUArray extends App{
-  SpinalSystemVerilog(new ALUArray(UInt(8 bits),Architecture())) /* 16 * ALU Array */
-}

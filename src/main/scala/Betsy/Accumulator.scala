@@ -31,8 +31,7 @@ class Accumulator[T<:Data with Num[T]](gen:HardType[T],SimdHeight:Int,depth:Int)
   portA.blockPort()
   /* Port B （just read）*/
   portB.blockPort()
-
-  val accMultiQueue = new MultiEnqControl(2) /* for the accumulate control (read + accumulate + write into) */
+  // val accMultiQueue = new MultiEnqControl(2) /* for the accumulate control (read + accumulate + write into) */
 
   val inputDemux = new BetsyStreamDemux(cloneOf(io.dataIn.payload),2)
   inputDemux.io.InStream <> io.dataIn
@@ -43,29 +42,40 @@ class Accumulator[T<:Data with Num[T]](gen:HardType[T],SimdHeight:Int,depth:Int)
   vecAdder.io.left <> inputDemux.io.OutStreams(1)
   vecAdder.io.right <> portB.dataOut
 
-  when(io.control.valid && io.control.payload.write){
-    when(io.control.payload.accumulate){
+  val inputMux = new BetsyStreamMux(cloneOf(io.dataIn.payload),2)
+  inputMux.io.InStreams(0) <> inputDemux.io.OutStreams(0)
+  inputMux.io.InStreams(1) <> vecAdder.io.output
+  inputMux.io.sel.valid := io.control.valid
+  inputMux.io.sel.payload := io.control.payload.accumulate.asUInt
+  inputMux.io.OutStream.ready := portA.dataIn.ready
+
+  when(io.control.payload.write){
+    when(io.control.payload.accumulate){ // Todo with the accumulate logic
       /* write to the port A */
-
-
+      portA.control.valid := io.control.valid
+      portA.control.payload.write := io.control.payload.write
+      portA.control.payload.address := io.control.payload.address
       /* read from the port B*/
+      portB.control.valid := io.control.valid
+      portB.control.payload.address := io.control.payload.address
+      portB.control.payload.write := io.control.payload.write
 
+      io.control.ready := True
     }.otherwise{
-      /* just write into the accumulator */
-      portA.dataIn <> inputDemux.io.OutStreams(0)
+      /* just write into the accumulator from PortA */
       portA.control.payload.address := io.control.payload.address
       portA.control.payload.write := io.control.payload.write
       portA.control.valid := io.control.valid
+      io.control.ready := portA.dataIn.fire
     }
   }.otherwise{
     /* just read from the port A */
     portA.control.valid := io.control.valid
     portA.control.payload.address := io.control.payload.address
     portA.control.payload.write := io.control.payload.write
+    io.control.ready := portA.dataOut.fire
   }
-
   io.dataOut <> portA.dataOut
-  io.control.ready := True // Todo
 }
 
 object Accumulator extends App{

@@ -134,5 +134,4 @@ object DualPortMem extends App{
       read(1024)
       simSuccess()
   }
-
 }

@@ -1,0 +1,7 @@
+package Betsy
+
+/* */
+
+class AccumulatorTest {
+
+}

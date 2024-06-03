@@ -12,33 +12,25 @@ import spinal.core._
 import spinal.lib._
 
 abstract class ArchitectureDataType(name:String){
-  def sizeBytes:Int
+  def sizeBytes:Double
   override def toString: String = name
 }
 
-class UInt4(name:String = "UInt4") extends ArchitectureDataType(name){
-  override def sizeBytes: Int = 4
-}
-
-class SInt4(name:String = "SInt4") extends ArchitectureDataType(name){
-  override def sizeBytes: Int = 4
-}
-
-
-case class Architecture( dataType:ArchitectureDataType = new SInt4(),
+case class Architecture( dataType:String = "UInt_16",
                          arraySize:Int = 16,
                          dram0Depth: Long = 1024 * 1024,
                          dram1Depth: Long = 1024 * 1024,
                          localDepth: Long = 2048,  /* control the local router move data size */
                          simdRegistersDepth:Int = 1,
-                         pcWidth:Int = 32   /* the program counter width */
+                         pcWidth:Int = 32,   /* the program counter width */
+                         numberOfThreads:Int = 1
+                       ) extends ArchitectureDataType(dataType) {
+  val dataWidth = dataType.split("_")(1).toInt
+  require(dataWidth > 0, "the data width must > 0 !!!")
+  val dataKind = dataType.split("_")(0)
+  require(dataKind == "SInt" || dataKind == "UInt", "Only Support (SInt,UInt) datatype, Please check the name!!!")
 
-                       ) {}
-
-
-case class InstructionLayOut(architecture: Architecture){
-
-  val instructionSizeBytes = 4  // Todo with Instruction width format
-  val simdOpSizeBits = log2Up(16) /* 16 ops */
-  val simdOperandSizeBits = log2Up(architecture.simdRegistersDepth + 1)
+  override def sizeBytes: Double = dataWidth / 8
 }
+
+/* add more architecture examples here */
