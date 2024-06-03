@@ -15,7 +15,7 @@ ResNet32  |    32  | 0.46M
 ResNet44  |    44  | 0.66M
 ResNet56  |    56  | 0.85M
 ResNet110 |   110  |  1.7M
-ResNet1202|  1202  | 19.4m
+ResNet1202|  1202  | 19.4M
 
 which this implementation indeed has.
 
