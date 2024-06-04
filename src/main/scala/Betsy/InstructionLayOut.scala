@@ -9,7 +9,6 @@ package Betsy
 
 /**  Instruction LayOut list like :
  **  [Opcode(4 bits)    Flags(4 bits)    Arguments(XX bits)   ]
- *   DataMove : [  Opcode = 2   Flags(dataFlow)     OP0 : Local Memory stride/address   OP1 ： Accumulator or DRAM stride/address OP2 : Size  ]
  **/
 
 import spinal.core._
@@ -32,7 +31,6 @@ case class InstructionLayOut(arch: Architecture){
   val dram0OperandSizeBits = log2Up(arch.dram0Depth)
   val dram1OperandSizeBits = log2Up(arch.dram1Depth)
   val accumulatorOperandSizeBits = log2Up(arch.accumulatorDepth)
-
   val stride0SizeBits = log2Up(arch.stride0Depth) /* like 2 or 8 */
   val stride1SizeBits = log2Up(arch.stride1Depth) /* like 2 or 8 */
 
@@ -87,7 +85,6 @@ case class InstructionLayOut(arch: Architecture){
   def genConfigLog() = {
 
   }
-
 }
 
 
@@ -102,29 +99,29 @@ object Box{
   def apply[T](value:T) = new Box(value)
 }
 
-/* ============ feed into the decode unit(Instruction format) ============*/
-case class Instruction (instWidth:Int) extends Bundle {
+/* ============ feed into the decode unit (Instruction format) ============*/
+case class InstructionFormat (instWidth:Int) extends Bundle {
   val opcode = Bits(4 bits) /* show which instruction */
   val flags = Bits(4 bits) /* flags show the behaviour */
   val arguments = Bits((instWidth - 8) bits)
 }
 
 /* create the Instruction with kinds of signals */
-object Instruction{
-  def apply(opcode: Bits, flags: Bundle, arguments: Bundle)(implicit layout: InstructionLayOut): Instruction = {
-    val inst = Instruction(layout.instructionSizeBytes * 8)
+object InstructionFormat{
+  def apply(opcode: Bits, flags: Bundle, arguments: Bundle)(implicit layout: InstructionLayOut): InstructionFormat = {
+    val inst = InstructionFormat(layout.instructionSizeBytes * 8)
     inst.opcode := opcode
     inst.flags.assignFromBits(flags.asBits)
     inst.arguments.assignFromBits(arguments.asBits)
     inst
   }
 
-  def fromBits(bit: Bits)(implicit layout: InstructionLayOut): Instruction = {
+  def fromBits(bit: Bits)(implicit layout: InstructionLayOut): InstructionFormat = {
     val width = layout.instructionSizeBytes * 8
     val opcode = bit(width - 1 downto width - 4)
     val flags = bit(width - 5 downto width - 8)
     val arguments = bit(width - 9 downto 0)
-    val inst = Instruction(layout.instructionSizeBytes * 8)
+    val inst = InstructionFormat(layout.instructionSizeBytes * 8)
     inst.opcode := opcode
     inst.flags.assignFromBits(flags.asBits)
     inst.arguments.assignFromBits(arguments.asBits)
@@ -132,35 +129,9 @@ object Instruction{
   }
 }
 
-/* ============ DataMove Instruction ============*/
-case class DataMoveArgs(layOut: InstructionLayOut) extends Bundle{
-  val size = UInt()
-
-}
-
-
-
-
-/* ============ SIMD Instruction ============*/
-
-//simd arguments
-case class SIMDArgs(layout:InstructionLayOut) extends Bundle{
-
-  val subInst = ALUInstruction(layout)
-  val accReadAddress = UInt()
-}
-//simd Flags
-case class SIMDFlags() extends Bundle{
-  val _unused = Bits(1 bits)
-  val accumulate = Bool()
-  val write = Bool()
-  val read = Bool()
-}
-
-
 
 /* the simd unit driver instruction using the ALU opcode */
-case class ALUInstruction(layout: InstructionLayOut) extends Bundle with IMasterSlave {
+case class SIMDInstruction(layout: InstructionLayOut) extends Bundle with IMasterSlave {
   val op = UInt(layout.simdOpSizeBits bits)
   val sourceLeft = UInt(layout.simdOperandSizeBits bits) // 0 = io.input, 1 = register 0, ...
   val sourceRight = UInt(layout.simdOperandSizeBits bits)
@@ -171,9 +142,9 @@ case class ALUInstruction(layout: InstructionLayOut) extends Bundle with IMaster
   }
 }
 
-object ALUInstruction{
-  def apply(op: BigInt, sourceLeft: BigInt, sourceRight: BigInt, dest: BigInt)(implicit layOut: InstructionLayOut): ALUInstruction = {
-    val aluInstruction = new ALUInstruction(layOut)
+object SIMDInstruction{
+  def apply(op: BigInt, sourceLeft: BigInt, sourceRight: BigInt, dest: BigInt)(implicit layOut: InstructionLayOut): SIMDInstruction = {
+    val aluInstruction = new SIMDInstruction(layOut)
     aluInstruction.op := op
     aluInstruction.sourceLeft := sourceLeft
     aluInstruction.sourceRight := sourceRight
@@ -181,7 +152,7 @@ object ALUInstruction{
     aluInstruction
   }
 
-  def noOp()(implicit layOut: InstructionLayOut): ALUInstruction = {
-    ALUInstruction(ALUOp.NoOp, 0, 0, 0)
+  def noOp()(implicit layOut: InstructionLayOut): SIMDInstruction = {
+    SIMDInstruction(ALUOp.NoOp, 0, 0, 0)
   }
 }

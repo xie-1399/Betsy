@@ -9,10 +9,8 @@ import BetsyLibs._
  ** Betsy follow the MiT Licence.(c) xxl, All rights reserved **
  ** Update Time : 2024/5/27      SpinalHDL Version: 1.94       **
  ** You should have received a copy of the MIT License along with this library **
- ** **
+ ** Test Status : PASS :)         Version:0.1 **
  */
-
-// looks like will work in my build way
 
 class Accumulator[T<:Data with Num[T]](gen:HardType[T],SimdHeight:Int,depth:Int) extends BetsyModule{
 
@@ -39,8 +37,12 @@ class Accumulator[T<:Data with Num[T]](gen:HardType[T],SimdHeight:Int,depth:Int)
   inputDemux.io.sel.payload := io.control.payload.accumulate.asUInt
 
   val vecAdder = new VecAdder(gen,size = SimdHeight)
-  vecAdder.io.left <> inputDemux.io.OutStreams(1).queueLowLatency(size = 2,latency = 1) /* using a delay fifo */
-  vecAdder.io.right <> portB.dataOut
+  val fifo = new BetsyFIFO(cloneOf(inputDemux.io.OutStreams(1).payload),1)
+  fifo.io.push.valid := inputDemux.io.OutStreams(1).valid && !fifo.io.pop.valid
+  fifo.io.push.payload := inputDemux.io.OutStreams(1).payload
+  inputDemux.io.OutStreams(1).ready := fifo.io.push.ready
+  vecAdder.io.left << fifo.io.pop
+  vecAdder.io.right << portB.dataOut
 
   val inputMux = new BetsyStreamMux(cloneOf(io.dataIn.payload),2)
   inputMux.io.InStreams(0) <> inputDemux.io.OutStreams(0)
@@ -52,20 +54,21 @@ class Accumulator[T<:Data with Num[T]](gen:HardType[T],SimdHeight:Int,depth:Int)
   when(io.control.payload.write){
     when(io.control.payload.accumulate){ // Todo with the accumulate logic
       /* write to the port A */
-      portA.control.valid := io.control.valid
+      portA.control.valid := vecAdder.io.output.valid
       portA.control.payload.write := io.control.payload.write
       portA.control.payload.address := io.control.payload.address
+      portA.dataIn << inputMux.io.OutStream
       /* read from the port B*/
       portB.control.valid := io.control.valid
       portB.control.payload.address := io.control.payload.address
       portB.control.payload.write := False
-
       io.control.ready := portA.dataIn.fire
     }.otherwise{
       /* just write into the accumulator from PortA */
       portA.control.payload.address := io.control.payload.address
       portA.control.payload.write := io.control.payload.write
       portA.control.valid := io.control.valid
+      portA.dataIn << inputMux.io.OutStream
       io.control.ready := portA.dataIn.fire
     }
   }.otherwise{

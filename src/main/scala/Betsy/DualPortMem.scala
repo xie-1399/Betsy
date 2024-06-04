@@ -4,7 +4,7 @@ package Betsy
  ** Betsy follow the MiT Licence.(c) xxl, All rights reserved **
  ** Update Time : 2024/4/19      SpinalHDL Version: 1.94       **
  ** You should have received a copy of the MIT License along with this library **
- ** Dual Port memory unit simple test passed !!! **
+ ** Test Status : PASS :)         Version:0.1 **
  */
 
 import Betsy.Until._
@@ -23,6 +23,11 @@ case class MemControl(depth:Int,maskWidth:Int = -1) extends Bundle with Size{
   def equal(other:MemControl):Bool = {
     this.write === other.write && this.address === other.address && this.size === other.size
   }
+}
+
+case class Status() extends Bundle{
+  val Isread = Bool()
+  val Iswrite = Bool()
 }
 
 case class Port[T <: Data](gen:HardType[T], depth:Int,maskWidth:Int = -1) extends Bundle with IMasterSlave {
@@ -66,10 +71,11 @@ class DualPortMem[T <: Data](gen:HardType[T], depth:Int,maskWidth:Int = -1
 
     def readDelay = 1
     port.dataOut.payload := inner.rdata
-    port.dataOut.valid := Delay(inner.ren,readDelay).init(False)
+    port.dataOut.valid := Delay(inner.ren && port.control.valid,readDelay).init(False)
 
     port.control.ready := inner.wen || (inner.ren && port.dataOut.ready)
     port.dataIn.ready := port.control.valid && port.control.write
+
   }
 
   val memoryImpl = new MemoryImpl(gen,depth,2,BlockRAM,maskWidth)  /* 2 ports block ram */
@@ -77,4 +83,11 @@ class DualPortMem[T <: Data](gen:HardType[T], depth:Int,maskWidth:Int = -1
   /* connect the ports */
   connectPorts(io.portA,memoryImpl.io.Ports(0))
   connectPorts(io.portB,memoryImpl.io.Ports(1))
+  val portAstatus = Status()
+  portAstatus.Isread := io.portA.control.valid && !io.portA.control.write
+  portAstatus.Iswrite := io.portA.control.valid && io.portA.control.write
+
+  val portBstatus = Status()
+  portBstatus.Isread := io.portB.control.valid && !io.portB.control.write
+  portBstatus.Iswrite := io.portB.control.valid && io.portB.control.write
 }

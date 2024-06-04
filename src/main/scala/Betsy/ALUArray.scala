@@ -17,7 +17,7 @@ class ALUArray[T <: Data with Num[T]](gen:HardType[T],arch: Architecture) extend
   val layOut = InstructionLayOut(arch)
 
   val io = new Bundle{
-    val instruction = slave(Stream(ALUInstruction(layOut)))
+    val instruction = slave(Stream(SIMDInstruction(layOut)))
     val inputs = slave(Stream(Vec(gen,arch.arraySize)))
     val outputs = master(Stream(Vec(gen,arch.arraySize)))
   }
