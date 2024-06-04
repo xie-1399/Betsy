@@ -39,7 +39,7 @@ class Accumulator[T<:Data with Num[T]](gen:HardType[T],SimdHeight:Int,depth:Int)
   inputDemux.io.sel.payload := io.control.payload.accumulate.asUInt
 
   val vecAdder = new VecAdder(gen,size = SimdHeight)
-  vecAdder.io.left <> inputDemux.io.OutStreams(1)
+  vecAdder.io.left <> inputDemux.io.OutStreams(1).queueLowLatency(size = 2,latency = 1) /* using a delay fifo */
   vecAdder.io.right <> portB.dataOut
 
   val inputMux = new BetsyStreamMux(cloneOf(io.dataIn.payload),2)
@@ -58,9 +58,9 @@ class Accumulator[T<:Data with Num[T]](gen:HardType[T],SimdHeight:Int,depth:Int)
       /* read from the port B*/
       portB.control.valid := io.control.valid
       portB.control.payload.address := io.control.payload.address
-      portB.control.payload.write := io.control.payload.write
+      portB.control.payload.write := False
 
-      io.control.ready := True
+      io.control.ready := portA.dataIn.fire
     }.otherwise{
       /* just write into the accumulator from PortA */
       portA.control.payload.address := io.control.payload.address

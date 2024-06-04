@@ -21,7 +21,10 @@ case class Architecture( dataType:String = "UInt_16",
                          dram0Depth: Long = 1024 * 1024,
                          dram1Depth: Long = 1024 * 1024,
                          localDepth: Long = 2048,  /* control the local router move data size */
+                         accumulatorDepth:Long = 512,
                          simdRegistersDepth:Int = 1,
+                         stride0Depth: Int = 1,
+                         stride1Depth: Int = 1,
                          pcWidth:Int = 32,   /* the program counter width */
                          numberOfThreads:Int = 1
                        ) extends ArchitectureDataType(dataType) {

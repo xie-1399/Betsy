@@ -21,6 +21,7 @@ case class SystolicArrayControl() extends Bundle with IMasterSlave {
     out(load,zeroes)
   }
 }
+
 /* add size bundle in the array */
 class SystolicArrayControlWithSize(depth:Long) extends SystolicArrayControl with Size{
   override val size: UInt = UInt(log2Up(depth) bits)

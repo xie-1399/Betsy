@@ -10,7 +10,8 @@ package Betsy
 import spinal.core._
 import spinal.lib._
 
-object InstOpcode {
+/* the real instruction opcode */
+object Opcode {
   val NoOp = U(0x0)
   val MatMul = U(0x1)
   val DataMove = U(0x2)
@@ -21,6 +22,8 @@ object InstOpcode {
   val all = Array(NoOp,MatMul,DataMove,LoadWeights,SIMD,Configure)
 }
 
+
+/* the sub simd instruction opcode */
 object ALUOp{
   val numOps = 16
 
@@ -53,6 +56,7 @@ object ALUOp{
     val unaryOps = Array(Move, Not, Increment, Decrement, Abs)
     unaryOps.map(op === _).reduce(_ && _)
   }
+  def allAlus = 16
 
 }
 

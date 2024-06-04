@@ -7,28 +7,81 @@ package Betsy
  ** The instruction defines (NoOp/MatMul/DataMove/LoadWeights/SIMD/Configure) here !!! **
  */
 
+/**  Instruction LayOut list like :
+ **  [Opcode(4 bits)    Flags(4 bits)    Arguments(XX bits)   ]
+ *   DataMove : [  Opcode = 2   Flags(dataFlow)     OP0 : Local Memory stride/address   OP1 ： Accumulator or DRAM stride/address OP2 : Size  ]
+ **/
+
 import spinal.core._
 import spinal.lib._
 
 /* ====== set up the instruction layout here ====== */
 case class InstructionLayOut(arch: Architecture){
-
-  def roundSizeBits(size:Int) = {
+  /* over with 8 */
+  def roundSizeBits(size: Int): Int = {
     val remainder = size % 8
-    if(remainder == 0) size else size + 8 - remainder
+    if (remainder == 0) size else size + 8 - remainder
   }
-
   val tidSizeBits = log2Up(arch.numberOfThreads)
   val opcodeSizeBits = 3
   val flagsSizeBits = 4
-  val headerSizeBits = roundSizeBits(tidSizeBits + opcodeSizeBits + flagsSizeBits)
+  val headerSizeBits = roundSizeBits(tidSizeBits + opcodeSizeBits + flagsSizeBits) /* is about 8 size if numThreads <= 2 */
 
-  //arguments here
-  val instructionSizeBytes = 4  // Todo with Instruction width format
-  val simdOpSizeBits = log2Up(16) /* 16 ops */
-  val simdOperandSizeBits = log2Up(arch.simdRegistersDepth + 1)
+  /* about address */
+  val localOperandSizeBits = log2Up(arch.localDepth)
+  val dram0OperandSizeBits = log2Up(arch.dram0Depth)
+  val dram1OperandSizeBits = log2Up(arch.dram1Depth)
+  val accumulatorOperandSizeBits = log2Up(arch.accumulatorDepth)
 
+  val stride0SizeBits = log2Up(arch.stride0Depth) /* like 2 or 8 */
+  val stride1SizeBits = log2Up(arch.stride1Depth) /* like 2 or 8 */
 
+  /* simd alu instruction */
+  val simdOpSizeBits = log2Up(ALUOp.allAlus) /* 16 sub-simd ops */
+  val simdOperandSizeBits = log2Up(arch.simdRegistersDepth + 1) /* simd register number */
+  val simdInstructionSizeBits = simdOpSizeBits + 3 * simdOperandSizeBits /* simd sub-instruction width */
+  val operand0AddressSizeBits = List(
+    localOperandSizeBits, // MatMul, DataMove, LoadWeights
+    accumulatorOperandSizeBits // SIMD
+  ).max
+  val operand0SizeBits = roundSizeBits(
+    operand0AddressSizeBits + stride0SizeBits
+  )
+  val operand0Padding =
+    operand0SizeBits - (operand0AddressSizeBits + stride0SizeBits)
+  val operand1AddressSizeBits = List(
+    localOperandSizeBits, // LoadWeights
+    dram0OperandSizeBits, // DataMove
+    dram1OperandSizeBits, // DataMove
+    accumulatorOperandSizeBits // MatMul, DataMove, SIMD
+  ).max
+  val operand1SizeBits =
+    roundSizeBits(
+      operand1AddressSizeBits + stride1SizeBits
+    )
+  val operand1Padding =
+    operand1SizeBits - (operand1AddressSizeBits + stride1SizeBits)
+  val operand2AddressSizeBits = List(
+    List(
+      localOperandSizeBits,
+      accumulatorOperandSizeBits
+    ).min, // MatMul, DataMove
+    List(localOperandSizeBits, dram0OperandSizeBits).min, // DataMove
+    List(localOperandSizeBits, dram1OperandSizeBits).min, // DataMove
+    simdInstructionSizeBits // SIMD
+  ).max
+  val operand2SizeBits =
+    roundSizeBits(
+      operand2AddressSizeBits
+    )
+  val operand2Padding = operand2SizeBits - operand2AddressSizeBits
+  val operandsSizeBits = operand0SizeBits + operand1SizeBits + operand2SizeBits
+  val instructionSizeBytes =
+    (headerSizeBits + operandsSizeBits) / 8
+
+  override def toString: String = {
+    "layout format"
+  }
 
   /* generate the NPU config log */
   def genConfigLog() = {
@@ -80,6 +133,11 @@ object Instruction{
 }
 
 /* ============ DataMove Instruction ============*/
+case class DataMoveArgs(layOut: InstructionLayOut) extends Bundle{
+  val size = UInt()
+
+}
+
 
 
 
