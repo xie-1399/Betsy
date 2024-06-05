@@ -1,12 +1,12 @@
 package Betsy
 
-import spinal.core.sim._
-
-import scala.util.Random
 import Betsy.SimTools._
 import BetsyLibs._
 import org.scalatest.funsuite.AnyFunSuite
 import spinal.core._
+import spinal.core.sim._
+
+import scala.util.Random
 
 object ALUTest extends AnyFunSuite {
 

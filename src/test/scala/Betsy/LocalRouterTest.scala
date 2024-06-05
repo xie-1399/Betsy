@@ -1,14 +1,14 @@
 package Betsy
 
+import Betsy.SimTools._
 import BetsyLibs.SIMCFG
-import Betsy.LocalRouter
 import org.scalatest.funsuite.AnyFunSuite
 import spinal.core._
 import spinal.core.sim._
 import spinal.lib.sim.StreamReadyRandomizer
-import SimTools._
-import scala.util.Random
+
 import scala.collection.mutable.ArrayBuffer
+import scala.util.Random
 
 /* the local host should test all local move cases */
 /**

@@ -2,8 +2,9 @@ package Betsy
 
 import BetsyLibs.SIMCFG
 import spinal.core._
-import scala.util.Random
 import spinal.core.sim._
+
+import scala.util.Random
 
 /* no care about the memory usage and bus interface */
 

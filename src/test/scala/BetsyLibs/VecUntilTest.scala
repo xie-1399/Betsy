@@ -3,7 +3,6 @@ package BetsyLibs
 import Betsy.SimTools
 import org.scalatest.funsuite.AnyFunSuite
 import spinal.core._
-import spinal.lib._
 import spinal.core.sim._
 import spinal.lib.sim.{StreamDriver, StreamMonitor, StreamReadyRandomizer}
 

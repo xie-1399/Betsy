@@ -14,7 +14,7 @@ import BetsyLibs._
 
 //Todo with the size?
 
-case class MemControl(depth:Int,maskWidth:Int = -1) extends Bundle with Size{
+case class MemControl(depth:Long,maskWidth:Int = -1) extends Bundle with Size{
   val write = Bool()
   val address = UInt(log2Up(depth) bits)
   val size = UInt(log2Up(depth) bits)
@@ -30,7 +30,7 @@ case class Status() extends Bundle{
   val Iswrite = Bool()
 }
 
-case class Port[T <: Data](gen:HardType[T], depth:Int,maskWidth:Int = -1) extends Bundle with IMasterSlave {
+case class Port[T <: Data](gen:HardType[T], depth:Long,maskWidth:Int = -1) extends Bundle with IMasterSlave {
   val control = Stream(MemControl(depth,maskWidth))
   val dataIn = Stream(gen)
   val dataOut = Stream(gen)
@@ -51,7 +51,7 @@ case class Port[T <: Data](gen:HardType[T], depth:Int,maskWidth:Int = -1) extend
   }
 }
 
-class DualPortMem[T <: Data](gen:HardType[T], depth:Int,maskWidth:Int = -1
+class DualPortMem[T <: Data](gen:HardType[T], depth:Long,maskWidth:Int = -1
                              ) extends BetsyModule{
 
   /* with a small fifo to store read data */

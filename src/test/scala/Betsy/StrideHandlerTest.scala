@@ -1,14 +1,14 @@
 package Betsy
 
-import spinal.core._
-import spinal.lib._
-import spinal.core.sim._
 import Betsy.Until._
 import BetsyLibs.SIMCFG
 import org.scalatest.funsuite.AnyFunSuite
+import spinal.core._
+import spinal.core.sim._
 import spinal.lib.sim.StreamReadyRandomizer
-import scala.util.Random
+
 import scala.collection.mutable.ArrayBuffer
+import scala.util.Random
 
 case class intoBundle() extends Bundle with Address with Size with Stride with Reverse{
   override val address: UInt = UInt(32 bits)

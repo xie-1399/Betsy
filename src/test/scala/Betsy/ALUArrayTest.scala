@@ -1,10 +1,9 @@
 package Betsy
 
-import org.scalatest.funsuite.AnyFunSuite
-import spinal.core.sim._
-import spinal.core._
 import BetsyLibs._
-import spinal.core
+import org.scalatest.funsuite.AnyFunSuite
+import spinal.core._
+import spinal.core.sim._
 
 import scala.util.Random
 
@@ -20,6 +19,7 @@ class ALUArrayTest extends AnyFunSuite{
       dut =>
         def testCase = 10
         dut.clockDomain.forkStimulus(10)
+        simSuccess()
     }
   }
 

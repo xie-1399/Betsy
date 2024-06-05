@@ -2,15 +2,14 @@ package Betsy
 
 /* the dual port memory should test with all cases */
 
+import Betsy.SimTools._
 import BetsyLibs.SIMCFG
-import spinal.core._
-import spinal.lib._
-import spinal.core.sim._
 import org.scalatest.funsuite.AnyFunSuite
-import SimTools._
+import spinal.core._
+import spinal.core.sim._
 
-import scala.util.Random
 import scala.collection.mutable.ArrayBuffer
+import scala.util.Random
 /* the single port write and read can not happen at same time */
 
 class DualPortMemTest extends AnyFunSuite {

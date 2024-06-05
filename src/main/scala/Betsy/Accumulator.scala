@@ -12,7 +12,7 @@ import BetsyLibs._
  ** Test Status : PASS :)         Version:0.1 **
  */
 
-class Accumulator[T<:Data with Num[T]](gen:HardType[T],SimdHeight:Int,depth:Int) extends BetsyModule{
+class Accumulator[T<:Data with Num[T]](gen:HardType[T],SimdHeight:Int,depth:Long) extends BetsyModule{
 
   val io = new Bundle{
     val dataIn = slave(Stream(Vec(gen(),SimdHeight)))
@@ -38,7 +38,7 @@ class Accumulator[T<:Data with Num[T]](gen:HardType[T],SimdHeight:Int,depth:Int)
 
   val vecAdder = new VecAdder(gen,size = SimdHeight)
   val fifo = new BetsyFIFO(cloneOf(inputDemux.io.OutStreams(1).payload),1)
-  fifo.io.push.valid := inputDemux.io.OutStreams(1).valid && !fifo.io.pop.valid
+  fifo.io.push.valid := inputDemux.io.OutStreams(1).valid && !fifo.io.pop.valid //Todo
   fifo.io.push.payload := inputDemux.io.OutStreams(1).payload
   inputDemux.io.OutStreams(1).ready := fifo.io.push.ready
   vecAdder.io.left << fifo.io.pop
@@ -52,7 +52,7 @@ class Accumulator[T<:Data with Num[T]](gen:HardType[T],SimdHeight:Int,depth:Int)
   inputMux.io.OutStream.ready := portA.dataIn.ready
 
   when(io.control.payload.write){
-    when(io.control.payload.accumulate){ // Todo with the accumulate logic
+    when(io.control.payload.accumulate){
       /* write to the port A */
       portA.control.valid := vecAdder.io.output.valid
       portA.control.payload.write := io.control.payload.write

@@ -1,14 +1,14 @@
 package Betsy
 
 import Betsy.Experimental.Matrix
+import Betsy.SimTools._
 import BetsyLibs.SIMCFG
 import org.scalatest.funsuite.AnyFunSuite
-import spinal.core
-import spinal.core.sim._
 import spinal.core._
-import SimTools._
-import scala.util.Random
+import spinal.core.sim._
+
 import scala.collection.mutable.ArrayBuffer
+import scala.util.Random
 
 class InnerSystolicArrayTest extends AnyFunSuite{
 

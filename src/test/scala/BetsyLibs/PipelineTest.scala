@@ -1,6 +1,7 @@
 package BetsyLibs
 
 import spinal.core._
+
 import scala.util.Random
 
 object PipelineTest extends App{

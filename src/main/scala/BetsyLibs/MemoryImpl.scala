@@ -20,7 +20,7 @@ object BlockRAM  extends MemoryKind
 object SRAM extends MemoryKind
 
 /* no mask usage if maskWidth == -1 ...*/
-case class InnerPort[T<:Data](gen:HardType[T],depth:Int,maskWidth:Int = -1) extends Bundle with IMasterSlave {
+case class InnerPort[T<:Data](gen:HardType[T],depth:Long,maskWidth:Int = -1) extends Bundle with IMasterSlave {
   val address = UInt(log2Up(depth) bits)
   val ren = Bool()
   val rdata = gen()
@@ -33,7 +33,7 @@ case class InnerPort[T<:Data](gen:HardType[T],depth:Int,maskWidth:Int = -1) exte
   }
 }
 
-class MemoryImpl[T <: Data](gen:HardType[T],depth:Int,ports:Int,impl:MemoryKind,maskWidth:Int = -1) extends BetsyModule{
+class MemoryImpl[T <: Data](gen:HardType[T],depth:Long,ports:Int,impl:MemoryKind,maskWidth:Int = -1) extends BetsyModule{
   val io = new Bundle{
     val Ports = Vec(slave(InnerPort(gen,depth,maskWidth)),ports)
   }
@@ -46,7 +46,7 @@ class MemoryImpl[T <: Data](gen:HardType[T],depth:Int,ports:Int,impl:MemoryKind,
 
   impl match {
     case `RegistersBank` => { //when wen and ren at same time -> read first
-      val mem = Vec(Reg(gen()).init(zero(gen())),depth)
+      val mem = Vec(Reg(gen()).init(zero(gen())),depth.toInt)
       for(idx <- 0 until ports) yield {
         val rdata = Reg(gen()).init(zero(gen()))
         io.Ports(idx).rdata := rdata

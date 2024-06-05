@@ -17,7 +17,7 @@ abstract class ArchitectureDataType(name:String){
 }
 
 case class Architecture( dataType:String = "UInt_16",
-                         arraySize:Int = 16,
+                         arraySize:Int = 16, /* the default array size is 16 * 16 */
                          dram0Depth: Long = 1024 * 1024,
                          dram1Depth: Long = 1024 * 1024,
                          localDepth: Long = 2048,  /* control the local router move data size */

@@ -1,8 +1,8 @@
 package BetsyLibs
 
 import spinal.core._
+
 import scala.util.Random
-import BetsyLibs.SIMCFG
 
 object MultiHeadedQueueTest extends App{
   import spinal.core.sim._

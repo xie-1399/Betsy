@@ -1,10 +1,10 @@
 package BetsyLibs
 
 import spinal.core._
-import BetsyLibs.SIMCFG
 
 object MultiTailedQueueTest extends App{
   import spinal.core.sim._
+
   import scala.util.Random
   SIMCFG().compile{
     val dut = new MultiTailedQueue(UInt(3 bits),64,maxpush = 4)

@@ -1,11 +1,10 @@
 package Betsy
 
 import Betsy.Experimental.Matrix
-import org.scalatest.funsuite.AnyFunSuite
-import spinal.core.sim._
-import spinal.core._
 import BetsyLibs._
-import Betsy._
+import org.scalatest.funsuite.AnyFunSuite
+import spinal.core._
+import spinal.core.sim._
 
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Random

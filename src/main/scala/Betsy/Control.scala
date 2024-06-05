@@ -27,8 +27,8 @@ class SystolicArrayControlWithSize(depth:Long) extends SystolicArrayControl with
   override val size: UInt = UInt(log2Up(depth) bits)
 }
 
-
-case class AccumulatorControl(depth:Int) extends Bundle{
+/*=======================Accumulator Control========================== */
+case class AccumulatorControl(depth:Long) extends Bundle{
   val address = UInt(log2Up(depth) bits)
   val accumulate = Bool()
   val write = Bool()
@@ -36,13 +36,45 @@ case class AccumulatorControl(depth:Int) extends Bundle{
 
 object AccumulatorControl{
   /* init Accumulator control signals */
-  def apply(depth: Int): Stream[AccumulatorControl] = {
+  def apply(depth: Long): Stream[AccumulatorControl] = {
     val control = Stream(new AccumulatorControl(depth))
     control.valid := False
     control.payload.accumulate := False
     control.payload.write := False
     control.payload.address := 0
     control
+  }
+}
+
+// with the alu control
+case class AccumulatorWithALUArrayControl(layOut: InstructionLayOut) extends Bundle{
+  val SIMDInstruction = new SIMDInstruction(layOut)
+  val readAddress = UInt(log2Up(layOut.arch.accumulatorDepth) bits)
+  val writeAddress = UInt(log2Up(layOut.arch.accumulatorDepth) bits)
+  val accumulate = Bool()
+  val write = Bool()
+  val read = Bool()
+}
+
+object AccumulatorWithALUArrayControl{
+  def apply(layOut: InstructionLayOut, SIMDInstruction: SIMDInstruction, readAddress: UInt, writeAddress: UInt,
+            read: Bool, write: Bool, accumulate: Bool): AccumulatorWithALUArrayControl = {
+    val control = AccumulatorWithALUArrayControl(layOut)
+    control.SIMDInstruction <> SIMDInstruction
+    control.readAddress := readAddress
+    control.writeAddress := writeAddress
+    control.read := read
+    control.write := write
+    control.accumulate := accumulate
+    control
+  }
+
+  def read(address: UInt)(implicit layOut: InstructionLayOut): AccumulatorWithALUArrayControl = {
+    apply(layOut, SIMDInstruction.noOp(), address, U(0).resized, True, False, False)
+  }
+
+  def write(address: UInt, accumulate: Bool = False)(implicit layOut: InstructionLayOut): AccumulatorWithALUArrayControl = {
+    apply(layOut, SIMDInstruction.noOp(), U(0).resized, address, False, True, accumulate)
   }
 }
 

@@ -1,9 +1,10 @@
 package BetsyLibs
 
+import org.scalatest.funsuite.AnyFunSuite
 import spinal.core._
 import spinal.core.sim._
+
 import scala.collection.mutable
-import org.scalatest.funsuite.AnyFunSuite
 
 class BetsyFIFOTest extends AnyFunSuite {
   test("FIFO random test") {

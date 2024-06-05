@@ -1,12 +1,11 @@
 package Betsy
 
-import scala.collection.mutable.ArrayBuffer
 import spinal.core._
 import spinal.core.sim._
 import spinal.lib._
 
 import scala.collection.mutable
-import scala.collection.mutable.Queue
+import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
 
 object SimTools {

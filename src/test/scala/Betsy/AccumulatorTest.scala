@@ -1,13 +1,13 @@
 package Betsy
 
+import Betsy.SimTools._
 import BetsyLibs.SIMCFG
 import org.scalatest.funsuite.AnyFunSuite
-import spinal.core.sim._
 import spinal.core._
-import spinal.lib._
-import SimTools._
-import scala.util.Random
+import spinal.core.sim._
 import spinal.lib.sim.StreamReadyRandomizer
+
+import scala.util.Random
 /* test 3 paths in the accumulator */
 
 class AccumulatorTest extends AnyFunSuite{
