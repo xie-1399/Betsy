@@ -38,4 +38,27 @@ case class Architecture( dataType:String = "UInt_16",
 
 /* add more architecture examples here */
 
-/* */
+/* 64 bits tiny instruction for the betsy npu */
+
+object Architecture{
+
+  def tiny(): Architecture = {
+    // 4 + 4 + 16 + 20 + 20 = 64
+    val arch = Architecture(
+      dataType = "SInt_4",
+      arraySize = 8,
+      dram0Depth = 1024 * 1024,  // 20 bits dram address
+      dram1Depth = 1024 * 1024,
+      localDepth = 8192, // 13 bits
+      accumulatorDepth = 2048,
+      simdRegistersDepth = 1,
+      stride0Depth = 8,
+      stride1Depth= 8,
+    )
+    arch
+  }
+}
+
+object ArchitectureTest extends App{
+  val layOut = InstructionLayOut(Architecture.tiny())
+}

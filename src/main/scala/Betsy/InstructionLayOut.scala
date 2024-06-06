@@ -79,13 +79,23 @@ case class InstructionLayOut(arch: Architecture){
     (headerSizeBits + operandsSizeBits) / 8
 
   override def toString: String = {
-    "layout format"
+    "Betsy Instruction Layout"
   }
 
   /* generate the NPU config log */
   def genConfigLog() = {
 
   }
+}
+
+object InstructionLayOut{
+
+  def apply(arch: Architecture): InstructionLayOut = {
+    val layOut = new InstructionLayOut(arch)
+    layOut.genConfigLog()  /* generate the log files */
+    layOut
+  }
+
 }
 
 
