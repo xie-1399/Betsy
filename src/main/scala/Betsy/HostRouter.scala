@@ -15,29 +15,6 @@ import BetsyLibs._
  ** Test Status : PASS :)         Version:0.1 **
  */
 
-case class HostDataFlowControl() extends Bundle{
-  val kind = UInt(2 bits)
-}
-
-object HostDataFlowControl{
-  def In0 = U(0x0) /* dram 0 -> to the memory*/
-  def Out0 = U(0x1) /* memory -> to the dram0 */
-  def In1 = U(0x2) /* dram 1 -> to the memory */
-  def Out1 = U(0x3) /* memory -> to the dram1 */
-  def isDataIn(kind: UInt): Bool = {
-    kind === In0 || kind === In1
-  }
-
-  def isDataOut(kind: UInt): Bool = {
-    kind === Out0 || kind === Out1
-  }
-  def apply(kind:UInt):HostDataFlowControl = {
-    val w = HostDataFlowControl()
-    w.kind := kind
-    w
-  }
-}
-
 class HostRouter[T <: Data](val gen:HardType[T]) extends BetsyModule{
   /* the stream mux lib looks like also work (update it later...) */
   val io = new Bundle{

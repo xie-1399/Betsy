@@ -78,6 +78,29 @@ object AccumulatorWithALUArrayControl{
   }
 }
 
+/*=======================Host Router Control========================== */
+case class HostDataFlowControl() extends Bundle{
+  val kind = UInt(2 bits)
+}
+
+object HostDataFlowControl{
+  def In0 = U(0x0) /* dram 0 -> to the memory*/
+  def Out0 = U(0x1) /* memory -> to the dram0 */
+  def In1 = U(0x2) /* dram 1 -> to the memory */
+  def Out1 = U(0x3) /* memory -> to the dram1 */
+  def isDataIn(kind: UInt): Bool = {
+    kind === In0 || kind === In1
+  }
+
+  def isDataOut(kind: UInt): Bool = {
+    kind === Out0 || kind === Out1
+  }
+  def apply(kind:UInt):HostDataFlowControl = {
+    val w = HostDataFlowControl()
+    w.kind := kind
+    w
+  }
+}
 
 /*=======================Local DataFlow Control========================== */
 /* the local dataflow controls the data move using the kind*/

@@ -33,7 +33,8 @@ case class InnerPort[T<:Data](gen:HardType[T],depth:Long,maskWidth:Int = -1) ext
   }
 }
 
-class MemoryImpl[T <: Data](gen:HardType[T],depth:Long,ports:Int,impl:MemoryKind,maskWidth:Int = -1) extends BetsyModule{
+class MemoryImpl[T <: Data](gen:HardType[T],depth:Long,ports:Int,
+                            impl:MemoryKind,maskWidth:Int = -1,initContent:Array[BigInt] = null) extends BetsyModule{
   val io = new Bundle{
     val Ports = Vec(slave(InnerPort(gen,depth,maskWidth)),ports)
   }
@@ -65,6 +66,9 @@ class MemoryImpl[T <: Data](gen:HardType[T],depth:Long,ports:Int,impl:MemoryKind
     }
     case `SpinalMem` => {
       val mem = Mem(gen,depth)
+      if (initContent != null) { //just for the debug usage
+        mem.initBigInt(initContent.toSeq)
+      }
       for(idx <- 0 until ports){
         io.Ports(idx).rdata := mem.readSync(io.Ports(idx).address,enable = io.Ports(idx).ren)
         mem.write(io.Ports(idx).address,io.Ports(idx).wdata,enable = io.Ports(idx).wen,mask = io.Ports(idx).wmask)
@@ -72,6 +76,9 @@ class MemoryImpl[T <: Data](gen:HardType[T],depth:Long,ports:Int,impl:MemoryKind
     }
     case `BlockRAM` => {
       val mem = Mem(gen, depth)
+      if(initContent != null){ //just for the debug usage
+        mem.initBigInt(initContent.toSeq)
+      }
       mem.addAttribute("ram_style = \"block\"")
       for (idx <- 0 until ports) {
         io.Ports(idx).rdata := mem.readSync(io.Ports(idx).address, enable = io.Ports(idx).ren)

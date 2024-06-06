@@ -8,7 +8,8 @@ package Betsy
  */
 
 /**  Instruction LayOut list like :
- **  [Opcode(4 bits)    Flags(4 bits)    Arguments(XX bits)   ]
+ **  [Opcode(4 bits)  Flags(4 bits)  Arguments(XX bits) ]
+ **
  **/
 
 import spinal.core._
@@ -35,7 +36,7 @@ case class InstructionLayOut(arch: Architecture){
   val stride1SizeBits = log2Up(arch.stride1Depth) /* like 2 or 8 */
 
   /* simd alu instruction */
-  val simdOpSizeBits = log2Up(ALUOp.allAlus) /* 16 sub-simd ops */
+  val simdOpSizeBits = log2Up(ALUOp.allAlus) /* 16 sub-simd ops -> 4 bits*/
   val simdOperandSizeBits = log2Up(arch.simdRegistersDepth + 1) /* simd register number */
   val simdInstructionSizeBits = simdOpSizeBits + 3 * simdOperandSizeBits /* simd sub-instruction width */
   val operand0AddressSizeBits = List(
@@ -89,16 +90,6 @@ case class InstructionLayOut(arch: Architecture){
 
 
 /* =============== Instruction Bundle ================= */
-/* the object with box (only get and set with the Value)*/
-class Box[T](value:T){
-  private var _value = value
-  def set(value:T) = _value = value
-  def get() = _value
-}
-object Box{
-  def apply[T](value:T) = new Box(value)
-}
-
 /* ============ feed into the decode unit (Instruction format) ============*/
 case class InstructionFormat (instWidth:Int) extends Bundle {
   val opcode = Bits(4 bits) /* show which instruction */
