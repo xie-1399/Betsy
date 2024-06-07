@@ -47,7 +47,7 @@ class Decode(arch:Architecture,pipeline:Boolean = true)(implicit layOut: Instruc
       io.dram0.valid.clear()
       io.dram0.payload.clearAll()
       io.dram1.valid.clear()
-      io.dram1.payload.clearAll()
+      io.dram1.payloadclearAll()
       io.hostDataFlow.valid.clear()
       io.hostDataFlow.payload.clearAll()
       io.memPortA.valid.clear()

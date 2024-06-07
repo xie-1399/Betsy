@@ -171,6 +171,18 @@ object Logger {
 
   }
 
+  def BetsyLogo():String= {
+    val logo =
+      """______              _
+        | _   _ \            / |_
+        |  | |_) |   .---. `-| |-'  .--.     _   __
+        |  |  __'.  / /__\\  | |   ( (`\]   [ \ [  ]
+        | _| |__) | | \__.,  | |,   `'.'.    \ '/ /
+        | _______/   '.__.'  \__/  [\__) ) [\_:  /
+        |                                   \__.'    """.stripMargin + "\n"
+    logo
+  }
+
 }
 
 class TestOutputStream extends OutputStream {
@@ -198,3 +210,4 @@ class CustomReporter extends Reporter {
     }
   }
 }
+

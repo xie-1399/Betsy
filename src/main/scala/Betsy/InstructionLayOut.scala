@@ -12,6 +12,7 @@ package Betsy
  **
  **/
 
+import BetsyLibs.Logger._
 import spinal.core._
 import spinal.lib._
 
@@ -83,23 +84,49 @@ case class InstructionLayOut(arch: Architecture){
   }
 
   /* generate the NPU config log */
-  def genConfigLog() = {
+  def genConfigLog(gen:Boolean = false) = {
+    /* write the logger format */
+    if(gen){
+      /* this log is for the architecture and instruction layout */
+      val DefaultArchPath = "log/Architecture.log"
+      val logger = CreateloggerFile(DefaultArchPath, clear = true)
+      logger.write(BetsyLogo())
+      logger.write("========= Betsy Architecture And Instruction Layout =========\n")
+      logger.write(s" Betsy Architecture Data : ${arch.dataType} \n")
+      logger.write(s" Betsy Systolic Array Size : ${arch.arraySize} × ${arch.arraySize} \n")
+      logger.write(s" Betsy DRAM0/Weight Depth : ${arch.dram0Depth} \n")
+      logger.write(s" Betsy DRAM1/Activation Depth : ${arch.dram1Depth} \n")
+      logger.write(s" Betsy ScratchPad Depth : ${arch.localDepth} \n")
+      logger.write(s" Betsy Accumulator Depth : ${arch.accumulatorDepth} \n")
+      logger.write(s" Betsy SIMD Registers Number : ${arch.simdRegistersDepth} \n")
+      logger.write(s" Betsy OP0 Stride Depth : ${arch.stride0Depth} \n")
+      logger.write(s" Betsy OP1 Stride Depth : ${arch.stride1Depth} \n")
+      logger.write(s" Betsy Program Counter Width: ${arch.pcWidth} \n")
+      logger.write(s" \n")
+
+      logger.write(s" Betsy Instruction Width: ${instructionSizeBytes} bytes => ${instructionSizeBytes * 8} bits:  \n")
+      logger.write(s" Instruction Header(Opcode + Flag) : ${headerSizeBits} bits \n")
+      logger.write(s" Operand 0 Size : ${operand0SizeBits} bits \n")
+      logger.write(s" Operand 1 Size : ${operand1SizeBits} bits \n")
+      logger.write(s" Operand 2 Size : ${operand2SizeBits} bits \n")
+
+      logger.close()
+      readFile(DefaultArchPath,logIt = true)
+    }
 
   }
 }
 
 object InstructionLayOut{
 
-  def apply(arch: Architecture): InstructionLayOut = {
+  def apply(arch: Architecture,gen:Boolean = false): InstructionLayOut = {
     val layOut = new InstructionLayOut(arch)
-    layOut.genConfigLog()  /* generate the log files */
+    layOut.genConfigLog(gen)  /* generate the log files */
     layOut
   }
-
 }
 
 
-/* =============== Instruction Bundle ================= */
 /* ============ feed into the decode unit (Instruction format) ============*/
 case class InstructionFormat (instWidth:Int) extends Bundle {
   val opcode = Bits(4 bits) /* show which instruction */

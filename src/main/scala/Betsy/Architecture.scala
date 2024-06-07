@@ -57,8 +57,23 @@ object Architecture{
     )
     arch
   }
+
+  def large():Architecture = {
+    val arch = Architecture(
+      dataType = "SInt_8",
+      arraySize = 64,
+      dram0Depth = 1024 * 1024 * 2, // 20 bits dram address
+      dram1Depth = 1024 * 1024 * 2,
+      localDepth = 8192, // 13 bits
+      accumulatorDepth = 8192,
+      simdRegistersDepth = 1,
+      stride0Depth = 8,
+      stride1Depth = 8,
+    )
+    arch
+  }
 }
 
 object ArchitectureTest extends App{
-  val layOut = InstructionLayOut(Architecture.tiny())
+  val layOut = InstructionLayOut(Architecture.large(),gen = true)
 }
