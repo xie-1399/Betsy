@@ -17,7 +17,7 @@ class Accumulator[T<:Data with Num[T]](gen:HardType[T],SimdHeight:Int,depth:Long
   val io = new Bundle{
     val dataIn = slave(Stream(Vec(gen(),SimdHeight)))
     val dataOut = master(Stream(Vec(gen(),SimdHeight)))
-    val control = slave(Stream(AccumulatorControl(depth)))
+    val control = slave(Stream(new AccumulatorControl(depth)))
   }
 
   val accumulator = new DualPortMem(Vec(gen,SimdHeight),depth)  // Todo with the bits width...

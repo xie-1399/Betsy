@@ -28,7 +28,7 @@ class SystolicArrayControlWithSize(depth:Long) extends SystolicArrayControl with
 }
 
 /*=======================Accumulator Control========================== */
-case class AccumulatorControl(depth:Long) extends Bundle{
+class AccumulatorControl(depth:Long) extends Bundle{
   val address = UInt(log2Up(depth) bits)
   val accumulate = Bool()
   val write = Bool()
@@ -79,8 +79,13 @@ object AccumulatorWithALUArrayControl{
 }
 
 /*=======================Host Router Control========================== */
-case class HostDataFlowControl() extends Bundle{
+class HostDataFlowControl() extends Bundle{
   val kind = UInt(2 bits)
+}
+
+/* control with size and host dataflow kind */
+case class HostDataFlowControlWithSize(depth:Long) extends HostDataFlowControl with Size{
+  val size = UInt(log2Up(depth) bits)
 }
 
 object HostDataFlowControl{
@@ -96,12 +101,20 @@ object HostDataFlowControl{
     kind === Out0 || kind === Out1
   }
   def apply(kind:UInt):HostDataFlowControl = {
-    val w = HostDataFlowControl()
+    val w = new HostDataFlowControl()
     w.kind := kind
     w
   }
 }
 
+object HostDataFlowControlWithSize{
+  def apply(depth: Long, kind: UInt, size: UInt): HostDataFlowControlWithSize = {
+    val hostDataFlowControlWithSize = HostDataFlowControlWithSize(depth)
+    hostDataFlowControlWithSize.kind := kind.resized
+    hostDataFlowControlWithSize.size := size.resized
+    hostDataFlowControlWithSize
+  }
+}
 /*=======================Local DataFlow Control========================== */
 /* the local dataflow controls the data move using the kind*/
 case class LocalDataFlowControl() extends Bundle{
