@@ -25,6 +25,18 @@ case class MemControl(depth:Long,maskWidth:Int = -1) extends Bundle with Size{
   }
 }
 
+class MemControlWithStride(depth:Long, strideDepth:Int,maskWidth:Int = -1) extends
+  MemControl(depth,maskWidth) with Reverse with Stride {
+
+  override val reverse = Bool()
+  override val stride = UInt(log2Up(strideDepth) bits)
+
+  def equal(other: MemControlWithStride): Bool = {
+    this.write === other.write && this.address === other.address &&
+      this.size === other.size && this.stride === other.stride && reverse === other.reverse
+  }
+}
+
 case class Status() extends Bundle{
   val Isread = Bool()
   val Iswrite = Bool()

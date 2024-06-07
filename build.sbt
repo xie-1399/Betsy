@@ -17,7 +17,8 @@ lazy val projectname = (project in file("."))
       spinalLib,
       spinalIdslPlugin,
       "org.scalatest" %% "scalatest" % "3.2.5",
-      "com.lihaoyi" %% "upickle" % "3.1.1"
+      "com.lihaoyi" %% "upickle" % "3.1.1",
+      // "org.tensorflow" % "tensorflow" % "1.15.0"
     )
   )
 

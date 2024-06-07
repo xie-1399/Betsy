@@ -48,25 +48,32 @@ object DataMoveArgs{
     argument.memAddress := memAddress.resized
     argument
   }
+
+  //from the bits to send the argument value
+  def fromBits(op0:Bits,op1:Bits,op2:Bits)(implicit layOut: InstructionLayOut): DataMoveArgs = {
+    val memAddress = op0(layOut.operand0AddressSizeBits - 1 downto 0).asUInt
+    val memStride = op0(layOut.stride0SizeBits + layOut.operand0AddressSizeBits - 1  downto layOut.operand0AddressSizeBits).asUInt
+    val accAddress = op1(layOut.operand1SizeBits- 1 downto 0).asUInt
+    val accStride = op1(layOut.stride1SizeBits + layOut.operand1AddressSizeBits - 1  downto layOut.operand1AddressSizeBits).asUInt
+    val size = op2.asUInt
+    apply(memAddress,accAddress,size,memStride,accStride)
+  }
 }
 
 case class DataMoveFlags() extends Bundle{
-  import DataMoveKind.DataMoveKind
-  val kind = DataMoveKind(UInt(4 bits))
+  val kind = UInt(4 bits)
 }
 
 object DataMoveKind {
   type DataMoveKind = UInt
-
-  val dram0ToMemory = U(0,4 bits)
-  val memoryToDram0 = U(1,4 bits)
-  val dram1ToMemory = U(2,4 bits)
-  val memoryToDram1 = U(3,4 bits)
-
+  def dram0ToMemory: UInt = U(0, 4 bits)
+  def memoryToDram0: UInt = U(1, 4 bits)
+  def dram1ToMemory: UInt = U(2, 4 bits)
+  def memoryToDram1: UInt = U(3, 4 bits)
   //update it
-  val accumulatorToMemory = U(0xc,4 bits)
-  val memoryToAccumulator = U(0xb,4 bits)
-  val memoryToAccumulatorAccumulate = U(0xa)
+  def accumulatorToMemory: UInt = U(0xc, 4 bits)
+  def memoryToAccumulator: UInt = U(0xb, 4 bits)
+  def memoryToAccumulatorAccumulate: UInt = U(0xa)
 
   val all = Array(
     dram0ToMemory,

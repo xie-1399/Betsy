@@ -12,15 +12,13 @@ import spinal.lib._
 
 /* the real instruction opcode */
 object Opcode {
-  val NoOp = B(0x0, 4 bits)
-  val MatMul = B(0x1, 4 bits)
-  val DataMove = B(0x2, 4 bits)
-  val LoadWeights = B(0x3, 4 bits)
-  val SIMD = B(0x4, 4 bits)
-
-  val Configure = B(0xF, 4 bits)
-  val all = Array(NoOp,MatMul,DataMove,LoadWeights,SIMD,Configure)
-
+  def NoOp: Bits = B(0x0, 4 bits)
+  def MatMul: Bits = B(0x1, 4 bits)
+  def DataMove: Bits = B(0x2, 4 bits)
+  def LoadWeights: Bits = B(0x3, 4 bits)
+  def SIMD: Bits = B(0x4, 4 bits)
+  def Configure: Bits = B(0xF, 4 bits)
+  def all: Array[Bits] = Array(NoOp, MatMul, DataMove, LoadWeights, SIMD, Configure)
   def Operror(op: Bits): Bool = {
     !(op === NoOp || op === MatMul || op === DataMove || op === LoadWeights || op === SIMD || op === Configure)
   }
