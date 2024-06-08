@@ -98,8 +98,16 @@ object Logger {
   }
 
   def CreateloggerFile(logpath: String = "./results.log", clear: Boolean = false) = {
+    val file = new File(logpath)
+    val parentDir = file.getParentFile
+    if (parentDir != null && !parentDir.exists()) {
+      if (parentDir.mkdirs()) {
+        println(s"Created directories: ${parentDir.getAbsolutePath}")
+      } else {
+        println(s"Failed to create directories: ${parentDir.getAbsolutePath}")
+      }
+    }
     if (clear) {
-      val file = new File(logpath)
       file.delete()
     }
     val logger = new FileWriter(logpath, true)

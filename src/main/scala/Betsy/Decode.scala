@@ -23,7 +23,7 @@ import Betsy.Until.BetsyModule
 
    **/
 
-class Decode(arch:Architecture,pipeline:Boolean = true)(implicit layOut: InstructionLayOut) extends BetsyModule{
+class Decode(arch:Architecture,Sampler:Boolean = false,pipeline:Boolean = true)(implicit layOut: InstructionLayOut) extends BetsyModule{
 
   val io = new Bundle{
     val instruction = slave Stream InstructionFormat(layOut.instructionSizeBytes * 8)
@@ -34,6 +34,7 @@ class Decode(arch:Architecture,pipeline:Boolean = true)(implicit layOut: Instruc
     val memPortB = master Stream MemControl(arch.localDepth)
     val localDataFlow = master Stream new LocalDataFlowControlWithSize(arch.localDepth)
     val error = out Bool()
+    val nop = out Bool()  /* the noOP instruction */
   }
 
     val opcode = io.instruction.opcode
@@ -47,7 +48,7 @@ class Decode(arch:Architecture,pipeline:Boolean = true)(implicit layOut: Instruc
       io.dram0.valid.clear()
       io.dram0.payload.clearAll()
       io.dram1.valid.clear()
-      io.dram1.payloadclearAll()
+      io.dram1.payload.clearAll()
       io.hostDataFlow.valid.clear()
       io.hostDataFlow.payload.clearAll()
       io.memPortA.valid.clear()
@@ -58,11 +59,17 @@ class Decode(arch:Architecture,pipeline:Boolean = true)(implicit layOut: Instruc
       io.localDataFlow.payload.clearAll()
       io.instruction.ready := False
 
+      // build the nop instruction
       val isNoOp = io.instruction.valid && io.instruction.opcode === Opcode.NoOp
-      io.instruction.ready.setWhen(isNoOp)
+      when(isNoOp){
+        io.nop := True
+        io.instruction.ready := True
+      }.otherwise{
+        io.nop := False
+      }
     }
 
-
+    //build the data move instruction path
     val DataMove = new Composite(this,"DataMove"){
       val isDataMove = io.instruction.valid && io.instruction.opcode === Opcode.DataMove
       val dataMoveArgs = DataMoveArgs.fromBits(op0,op1,op2)
@@ -72,6 +79,12 @@ class Decode(arch:Architecture,pipeline:Boolean = true)(implicit layOut: Instruc
       val DataMoveQueueControl = new MultiEnqControl(1)
       DataMoveQueueControl.block()
       val dataMoveValidError = RegInit(False).setWhen(!DataMoveKind.isValid(dataMoveFlags.kind) && isDataMove)
+
+      val dram0Gen = new MemControlWithStride(arch.dram0Depth,arch.stride1Depth)
+      val dram1Gen = new MemControlWithStride(arch.dram1Depth,arch.stride1Depth)
+      val hostDataFlowHandler = new SizeHandler(cloneOf(HostDataFlowControlWithSize(arch.localDepth)),cloneOf(new HostDataFlowControl()),arch.localDepth)
+      hostDataFlowHandler.io.output >> io.hostDataFlow
+
       import DataMoveKind._
       when(isDataMove){
         /* using the flags show */
@@ -79,6 +92,25 @@ class Decode(arch:Architecture,pipeline:Boolean = true)(implicit layOut: Instruc
           is(dram0ToMemory){ //from the DRAM0 to the memory
             // val d02mStrideHandler = new StrideHandler()
             // DataMoveQueueControl.enqueue(io.instruction.valid,io.dram0,)
+          }
+          is(memoryToDram0){
+
+          }
+          is(dram1ToMemory){
+
+          }
+
+          is(memoryToDram1){
+
+          }
+          is(accumulatorToMemory){
+
+          }
+          is(memoryToAccumulator){
+
+          }
+          is(memoryToAccumulatorAccumulate){
+
           }
 
         }

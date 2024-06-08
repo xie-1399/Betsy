@@ -119,7 +119,7 @@ case class InstructionLayOut(arch: Architecture){
 
 object InstructionLayOut{
 
-  def apply(arch: Architecture,gen:Boolean = false): InstructionLayOut = {
+  def apply(arch: Architecture,gen:Boolean = false) = {
     val layOut = new InstructionLayOut(arch)
     layOut.genConfigLog(gen)  /* generate the log files */
     layOut
