@@ -14,7 +14,7 @@ import BetsyLibs._
 
 //Todo with the size?
 
-case class MemControl(depth:Long,maskWidth:Int = -1) extends Bundle with Size{
+case class MemControl(depth:Long,maskWidth:Int = -1) extends Bundle with Size with Address{
   val write = Bool()
   val address = UInt(log2Up(depth) bits)
   val size = UInt(log2Up(depth) bits)

@@ -120,8 +120,8 @@ class SystolicArrayTest extends AnyFunSuite{
             }
             val matrixRef = refVec.flatten
             val matrixOut = outArray.flatten.toArray
-            println(matrixRef.map(_.toLong.toHexString).mkString(","))
-            println(matrixOut.map(_.toLong.toHexString).mkString(","))
+            // println(matrixRef.map(_.toLong.toHexString).mkString(","))
+            // println(matrixOut.map(_.toLong.toHexString).mkString(","))
 
             assert(matrixRef.sameElements(matrixOut), "matrix * matrix value error ")
           }

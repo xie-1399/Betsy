@@ -83,7 +83,7 @@ class LocalRouter[T <: Data](gen:HardType[T],arch:Architecture) extends BetsyMod
   val writeMemStream = new BetsyStreamMux(gen,2)
   writeMemStream.io.InStreams(1) << io.accumulatorDataFlow.accOut
   writeMemStream.io.InStreams(0).valid := False
-  writeMemStream.io.InStreams(0).payload := zero(gen())
+  writeMemStream.io.InStreams(0).payload.clearAll()
   writeMemStream.io.OutStream >> io.memoryDataFlow.memIn
 
   /* control the read and write size*/
@@ -117,5 +117,5 @@ class LocalRouter[T <: Data](gen:HardType[T],arch:Architecture) extends BetsyMod
 
 object LocalRouter extends App {
   val arch = Architecture()
-  SpinalSystemVerilog(new LocalRouter(Bits(16 bits),arch))
+  SpinalSystemVerilog(new LocalRouter(Vec(Bits(16 bits),3),arch))
 }

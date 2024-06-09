@@ -39,6 +39,13 @@ object LoadWeightArgs{
     arguments._unused.clearAll()
     arguments
   }
+
+  def fromBits(op0: Bits, op1: Bits)(implicit layOut: InstructionLayOut): LoadWeightArgs = {
+    val address = op0(layOut.operand0AddressSizeBits - 1 downto 0).asUInt
+    val stride = op0(layOut.stride0SizeBits + layOut.operand0AddressSizeBits - 1  downto layOut.operand0AddressSizeBits).asUInt
+    val size = op1.asUInt
+    apply(address, stride, size)
+  }
 }
 
 case class LoadWeightFlags() extends Bundle{
@@ -52,5 +59,9 @@ object LoadWeightFlags{
     flags.zeroes := zeroes
     flags._unused.clearAll()
     flags
+  }
+
+  def isValid(flags: Bits): Bool = {
+    flags.asUInt <= 1
   }
 }

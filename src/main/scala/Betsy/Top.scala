@@ -4,6 +4,7 @@ import spinal.core._
 import spinal.lib._
 import BetsyLibs._
 import Betsy.Until._
+
 /**
  ** Betsy follow the MiT Licence.(c) xxl, All rights reserved **
  ** Update Time : 2024/5/31      SpinalHDL Version: 1.94       **
@@ -20,21 +21,40 @@ class Top[T <: Data with Num[T]](gen:HardType[T],arch: Architecture,log:Boolean 
   require(gen().getClass.toString.split("\\.").last == arch.dataKind , "the clare data type is not match in the arch !!!")
 
   val io = new Bundle{
-    val dram0 = master(BetsyStreamPass(gen))
-    val dram1 = master(BetsyStreamPass(gen))
+    // val dram0 = master(BetsyStreamPass(gen))
+    // val dram1 = master(BetsyStreamPass(gen))
+    val instruction = slave Stream InstructionFormat(instructionLayOut.instructionSizeBytes * 8)
   }
 
-
+  val decode = new Decode(arch)(instructionLayOut)
+  decode.io.instruction << io.instruction
   // val localRouter = new LocalRouter(gen,arch)
-  val hostRouter = new HostRouter(gen)
-  val scratchPad = new DualPortMem(gen,arch.localDepth) // no mask with
-  scratchPad.io.portA.blockPort()
+  // val hostRouter = new HostRouter(gen) /* the Host Router is connected to the PortB */
+  val scratchPad = new DualPortMem(Vec(gen,arch.arraySize),arch.localDepth) // no mask with
+  scratchPad.io.portA.control << decode.io.memPortA
+  scratchPad.io.portB.blockPort()
 
-  hostRouter.io.mem.dataIn << scratchPad.io.portB.dataOut
-  hostRouter.io.mem.dataOut >> scratchPad.io.portB.dataIn
+  val systolicArray = new SystolicArray(gen,height = arch.arraySize,width = arch.arraySize)
+  val localRouter = new LocalRouter(Vec(gen,arch.arraySize),arch)
 
-  hostRouter.io.dram1 <> io.dram1
-  hostRouter.io.dram0 <> io.dram0
+  systolicArray.io.control << decode.io.systolicArrayControl
+  systolicArray.io.weight << localRouter.io.arrayDataFlow.weight
+  systolicArray.io.input << localRouter.io.arrayDataFlow.input
+  systolicArray.io.output >> localRouter.io.arrayDataFlow.output
+
+  localRouter.io.control << decode.io.localDataFlow
+  localRouter.io.memoryDataFlow.memOut << scratchPad.io.portA.dataOut
+  localRouter.io.memoryDataFlow.memIn >> scratchPad.io.portA.dataIn
+
+  localRouter.io.accumulatorDataFlow.accOut.valid := False
+  localRouter.io.accumulatorDataFlow.accIn.ready := False
+  // hostRouter.io.mem.dataIn << scratchPad.io.portB.dataOut
+  // hostRouter.io.mem.dataOut >> scratchPad.io.portB.dataIn
+  // decode.io.memPortB >> scratchPad.io.portB.control
+  // hostRouter.io.control << decode.io.hostDataFlow
+
+  // hostRouter.io.dram1 <> io.dram1
+  // hostRouter.io.dram0 <> io.dram0
 }
 
 object Top extends App{
