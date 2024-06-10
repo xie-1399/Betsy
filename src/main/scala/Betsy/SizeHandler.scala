@@ -31,7 +31,7 @@ class SizeHandler[T <: Bundle with Size, S <: Bundle](inGen: HardType[T], outGen
     }
   }
 
-  when(sizeCounter.io.value.payload === io.into.size){
+  when(sizeCounter.io.value.payload === io.into.size - 1){
     io.into.ready := io.output.ready
     sizeCounter.io.resetValue := io.output.fire
   }.otherwise{

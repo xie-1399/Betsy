@@ -122,11 +122,13 @@ class Decode(arch:Architecture,Sampler:Boolean = false)(implicit layOut: Instruc
 
 
     val LoadWeight = new Composite(this,"LoadWeight"){
+      /* load weight + load zeroes + noop  -> the weight will be loaded into the systolic array */
       /* simple instruction for just load the weight to the Array */
       val isLoad = io.instruction.valid && io.instruction.opcode === Opcode.LoadWeights
       val loadArgs = LoadWeightArgs.fromBits(op0,op1)
       val zeroes = flags(0)
       val loadError = !LoadWeightFlags.isValid(flags)
+
       val PortAstrideHandler = new StrideHandler(new MemControlWithStride(arch.localDepth,arch.stride0Depth),MemControl(arch.localDepth),arch.localDepth)
       PortAstrideHandler.io.into.valid := isLoad && !zeroes
       PortAstrideHandler.io.into.payload.stride := loadArgs.stride
@@ -142,6 +144,7 @@ class Decode(arch:Architecture,Sampler:Boolean = false)(implicit layOut: Instruc
       loadSizeHandler.io.into.load := isLoad
       loadSizeHandler.io.into.size := loadArgs.size.resized
       loadSizeHandler.io.output >> io.systolicArrayControl
+
       when(io.instruction.opcode === Opcode.LoadWeights){
         io.localDataFlow.valid := isLoad && !zeroes
         io.localDataFlow.payload.size := loadArgs.size.resized
@@ -149,7 +152,7 @@ class Decode(arch:Architecture,Sampler:Boolean = false)(implicit layOut: Instruc
         when(zeroes){
           io.instruction.ready := loadSizeHandler.io.into.ready
         }.otherwise{
-          io.instruction.ready := PortAstrideHandler.io.into.ready //Todo
+          io.instruction.ready := PortAstrideHandler.io.into.ready
         }
       }
     }

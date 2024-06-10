@@ -8,7 +8,7 @@ import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
 import BetsyLibs.Logger._
-
+import scala.math
 object SimTools {
 
   /* with clip */
@@ -37,6 +37,19 @@ object SimTools {
       }
     }
     buffer.toArray
+  }
+
+  def loadMatrixReorder(test: Array[Array[BigInt]]): ArrayBuffer[BigInt] = {
+    val testArray = new ArrayBuffer[BigInt]()
+    for (j <- 0 until test(0).length) {
+      var temp = BigInt(0)
+      for (i <- 0 until test.length) {
+        if (i == 0) temp = test(i)(j)
+        else temp += math.pow(16, i).toInt * test(i)(j)
+      }
+      testArray += temp
+    }
+    testArray
   }
 
 
@@ -110,6 +123,10 @@ object InstructionGen{
     val LoadWeightBinary = opBinary + flagsBinary + op2Binary + op1Binary + op0Binary
     val loadInst = BigInt(LoadWeightBinary, 2)
     loadInst
+  }
+
+  def NoopGen(arch:Architecture):BigInt = {
+    BigInt(0)    /* in fact only highest bit is 0 will be noop*/
   }
 
 }
