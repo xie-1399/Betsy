@@ -29,6 +29,7 @@ class LocalRouterTest extends AnyFunSuite{
       dut
     }.doSimUntilVoid{
       dut =>
+        SimTimeout(10 us)
         dut.clockDomain.forkStimulus(10)
         StreamReadyRandomizer(dut.io.memoryDataFlow.memIn,dut.clockDomain)
         StreamReadyRandomizer(dut.io.arrayDataFlow.weight,dut.clockDomain)

@@ -18,6 +18,7 @@ class InnerSystolicArrayTest extends AnyFunSuite{
   val testCase = 1024
 
   def init(dut:InnerSystolicArray[SInt]) = {
+    SimTimeout(10 us)
     dut.clockDomain.forkStimulus(10)
     dut.io.load #= false
     dut.io.input.foreach(_ #= 0)

@@ -21,7 +21,7 @@ class SystolicArrayTest extends AnyFunSuite{
 
         def VecOperation  = false
         /* init */
-        SimTimeout(1 us)
+        SimTimeout(10 us)
         dut.clockDomain.forkStimulus(10)
         dut.io.control.valid #= false
         dut.io.input.valid #= false

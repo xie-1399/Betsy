@@ -19,6 +19,7 @@ class AccumulatorTest extends AnyFunSuite{
       dut
     }.doSimUntilVoid{
       dut =>
+        SimTimeout(10 us)
         dut.clockDomain.forkStimulus(10)
         StreamReadyRandomizer(dut.io.dataOut,dut.clockDomain)
         def init() = {

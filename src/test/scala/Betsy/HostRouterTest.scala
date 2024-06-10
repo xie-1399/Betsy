@@ -14,6 +14,7 @@ object HostRouterTest extends App{
     dut
   }.doSimUntilVoid{
     dut =>
+      SimTimeout(10 us)
       dut.clockDomain.forkStimulus(10)
       dut.io.control.valid #= false
       dut.io.dram0.dataIn.valid #= false

@@ -21,7 +21,7 @@ import Betsy.Until.{BetsyModule, zero}
   this version instruction only enqueue when fire (so the instruction is blocked when before instruction not done !!!)
    **/
 
-class Decode(arch:Architecture,Sampler:Boolean = false,pipeline:Boolean = true)(implicit layOut: InstructionLayOut) extends BetsyModule{
+class Decode(arch:Architecture,Sampler:Boolean = false)(implicit layOut: InstructionLayOut) extends BetsyModule{
 
   val io = new Bundle{
     val instruction = slave Stream InstructionFormat(layOut.instructionSizeBytes * 8)

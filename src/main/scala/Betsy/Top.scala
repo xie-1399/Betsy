@@ -14,7 +14,7 @@ import Betsy.Until._
 
 /* the npu top temporal */
 
-class Top[T <: Data with Num[T]](gen:HardType[T],arch: Architecture,log:Boolean = false) extends BetsyModule{
+class Top[T <: Data with Num[T]](gen:HardType[T],arch: Architecture,log:Boolean = false,debug:Boolean = false) extends BetsyModule{
 
   val instructionLayOut = InstructionLayOut(arch,gen = log)
   require(gen.getBitsWidth == arch.dataWidth,"the clare data width is not match in the arch !!! ")
@@ -23,14 +23,15 @@ class Top[T <: Data with Num[T]](gen:HardType[T],arch: Architecture,log:Boolean 
   val io = new Bundle{
     // val dram0 = master(BetsyStreamPass(gen))
     // val dram1 = master(BetsyStreamPass(gen))
-    val instruction = slave Stream InstructionFormat(instructionLayOut.instructionSizeBytes * 8)
+    val instruction = slave Stream Bits(instructionLayOut.instructionSizeBytes * 8 bits)
   }
 
   val decode = new Decode(arch)(instructionLayOut)
-  decode.io.instruction << io.instruction
-  // val localRouter = new LocalRouter(gen,arch)
+  decode.io.instruction.payload := InstructionFormat.fromBits(io.instruction.payload)(instructionLayOut)
+  decode.io.instruction.arbitrationFrom(io.instruction)
   // val hostRouter = new HostRouter(gen) /* the Host Router is connected to the PortB */
-  val scratchPad = new DualPortMem(Vec(gen,arch.arraySize),arch.localDepth) // no mask with
+  val initContent = if(debug) (0 until arch.localDepth.toInt).toArray.map(_.toBigInt) else null
+  val scratchPad = new DualPortMem(Vec(gen,arch.arraySize),arch.localDepth,initContent = initContent) // no mask with
   scratchPad.io.portA.control << decode.io.memPortA
   scratchPad.io.portB.blockPort()
 
@@ -58,5 +59,5 @@ class Top[T <: Data with Num[T]](gen:HardType[T],arch: Architecture,log:Boolean 
 }
 
 object Top extends App{
-  SpinalSystemVerilog(new Top(SInt(4 bits),Architecture.tiny()))
+  SpinalSystemVerilog(new Top(SInt(4 bits),Architecture.tiny(),debug = true))
 }

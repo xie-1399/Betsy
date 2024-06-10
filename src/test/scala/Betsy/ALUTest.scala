@@ -18,14 +18,11 @@ object ALUTest extends AnyFunSuite {
       dut
     }.doSimUntilVoid {
       dut =>
+        SimTimeout(10 us)
         dut.clockDomain.forkStimulus(10)
-
         def testCase = 4096 * 4
-
         def bitWidth = 16
-
         val sign = true
-
         def ALUInit() = {
           dut.io.input #= 0
           dut.io.op #= 0

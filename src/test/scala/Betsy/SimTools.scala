@@ -7,6 +7,7 @@ import spinal.lib._
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
+import BetsyLibs.Logger._
 
 object SimTools {
 
@@ -85,6 +86,35 @@ class StreamQueue() {
   def toArray() = {queue.toArray}
 }
 
-object StreamQueue {
-  def apply[T <: Data]() = new StreamQueue()
+object InstructionGen{
+
+  def loadWeightGen(zero: Boolean, size: Int,
+                    stride: Int, address: Int, arch: Architecture): BigInt = {
+
+    val layOut = InstructionLayOut(arch)
+    def sizeWidth = layOut.operand1SizeBits
+    def strideWidth = layOut.stride0SizeBits
+    def addressWidth = layOut.operand0AddressSizeBits
+
+    val opcode = 3
+    val opBinary = bigintToBinaryStringWithWidth(BigInt(opcode), width = 4)
+    val flags = if (zero) 1 else 0
+    val flagsBinary = bigintToBinaryStringWithWidth(BigInt(flags), width = 4)
+
+    val addressBinary = bigintToBinaryStringWithWidth(BigInt(address), width = addressWidth)
+    val strideBinary = bigintToBinaryStringWithWidth(BigInt(stride), width = strideWidth)
+    val op0Binary = binaryStringWithWidth(strideBinary + addressBinary, width = layOut.operand0SizeBits)
+    val op1Binary = bigintToBinaryStringWithWidth(BigInt(size), width = sizeWidth)
+    val op2Binary = bigintToBinaryStringWithWidth(BigInt(0), width = layOut.operand2SizeBits)
+
+    val LoadWeightBinary = opBinary + flagsBinary + op2Binary + op1Binary + op0Binary
+    val loadInst = BigInt(LoadWeightBinary, 2)
+    loadInst
+  }
+
 }
+
+//object test extends App{
+//  println(InstructionGen.loadWeightGen(true,16,4,128,Architecture.tiny()))
+//  println(InstructionGen.loadWeightGen(false,16,4,128,Architecture.tiny()))
+//}

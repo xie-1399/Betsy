@@ -72,15 +72,15 @@ object Logger {
   }
 
   /* convert the hex string with width */
-  def HexStringWithWidth(hex: String, width: Int, fill: String = "0",left:Boolean = true): String = {
-    if (hex.length < width) {
+  def binaryStringWithWidth(bin: String, width: Int, fill: String = "0",left:Boolean = true): String = {
+    if (bin.length < width) {
       if(left){
-        fill * (width - hex.length) + hex
+        fill * (width - bin.length) + bin
       }else{
-        hex + fill * (width - hex.length)
+        bin + fill * (width - bin.length)
       }
     } else {
-      hex
+      bin
     }
   }
 

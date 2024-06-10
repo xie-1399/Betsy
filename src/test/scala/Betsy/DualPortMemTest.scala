@@ -21,6 +21,7 @@ class DualPortMemTest extends AnyFunSuite {
       dut
     }.doSimUntilVoid{
       dut =>
+        SimTimeout(10 us)
         dut.clockDomain.forkStimulus(10)
         def depth = 1024 /* the memory depth */
         def PortInit() = {

@@ -29,6 +29,7 @@ class ALUArrayTest extends AnyFunSuite{
       dut
     }.doSimUntilVoid{
       dut =>
+        SimTimeout(10 us)
         def testCases = 1024
         var index = 0
         dut.clockDomain.forkStimulus(10)
@@ -36,6 +37,7 @@ class ALUArrayTest extends AnyFunSuite{
         dut.io.inputs.valid #= false
         dut.io.outputs.ready #= false
         dut.clockDomain.waitSampling()
+
         val simpleAdd = fork {
           while (index != testCases) {
             val left = Array.fill(4) {

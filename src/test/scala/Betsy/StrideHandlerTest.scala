@@ -41,6 +41,7 @@ class StrideHandlerTest extends AnyFunSuite{
       dut
     }.doSimUntilVoid{
       dut =>
+        SimTimeout(10 us)
         dut.clockDomain.forkStimulus(10)
         StreamReadyRandomizer(dut.io.output,dut.clockDomain)
         def getAddress(baseAddress: BigInt, stride: Int, size: Int, reverse: Boolean): ArrayBuffer[BigInt] = {
@@ -100,6 +101,7 @@ class StrideHandlerTest extends AnyFunSuite{
       dut
     }.doSimUntilVoid {
       dut =>
+        SimTimeout(10 us)
         dut.clockDomain.forkStimulus(10)
         StreamReadyRandomizer(dut.io.output,dut.clockDomain)
         dut.io.into.valid #= false

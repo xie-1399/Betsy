@@ -16,6 +16,7 @@ class MACTest extends AnyFunSuite {
       dut
     }.doSimUntilVoid {
       dut =>
+        SimTimeout(10 us)
         dut.clockDomain.forkStimulus(10)
         def width = 8
         def sign = true

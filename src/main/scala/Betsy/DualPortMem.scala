@@ -63,7 +63,7 @@ case class Port[T <: Data](gen:HardType[T], depth:Long,maskWidth:Int = -1) exten
   }
 }
 
-class DualPortMem[T <: Data](gen:HardType[T], depth:Long,maskWidth:Int = -1
+class DualPortMem[T <: Data](gen:HardType[T], depth:Long,maskWidth:Int = -1,initContent:Array[BigInt] = null
                              ) extends BetsyModule{
 
   /* with a small fifo to store read data */
@@ -90,7 +90,7 @@ class DualPortMem[T <: Data](gen:HardType[T], depth:Long,maskWidth:Int = -1
 
   }
 
-  val memoryImpl = new MemoryImpl(gen,depth,2,BlockRAM,maskWidth)  /* 2 ports block ram */
+  val memoryImpl = new MemoryImpl(gen,depth,2,BlockRAM,maskWidth,initContent)  /* 2 ports block ram */
 
   /* connect the ports */
   connectPorts(io.portA,memoryImpl.io.Ports(0))
