@@ -31,6 +31,32 @@ class SizeHandler[T <: Bundle with Size, S <: Bundle](inGen: HardType[T], outGen
     }
   }
 
+  when(sizeCounter.io.value.payload === io.into.size){
+    io.into.ready := io.output.ready
+    sizeCounter.io.resetValue := io.output.fire
+  }.otherwise{
+    io.into.ready := False
+    sizeCounter.io.value.ready := io.output.fire
+  }
+
+  io.output.valid := io.into.valid
+}
+
+class LoadSizeHandler[T <: Bundle with Size, S <: Bundle](inGen: HardType[T], outGen: HardType[S], depth: Long) extends BetsyModule{
+
+  val io = new Bundle{
+    val into = slave Stream inGen()
+    val output = master Stream outGen()
+  }
+  val sizeCounter = BetsyCounter(depth)
+  for (outelem <- io.output.payload.elements) {
+    for (inelem <- io.into.payload.elements) {
+      if (outelem._1 == inelem._1){
+        outelem._2 := inelem._2 // connect same name bundles
+      }
+    }
+  }
+
   when(sizeCounter.io.value.payload === io.into.size - 1){
     io.into.ready := io.output.ready
     sizeCounter.io.resetValue := io.output.fire
@@ -41,6 +67,7 @@ class SizeHandler[T <: Bundle with Size, S <: Bundle](inGen: HardType[T], outGen
 
   io.output.valid := io.into.valid
 }
+
 
 
 object SizeHandlerDemo extends App{

@@ -138,7 +138,7 @@ class Decode(arch:Architecture,Sampler:Boolean = false)(implicit layOut: Instruc
       PortAstrideHandler.io.into.payload.reverse := False
       PortAstrideHandler.io.output >> io.memPortA
 
-      val loadSizeHandler = new SizeHandler(new SystolicArrayControlWithSize(arch.localDepth),SystolicArrayControl(),arch.localDepth)
+      val loadSizeHandler = new LoadSizeHandler(new SystolicArrayControlWithSize(arch.localDepth),SystolicArrayControl(),arch.localDepth)
       loadSizeHandler.io.into.valid := isLoad
       loadSizeHandler.io.into.zeroes := zeroes
       loadSizeHandler.io.into.load := isLoad
