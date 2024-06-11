@@ -129,9 +129,25 @@ object InstructionGen{
     BigInt(0)    /* in fact only highest bit is 0 will be noop*/
   }
 
+  def configureGen(register:Int,value:BigInt,arch: Architecture):BigInt = {
+    // pc = 10 / runcycles = 9
+    val layOut = InstructionLayOut(arch)
+    val opcode = 15
+    val flags = 0
+    val opBinary = bigintToBinaryStringWithWidth(BigInt(opcode), width = 4)
+    val flagsBinary = bigintToBinaryStringWithWidth(BigInt(flags), width = 4)
+    val op0Binary = bigintToBinaryStringWithWidth(BigInt(register),width = layOut.operand0SizeBits)
+    val op1Binary = bigintToBinaryStringWithWidth(value,width = layOut.operand1SizeBits)
+    val op2Binary = bigintToBinaryStringWithWidth(BigInt(0),width = layOut.operand2SizeBits)
+
+    val configureBinary = opBinary + flagsBinary + op2Binary + op1Binary + op0Binary
+    val configureInst = BigInt(configureBinary,2)
+    configureInst
+  }
+
 }
 
-//object test extends App{
-//  println(InstructionGen.loadWeightGen(true,16,4,128,Architecture.tiny()))
-//  println(InstructionGen.loadWeightGen(false,16,4,128,Architecture.tiny()))
-//}
+object test extends App{
+  // println(InstructionGen.loadWeightGen(true,16,4,128,Architecture.tiny()))
+  println(InstructionGen.configureGen(9,0,Architecture.tiny()))
+}

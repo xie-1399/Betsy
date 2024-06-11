@@ -14,7 +14,8 @@ package Betsy.Instruction
  ** Argument list :
  ** OP0 is Register number
  ** OP1 Value
- ** for example :  Todo add instruction example
+ ** for example :   the instruction width is 4 + 4 + 16(just padding) + 24(value) + 16(register number)
+ ** 1111 0000 0000000000000000 000000000000000000000000 0000000000001001 (set the register 9 to value 0)
  **/
 
 /* the object with box (only get and set with the Value)*/
@@ -49,7 +50,6 @@ object ConfigureArgs{
 }
 
 
-
 object Configure {
   val dram0AddressOffset  = U(0x0, 4 bits)
   val dram0CacheBehaviour = U(0x1, 4 bits)
@@ -58,8 +58,12 @@ object Configure {
   val dram1CacheBehaviour = U(0x5, 4 bits)
 
   // unused 0x06-0x07
-  // val timeout        = 0x08
-  // val tracepoint     = 0x09
-  // val programCounter = 0x0a.U
-  // val sampleInterval = 0x0b.U
+  val runningCycles = U(0x9,4 bits)
+  val programCounter = U(0xa, 4 bits)
+  val sampleInterval = U(0xb, 4 bits)
+
+  def isValid(register:UInt) = {
+    (register === dram0AddressOffset) || (register === dram0CacheBehaviour) || (register === dram1CacheBehaviour) ||
+      (register === dram1AddressOffset) || register === runningCycles || register === programCounter || register === sampleInterval
+  }
 }

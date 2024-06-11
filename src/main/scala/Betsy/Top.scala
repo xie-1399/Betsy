@@ -14,7 +14,7 @@ import Betsy.Until._
 
 /* the npu top temporal */
 
-class Top[T <: Data with Num[T]](gen:HardType[T],arch: Architecture,log:Boolean = false,debug:Boolean = false) extends BetsyModule{
+class Top[T <: Data with Num[T]](gen:HardType[T],arch: Architecture,log:Boolean = false,initContent:Array[BigInt] = null) extends BetsyModule{
 
   val instructionLayOut = InstructionLayOut(arch,gen = log)
   require(gen.getBitsWidth == arch.dataWidth,"the clare data width is not match in the arch !!! ")
@@ -30,7 +30,6 @@ class Top[T <: Data with Num[T]](gen:HardType[T],arch: Architecture,log:Boolean 
   decode.io.instruction.payload := InstructionFormat.fromBits(io.instruction.payload)(instructionLayOut)
   decode.io.instruction.arbitrationFrom(io.instruction)
   // val hostRouter = new HostRouter(gen) /* the Host Router is connected to the PortB */
-  val initContent = if(debug) (0 until arch.localDepth.toInt).toArray.map(_.toBigInt) else null
   val scratchPad = new DualPortMem(Vec(gen,arch.arraySize),arch.localDepth,initContent = initContent) // no mask with
   scratchPad.io.portA.control << decode.io.memPortA
   scratchPad.io.portB.blockPort()
@@ -59,5 +58,5 @@ class Top[T <: Data with Num[T]](gen:HardType[T],arch: Architecture,log:Boolean 
 }
 
 object Top extends App{
-  SpinalSystemVerilog(new Top(SInt(4 bits),Architecture.tiny(),debug = true))
+  SpinalSystemVerilog(new Top(SInt(4 bits),Architecture.tiny()))
 }

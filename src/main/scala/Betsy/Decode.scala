@@ -13,13 +13,13 @@ import spinal.core._
 import spinal.lib._
 import Betsy._
 import BetsyLibs._
-import Betsy.Instruction.{DataMoveArgs, DataMoveFlags, DataMoveKind, LoadWeightArgs, LoadWeightFlags}
+import Betsy.Instruction._
 import Betsy.Until.{BetsyModule, zero}
 
-   /**
-  Decode test order : NoOp -> DataMove -> LoadWeight -> MatMul -> Configure -> SIMD
-  this version instruction only enqueue when fire (so the instruction is blocked when before instruction not done !!!)
-   **/
+/** Decode test order : NoOp -> DataMove -> LoadWeight -> MatMul -> Configure -> SIMD
+    this version instruction only enqueue when fire (so the instruction is blocked when before instruction not done !!!)
+
+ **/
 
 class Decode(arch:Architecture,Sampler:Boolean = false)(implicit layOut: InstructionLayOut) extends BetsyModule{
 
@@ -35,7 +35,18 @@ class Decode(arch:Architecture,Sampler:Boolean = false)(implicit layOut: Instruc
     val systolicArrayControl = master Stream SystolicArrayControl()
     val error = out Bool()
     val nop = out Bool()  /* the noOP instruction */
+    val pc = out(UInt(arch.pcWidth bits))
   }
+
+    val pc = Reg(UInt(arch.pcWidth bits)).init(0)
+    when(io.instruction.fire){
+      pc := pc + layOut.instructionSizeBytes /* 8 or 4 bytes better */
+    }
+
+    val runCycles = Reg(UInt(64 bits)).init(0)
+    when(io.instruction.valid){
+      runCycles := runCycles + 1
+    }
 
     val opcode = io.instruction.opcode
     val flags = io.instruction.flags
@@ -70,7 +81,7 @@ class Decode(arch:Architecture,Sampler:Boolean = false)(implicit layOut: Instruc
     }
 
     //build the data move instruction path
-    val DataMove = new Composite(this,"DataMove"){
+    val dataMove = new Composite(this,"DataMove"){
 //      val isDataMove = io.instruction.valid && io.instruction.opcode === Opcode.DataMove
 //      val dataMoveArgs = DataMoveArgs.fromBits(op0,op1,op2)
 //      val dataMoveFlags = DataMoveFlags()
@@ -121,13 +132,13 @@ class Decode(arch:Architecture,Sampler:Boolean = false)(implicit layOut: Instruc
     }
 
 
-    val LoadWeight = new Composite(this,"LoadWeight"){
+    val loadWeight = new Composite(this,"LoadWeight"){
       /* load weight + load zeroes + noop  -> the weight will be loaded into the systolic array */
       /* simple instruction for just load the weight to the Array */
       val isLoad = io.instruction.valid && io.instruction.opcode === Opcode.LoadWeights
       val loadArgs = LoadWeightArgs.fromBits(op0,op1)
       val zeroes = flags(0)
-      val loadError = !LoadWeightFlags.isValid(flags)
+      val loadError = isLoad && !LoadWeightFlags.isValid(flags)
 
       val PortAstrideHandler = new StrideHandler(new MemControlWithStride(arch.localDepth,arch.stride0Depth),MemControl(arch.localDepth),arch.localDepth)
       PortAstrideHandler.io.into.valid := isLoad && !zeroes
@@ -161,8 +172,26 @@ class Decode(arch:Architecture,Sampler:Boolean = false)(implicit layOut: Instruc
 
     }
 
-    val Configure = new Composite(this,"Configure"){
+    val configure = new Composite(this,"Configure"){
+      import Configure._
+      /* the configure instruction is used to configure some regs in the NPU */
+      val isConfigure = io.instruction.valid && io.instruction.opcode === Opcode.Configure
+      val configureArgs = ConfigureArgs(op1,op0)
+      val configureError = !isValid(op0.asUInt)
 
+      when(isConfigure){
+        switch(configureArgs.register.asUInt){
+          is(programCounter){
+            pc := configureArgs.value.asUInt.resized
+            io.instruction.ready := True
+          }
+          is(runningCycles){
+            runCycles := configureArgs.value.asUInt.resized
+            io.instruction.ready := True
+          }
+          // Todo add more registers
+        }
+      }
     }
 
     val SIMD = new Composite(this,"SIMD"){
@@ -170,10 +199,12 @@ class Decode(arch:Architecture,Sampler:Boolean = false)(implicit layOut: Instruc
     }
 
   val HasError = RegInit(False).setWhen(
-    (io.instruction.valid && Opcode.Operror(io.instruction.opcode)) || LoadWeight.loadError
+    io.instruction.valid && Opcode.Operror(io.instruction.opcode) || loadWeight.loadError || configure.configureError
       // DataMove.dataMoveValidError
   )
-    io.error := HasError
+
+  io.error := HasError
+  io.pc := pc
 }
 
 object Decode extends App{

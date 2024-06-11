@@ -19,7 +19,8 @@ import Betsy._
  ** OP0 Local Memory stride/address（with padding unused to arrive time * 8）
  ** OP1 is load size
  ** No Op2
- ** for example :  Todo add instruction example
+ ** for example :  the instruction width is 4 + 4 + 16(just padding) + 24(size likely) + 16(13 + 3)
+ ** 0011 0000 0000000000000000 000000000000000000010000 1000000010000000 (from the address 126 load 16 data with stride 4 into the )
  **/
 
 
