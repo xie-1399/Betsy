@@ -63,6 +63,17 @@ class BetsyStreamMux[T<:Data](val gen:HardType[T],val num:Int) extends BetsyModu
   io.OutStream.valid := selectStream.valid && io.sel.valid
 }
 
+object BetsyStreamMux{
+  /* two streams */
+  def apply[T <: Data](in0: Stream[T], in1: Stream[T], out: Stream[T]): Stream[UInt] = {
+    val mux = new BetsyStreamMux(cloneOf(in0.payload), 2)
+    mux.io.InStreams(0) << in0
+    mux.io.InStreams(1) << in1
+    mux.io.OutStream >> out
+    mux.io.sel
+  }
+}
+
 class BetsyStreamDemux[T <: Data](val gen:HardType[T],val num:Int) extends BetsyModule{
   /* from one stream with Multi streams out(select by the sel stream ) */
   val io = new Bundle {
@@ -81,6 +92,24 @@ class BetsyStreamDemux[T <: Data](val gen:HardType[T],val num:Int) extends Betsy
   io.InStream.ready := io.sel.valid && selectStream.ready
   io.sel.ready := io.InStream.valid && selectStream.ready
 }
+
+object BetsyStreamDemux{
+  def apply[T <: Data](in: Stream[T], out0: Stream[T], out1: Stream[T]): Stream[UInt] = {
+    val demux = new BetsyStreamDemux(cloneOf(in.payload), 2)
+    demux.io.InStream << in
+    demux.io.OutStreams(0) >> out0
+    demux.io.OutStreams(1) >> out1
+    demux.io.sel
+  }
+}
+
+class Sink[T <: Data](gen:HardType[T]) extends BetsyModule{
+  val io = new Bundle{
+    val into = slave Stream gen
+  }
+  io.into.ready := True /* when the stream coming always fire */
+}
+
 
 class BetsyStreamDelay[T<:Data](gen:HardType[T],cycles:Int) extends BetsyModule{
   val io = new Bundle{
