@@ -27,6 +27,7 @@ class DecodeTest extends AnyFunSuite{
       val dut = new Top(SInt(4 bits),arch,initContent = (0 until arch.localDepth.toInt).toArray.map(_.toBigInt))
       dut.systolicArray.io.weight.simPublic()
       dut.systolicArray.array.mac.foreach(_.foreach(_.weight.simPublic()))
+      dut.systolicArray.array.bias.simPublic()
       dut
     }.doSimUntilVoid {
       dut =>
@@ -53,7 +54,6 @@ class DecodeTest extends AnyFunSuite{
               dut.io.instruction.valid #= true
               dut.io.instruction.payload #= InstructionGen.loadWeightGen(true, 1, 0, 0, Architecture.tiny()) //load zeroes
               dut.clockDomain.waitSamplingWhere(dut.io.instruction.ready.toBoolean)
-
               dut.io.instruction.valid #= true
               dut.io.instruction.payload #= InstructionGen.NoopGen(Architecture.tiny())
               dut.clockDomain.waitSamplingWhere(dut.io.instruction.ready.toBoolean)
@@ -75,10 +75,10 @@ class DecodeTest extends AnyFunSuite{
                 val ref = Range(address,address + size * step,step).toArray
                 assert(ref.sameElements(testArray),"load the value error!!!")
               }
+              assert(dut.systolicArray.array.bias.map(_.toBigInt == 0).reduce(_&&_), "the bias is not zero")
             }
           }
         }
-
         init(dut)
         loadWeight(1024)
         simSuccess()

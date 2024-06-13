@@ -51,16 +51,16 @@ object ConfigureArgs{
 
 
 object Configure {
-  val dram0AddressOffset  = U(0x0, 4 bits)
-  val dram0CacheBehaviour = U(0x1, 4 bits)
+  def dram0AddressOffset  = U(0x0, 4 bits)
+  def dram0CacheBehaviour = U(0x1, 4 bits)
   // unused 0x02-0x03
-  val dram1AddressOffset  = U(0x4, 4 bits)
-  val dram1CacheBehaviour = U(0x5, 4 bits)
+  def dram1AddressOffset  = U(0x4, 4 bits)
+  def dram1CacheBehaviour = U(0x5, 4 bits)
 
   // unused 0x06-0x07
-  val runningCycles = U(0x9,4 bits)
-  val programCounter = U(0xa, 4 bits)
-  val sampleInterval = U(0xb, 4 bits)
+  def runningCycles = U(0x9,4 bits)
+  def programCounter = U(0xa, 4 bits)
+  def sampleInterval = U(0xb, 4 bits)
 
   def isValid(register:UInt) = {
     (register === dram0AddressOffset) || (register === dram0CacheBehaviour) || (register === dram1CacheBehaviour) ||

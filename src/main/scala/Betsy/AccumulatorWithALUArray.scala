@@ -12,7 +12,6 @@ import spinal.lib._
  ** combine the alu array and teh accumulator with control    **
  */
 
-//Todo test it
 class AccumulatorWithALUArray[T <: Data with Num[T]](gen:HardType[T],arch: Architecture) extends BetsyModule {
   def simdHeight = arch.arraySize
   val layOut =  InstructionLayOut(arch)
@@ -80,8 +79,7 @@ class AccumulatorWithALUArray[T <: Data with Num[T]](gen:HardType[T],arch: Archi
   simdReadEnqueuer.block()
   simdEnqueuer.block()
 
-  val isNoOp = io.control.payload.SIMDInstruction.op.asBits === Opcode.NoOp
-
+  val isNoOp = io.control.payload.SIMDInstruction.op === ALUOp.NoOp
   when(isNoOp) {
     val dataPathReady = False
     when(control.payload.read) {

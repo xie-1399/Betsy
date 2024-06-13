@@ -9,7 +9,9 @@ import Betsy.Until._
  ** Betsy follow the MiT Licence.(c) xxl, All rights reserved **
  ** Update Time : 2024/5/31      SpinalHDL Version: 1.94       **
  ** You should have received a copy of the MIT License along with this library **
- ** integration the compute/control/datamove module in the BetsyNPU**
+ ** integration the compute/control/datamove module in the BetsyNPU **
+ ** The ML activations, average and maximum pooling, normalization, and image resizing use SIMD instruction.
+ ** Some ML operations, such as padding, are achieved by changing the memory layout. **
  */
 
 /* the npu top temporal */

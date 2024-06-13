@@ -46,6 +46,16 @@ object MatMulArgs{
     argument.memAddress := memAddress.resized
     argument
   }
+
+  def fromBits(op0:Bits, op1:Bits, op2:Bits)(implicit layOut:InstructionLayOut):MatMulArgs  ={
+    val memAddress = op0(layOut.operand0AddressSizeBits - 1 downto 0).asUInt
+    val memStride = op0(layOut.stride0SizeBits + layOut.operand0AddressSizeBits - 1  downto layOut.operand0AddressSizeBits).asUInt
+
+    val accAddress = op1(layOut.operand1AddressSizeBits - 1 downto 0).asUInt
+    val accStride = op1(layOut.stride1SizeBits + layOut.operand1AddressSizeBits - 1  downto layOut.operand1AddressSizeBits).asUInt
+    val size = op2.asUInt
+    apply(memAddress,accAddress,size,memStride,accStride)
+  }
 }
 
 
