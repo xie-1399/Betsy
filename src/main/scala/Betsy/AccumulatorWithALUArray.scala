@@ -108,7 +108,7 @@ class AccumulatorWithALUArray[T <: Data with Num[T]](gen:HardType[T],arch: Archi
           )
         }
       }.otherwise {
-        dataPathReady := accReadEnqueuer.enqueue2(
+        dataPathReady := accReadEnqueuer.enqueue2( // read only need control and accout read
           control.valid,
           accumulator.io.control,
           readControl(),
@@ -117,7 +117,7 @@ class AccumulatorWithALUArray[T <: Data with Num[T]](gen:HardType[T],arch: Archi
         )
       }
     }.otherwise {
-      when(control.payload.write) {
+      when(control.payload.write) { // write only need control and acc in ready
         dataPathReady := accWriteEnqueuer.enqueue2(
           control.valid,
           accumulator.io.control,
@@ -126,7 +126,7 @@ class AccumulatorWithALUArray[T <: Data with Num[T]](gen:HardType[T],arch: Archi
           U(0,1 bits)
         )
       }.otherwise {
-        dataPathReady := True
+        dataPathReady := True // noop and no read and write
       }
     }
     control.ready := dataPathReady

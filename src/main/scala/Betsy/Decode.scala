@@ -20,6 +20,8 @@ import Betsy.Until.{BetsyModule, zero}
  * this version instruction only enqueue when fire (so the instruction is blocked when before instruction not done !!!)
  * */
 
+/* rebuild stage will pipeline the decode stage */
+
 class Decode(arch: Architecture, Sampler: Boolean = false)(implicit layOut: InstructionLayOut) extends BetsyModule {
 
   val io = new Bundle {
@@ -31,9 +33,9 @@ class Decode(arch: Architecture, Sampler: Boolean = false)(implicit layOut: Inst
     val memPortB = master Stream MemControl(arch.localDepth)
     val localDataFlow = master Stream new LocalDataFlowControlWithSize(arch.localDepth)
     val systolicArrayControl = master Stream SystolicArrayControl()
+    val accumulatorWithALUArrayControl = master Stream AccumulatorWithALUArrayControl(layOut)
     val error = out Bool()
-    val nop = out Bool()
-    /* the noOP instruction */
+    val nop = out Bool() /* the noOP instruction */
     val pc = out(UInt(arch.pcWidth bits))
   }
 
@@ -69,14 +71,17 @@ class Decode(arch: Architecture, Sampler: Boolean = false)(implicit layOut: Inst
   PortAstrideHandler.io.output >> io.memPortA
   setDefault(PortAstrideHandler.io.into)
 
+  // accumulator stride/size handler
+  val accumulatorHandler = new StrideHandler(new AccumulatorMemControlWithSizeWithStride(layOut), AccumulatorMemControl(layOut), arch.accumulatorDepth)
+  accumulatorHandler.io.output.payload.toAccumulatorWithALUArrayControl(arch) <> io.accumulatorWithALUArrayControl.payload
+  io.accumulatorWithALUArrayControl.arbitrationFrom(accumulatorHandler.io.output)
+  setDefault(accumulatorHandler.io.into)
 
   val Block = new Composite(this, "NoOp") {
     io.dram0.valid.clear()
     io.dram0.payload.clearAll()
     io.dram1.valid.clear()
     io.dram1.payload.clearAll()
-    // io.memPortA.valid.clear()
-    // io.memPortA.payload.clearAll()
     io.memPortB.valid.clear()
     io.memPortB.payload.clearAll()
     io.localDataFlow.valid.clear()
@@ -190,6 +195,41 @@ class Decode(arch: Architecture, Sampler: Boolean = false)(implicit layOut: Inst
     val accumulate = flags(1)
     val matMulError = ismatMul && !MatMulFlags.isValid(flags.asUInt)
 
+    when(ismatMul){
+      /* no care about the alt address */
+      accumulatorHandler.io.into.valid := ismatMul
+      accumulatorHandler.io.into.payload.size := matMulArgs.size.resized
+      accumulatorHandler.io.into.payload.stride := matMulArgs.accStride
+      accumulatorHandler.io.into.payload.reverse := False /* address increase / decrease*/
+      accumulatorHandler.io.into.payload.accumulate := False
+      accumulatorHandler.io.into.payload.read := False
+      accumulatorHandler.io.into.payload.write := True
+      accumulatorHandler.io.into.payload.address := matMulArgs.accAddress.resized
+      accumulatorHandler.io.into.payload.instruction.op := Opcode.NoOp.asUInt
+
+      io.localDataFlow.payload.size := matMulArgs.size.resized
+      io.localDataFlow.valid := ismatMul
+
+      systolicArrayControlHandler.io.into.valid := ismatMul
+      systolicArrayControlHandler.io.into.zeroes := zeroes
+      systolicArrayControlHandler.io.into.load := False
+      systolicArrayControlHandler.io.into.size := (matMulArgs.size - 1).resized
+
+      PortAstrideHandler.io.into.valid := ismatMul && !zeroes
+      PortAstrideHandler.io.into.payload.stride := matMulArgs.memStride
+      PortAstrideHandler.io.into.payload.address := matMulArgs.memAddress
+      PortAstrideHandler.io.into.payload.size := matMulArgs.size.resized
+      PortAstrideHandler.io.into.payload.write := False
+
+      io.instruction.ready := accumulatorHandler.io.into.ready
+      when(zeroes){
+        /* running zeroes / no need read the port A */
+        io.localDataFlow.payload.sel := LocalDataFlowControl.arrayToAcc
+      }.otherwise{
+        /* running input */
+        io.localDataFlow.payload.sel := LocalDataFlowControl.memoryToArrayToAcc
+      }
+    }
   }
 
   val configure = new Composite(this, "Configure") {
@@ -211,7 +251,9 @@ class Decode(arch: Architecture, Sampler: Boolean = false)(implicit layOut: Inst
           runCycles := configureArgs.value.asUInt.resized
           io.instruction.ready := True
         }
-        // Todo add more registers
+        default{
+          io.instruction.ready := True
+        }
       }
     }
   }

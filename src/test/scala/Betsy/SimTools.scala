@@ -77,6 +77,46 @@ object SimTools {
     stream.payload.randomize()
   }
 
+  def genMemoryValue(bit: Int, size: Int, depth: Int): Array[BigInt] = {
+    val maxValue = (math.pow(2, bit) / 2 - 1).toInt
+    val content = new ArrayBuffer[BigInt]()
+    for (idx <- 0 until depth) {
+      val values = Array.fill(size) {Random.nextInt(maxValue)}
+      val valuesBinary = values.map(value => bigintToBinaryStringWithWidth(value, bit)).reduce(_ + _)
+      content += BigInt(valuesBinary, 2)
+    }
+    content.toArray
+  }
+
+  def reshapeMemoryMatrix(binary: String): Array[Array[BigInt]] = {
+    require(binary.length % 4 == 0, "binary format error!!!")
+    val width = binary.length / 4
+    val temp = Array.fill(width) {
+      Array.fill(1) {
+        BigInt(0)
+      }
+    }
+    val binaryArray = binary.grouped(4).toArray
+    val rows = binaryArray.map(BigInt(_, 2))
+    for (idx <- 0 until width) {
+      temp(idx)(0) = rows(idx)
+    }
+    temp
+  }
+
+  def MemoryContentToMatrix(content:Array[BigInt],size:Int,bit:Int):Array[Array[BigInt]] = {
+    val contentBinary = content.map(bigintToBinaryStringWithWidth(_,size * bit))
+    val mergedArray = Array.fill(size){Array.fill(size){BigInt(0)}}
+    contentBinary.zipWithIndex.foreach{
+      binary =>
+        val cols = reshapeMemoryMatrix(binary._1)
+        for(idx <- 0 until size){
+          mergedArray(idx)(size - 1 - binary._2) = cols(size - idx - 1)(0)
+        }
+    }
+    mergedArray
+  }
+
 }
 
 /* with a stream queue simulation usage */
@@ -125,8 +165,12 @@ object InstructionGen{
     loadInst
   }
 
-  def NoopGen(arch:Architecture):BigInt = {
+  def noOpGen(arch:Architecture):BigInt = {
     BigInt(0)    /* in fact only highest bit is 0 will be noop*/
+  }
+
+  def matMulGen(arch:Architecture) = {
+
   }
 
   def configureGen(register:Int,value:BigInt,arch: Architecture):BigInt = {
@@ -149,5 +193,6 @@ object InstructionGen{
 
 object test extends App{
   // println(InstructionGen.loadWeightGen(true,16,4,128,Architecture.tiny()))
-  println(InstructionGen.configureGen(9,0,Architecture.tiny()))
+  // println(InstructionGen.configureGen(9,0,Architecture.tiny()))
+  // println(SimTools.reshapeMemoryMatrix("00010010011001000011001000100110")(0)(0))
 }

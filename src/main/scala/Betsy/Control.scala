@@ -78,6 +78,53 @@ object AccumulatorWithALUArrayControl{
   }
 }
 
+case class AccumulatorMemControl(layOut: InstructionLayOut) extends Bundle with Address with Size{
+  val instruction = new SIMDInstruction(layOut)
+  val address = UInt(log2Up(layOut.arch.accumulatorDepth) bits) /* read address */
+  val altAddress = UInt(log2Up(layOut.arch.accumulatorDepth) bits)
+  val read = Bool()
+  val write = Bool()
+  val accumulate = Bool()
+  val size = UInt(log2Up(layOut.arch.accumulatorDepth) bits)
+
+  /* let the memory operation to the accumulator operation */
+  def toAccumulatorWithALUArrayControl(arch: Architecture): AccumulatorWithALUArrayControl = {
+    val layOut = InstructionLayOut(arch)
+    val w = new AccumulatorWithALUArrayControl(layOut)
+    val isMemControl = instruction.op === ALUOp.NoOp
+    w.SIMDInstruction := instruction
+    w.read := read
+    w.write := write
+    w.accumulate := accumulate
+    when(isMemControl) {
+      when(read) {
+        w.readAddress := address
+        w.writeAddress := altAddress
+      }.otherwise {
+        when(write) {
+          w.readAddress := altAddress
+          w.writeAddress := address
+        }.otherwise {
+          w.readAddress := address
+          w.writeAddress := altAddress
+        }
+      }
+    }.otherwise {
+      w.readAddress := address
+      w.writeAddress := altAddress
+    }
+    w
+  }
+}
+
+class AccumulatorMemControlWithSizeWithStride(layOut: InstructionLayOut) extends AccumulatorMemControl(layOut)
+  with Stride
+  with Reverse {
+  val stride  = UInt(log2Up(layOut.arch.stride1Depth) bits)
+  val reverse = Bool()
+}
+
+
 /*=======================Host Router Control========================== */
 class HostDataFlowControl() extends Bundle{
   val kind = UInt(2 bits)

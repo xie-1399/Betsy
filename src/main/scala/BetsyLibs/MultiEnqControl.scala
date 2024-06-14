@@ -75,8 +75,7 @@ class MultiEnqControl(size:Int) extends BetsyModule{
     io.into.ready
   }
 
-  def enqueue5[T <: Data, S <: Data, R <: Data, Q <: Data, P <: Data](valid: Bool, out0: Stream[T], out0Bits: T, out1: Stream[S], out1Bits: S, out2: Stream[R],
-                                                                      out2Bits: R, out3: Stream[Q], out3Bits: Q,out4: Stream[P], out4Bits: P): Bool = {
+  def enqueue5[T <: Data, S <: Data, R <: Data, Q <: Data, P <: Data](valid: Bool, out0: Stream[T], out0Bits: T, out1: Stream[S], out1Bits: S, out2: Stream[R], out2Bits: R, out3: Stream[Q], out3Bits: Q,out4: Stream[P], out4Bits: P): Bool = {
     io.into.valid := valid
     out0 <> io.output(0).toStream(out0Bits)
     out1 <> io.output(1).toStream(out1Bits)

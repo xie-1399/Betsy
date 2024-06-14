@@ -16,9 +16,10 @@ class AccumulatorWithALUTest extends AnyFunSuite{
       dut
     }.doSimUntilVoid{
       dut =>
-        SimTimeout(1 us)
+        SimTimeout(10 us)
         dut.clockDomain.forkStimulus(10)
         StreamReadyRandomizer(dut.io.outputs,dut.clockDomain)
+        def testCase = 1024
         def init() = {
           dut.io.control.valid #= false
           dut.io.control.payload.randomize()
@@ -34,15 +35,43 @@ class AccumulatorWithALUTest extends AnyFunSuite{
             dut.io.inputs.payload.zipWithIndex.map(input => input._1 #= value(input._2))
             dut.io.control.valid.randomize()
             dut.io.control.payload.write #= true
+            dut.io.control.payload.read #= false
             dut.io.control.payload.accumulate #= false
             dut.io.control.writeAddress #= address
-            dut.io.control.read #= false
             dut.io.control.SIMDInstruction.op #= 0  // noOp
+            dut.clockDomain.waitSampling()
           }
-          println(s"write ${value.mkString(",")} at address ${address} ")
         }
+
+        /* read only the acc */
+        def readAcc(address: Int): Array[Int] = {
+          while (!(dut.io.control.valid.toBoolean && dut.io.control.ready.toBoolean && dut.io.outputs.valid.toBoolean && dut.io.outputs.ready.toBoolean)) {
+            dut.io.inputs.valid #= false
+            dut.io.inputs.payload.randomize()
+            dut.io.control.valid.randomize()
+            dut.io.control.payload.write #= false
+            dut.io.control.payload.read #= true
+            dut.io.control.payload.accumulate #= false
+            dut.io.control.readAddress #= address
+            dut.io.control.SIMDInstruction.op #= 0 // noOp
+            dut.clockDomain.waitSampling()
+          }
+          // assert(dut.io.outputs.valid.toBoolean && dut.io.outputs.ready.toBoolean, "read control error !!!")
+          dut.io.outputs.payload.map(_.toInt).toArray
+        }
+
         init()
-        writeAcc(Random.nextInt(1024),Array.fill(8){Random.nextInt(1024)})
+        /* write and read test */
+        for(idx <- 0 until testCase){
+          val address = Random.nextInt(2048)
+          val value = Array.fill(8){Random.nextInt(1024)}
+          writeAcc(address,value)
+          assert(value.sameElements(readAcc(address)))
+        }
+        println("pass the write and read test without accumulator!!!")
+
+        /* Todo test with accumulate and other simd operations */
+
         simSuccess()
     }
   }
