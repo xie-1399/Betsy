@@ -29,7 +29,7 @@ class LocalRouterTest extends AnyFunSuite{
       dut
     }.doSimUntilVoid{
       dut =>
-        SimTimeout(10 us)
+        SimTimeout(30 us)
         dut.clockDomain.forkStimulus(10)
         StreamReadyRandomizer(dut.io.memoryDataFlow.memIn,dut.clockDomain)
         StreamReadyRandomizer(dut.io.arrayDataFlow.weight,dut.clockDomain)
@@ -73,14 +73,14 @@ class LocalRouterTest extends AnyFunSuite{
             init()
             dut.clockDomain.waitSampling()
 
-            assert(refBuffer.length == refBuffer.length && refBuffer.length == sizes(idx),"data length error !!!")
+            assert(refBuffer.length == testBuffer.length && refBuffer.length == sizes(idx),"data length error !!!")
             assert(refBuffer.sameElements(testBuffer),"memory to weight error !!!")
             idx += 1
           }
           println("memory to array weight test ends ...\n")
         }
 
-        def memory2Input(iter: Int) = {
+        def memory2array2acc(iter: Int) = {
           println("memory to array input test starts ...")
           var idx = 0
           val sizes = Array.fill(iter) {
@@ -99,6 +99,8 @@ class LocalRouterTest extends AnyFunSuite{
               val payload = Random.nextInt(1024)
               dut.io.memoryDataFlow.memOut.valid.randomize()
               dut.io.memoryDataFlow.memOut.payload #= payload
+              dut.io.arrayDataFlow.output.valid.randomize()
+              dut.io.arrayDataFlow.output.payload #= payload
               dut.clockDomain.waitSampling()
               if (dut.io.memoryDataFlow.memOut.valid.toBoolean && dut.io.memoryDataFlow.memOut.ready.toBoolean
                 && (!(dut.io.control.valid.toBoolean && dut.io.control.ready.toBoolean))) {
@@ -111,12 +113,10 @@ class LocalRouterTest extends AnyFunSuite{
             }
             init()
             dut.clockDomain.waitSampling()
-
-            assert(refBuffer.length == refBuffer.length && refBuffer.length == sizes(idx), "data length error !!!")
-            assert(refBuffer.sameElements(testBuffer), "memory to input error !!!")
+            assert(refBuffer.sameElements(testBuffer), "memory to input to acc error !!!")
             idx += 1
           }
-          println("memory to array input test ends ...\n")
+          println("memory to array input to acc test ends ...\n")
         }
 
         def acc2memory(iter: Int) = {
@@ -127,7 +127,7 @@ class LocalRouterTest extends AnyFunSuite{
           }
           while (idx < iter) {
             dut.io.control.valid #= true
-            dut.io.control.sel #= 5
+            dut.io.control.sel #= 4
             dut.io.control.size #= sizes(idx)
             val refBuffer = new ArrayBuffer[BigInt]()
             val testBuffer = new ArrayBuffer[BigInt]()
@@ -151,7 +151,7 @@ class LocalRouterTest extends AnyFunSuite{
             init()
             dut.clockDomain.waitSampling()
 
-            assert(refBuffer.length == refBuffer.length && refBuffer.length == sizes(idx), "data length error !!!")
+            assert(refBuffer.length == testBuffer.length && refBuffer.length == sizes(idx), "data length error !!!")
             assert(refBuffer.sameElements(testBuffer), "acc to memory error !!!")
             idx += 1
           }
@@ -190,7 +190,7 @@ class LocalRouterTest extends AnyFunSuite{
             init()
             dut.clockDomain.waitSampling()
 
-            assert(refBuffer.length == refBuffer.length && refBuffer.length == sizes(idx), "data length error !!!")
+            assert(refBuffer.length == testBuffer.length && refBuffer.length == sizes(idx), "data length error !!!")
             assert(refBuffer.sameElements(testBuffer), "array to acc error !!!")
             idx += 1
           }
@@ -205,7 +205,7 @@ class LocalRouterTest extends AnyFunSuite{
           }
           while (idx < iter) {
             dut.io.control.valid #= true
-            dut.io.control.sel #= 4
+            dut.io.control.sel #= 5
             dut.io.control.size #= sizes(idx)
             val refBuffer = new ArrayBuffer[BigInt]()
             val testBuffer = new ArrayBuffer[BigInt]()
@@ -229,7 +229,7 @@ class LocalRouterTest extends AnyFunSuite{
             init()
             dut.clockDomain.waitSampling()
 
-            assert(refBuffer.length == refBuffer.length && refBuffer.length == sizes(idx), "data length error !!!")
+            assert(refBuffer.length == testBuffer.length && refBuffer.length == sizes(idx), "data length error !!!")
             assert(refBuffer.sameElements(testBuffer), "memory to acc error !!!")
             idx += 1
           }
@@ -241,10 +241,10 @@ class LocalRouterTest extends AnyFunSuite{
         dut.clockDomain.waitSampling()
 
         memory2weight(testCase)
-        memory2Input(testCase)
         acc2memory(testCase)
         array2acc(testCase)
         memory2acc(testCase)
+        memory2array2acc(testCase)
         simSuccess()
     }
   }

@@ -17,7 +17,8 @@ import spinal.lib._
  ** OP0 Local Memory stride/address（with padding unused to arrive time * 8）
  ** OP1 Accumulator stride/address (with Padding)
  ** OP2 Accumulator Size
- ** for example :  Todo add instruction example
+ ** for example :   the instruction width is 4 + 4 + 16(just padding) + 24(size likely) + 16(13 + 3)
+ ** 00010010 0000000000000100 001000000000000000100000 0100000000010000
  **/
 
 case class MatMulArgs(layOut: InstructionLayOut) extends Bundle {

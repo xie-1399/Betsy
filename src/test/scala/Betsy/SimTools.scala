@@ -169,12 +169,37 @@ object InstructionGen{
     BigInt(0)    /* in fact only highest bit is 0 will be noop*/
   }
 
-  def matMulGen(arch:Architecture) = {
+  def matMulGen(arch:Architecture,zero:Boolean,localAddress:Int,localStride:Int,
+                accumulatorAddress:Int,accumulatorStride:Int,size:Int):(BigInt,String) = {
+    val layOut = InstructionLayOut(arch)
+    def sizeWidth = layOut.operand2SizeBits
+    def localStrideWidth = layOut.stride0SizeBits
+    def localAddressWidth = layOut.operand0AddressSizeBits
+    def accStrideWidth = layOut.stride1SizeBits
+    def accAddressWidth = layOut.operand1AddressSizeBits
 
+    val opcode = 1
+    val opBinary = bigintToBinaryStringWithWidth(BigInt(opcode), width = 4)
+    val flags = if(zero) 1 else 2
+    val flagsBinary = bigintToBinaryStringWithWidth(BigInt(flags), width = 4)
+
+    val localAddressBinary = bigintToBinaryStringWithWidth(BigInt(localAddress), width = localAddressWidth)
+    val localStrideBinary = bigintToBinaryStringWithWidth(BigInt(localStride), width = localStrideWidth)
+
+    val accAddressBinary = bigintToBinaryStringWithWidth(BigInt(accumulatorAddress), width = accAddressWidth)
+    val accStrideBinary = bigintToBinaryStringWithWidth(BigInt(accumulatorStride), width = accStrideWidth)
+
+    val op0Binary = binaryStringWithWidth(localStrideBinary + localAddressBinary, width = layOut.operand0SizeBits)
+    val op1Binary = binaryStringWithWidth(accStrideBinary + accAddressBinary, width = layOut.operand1SizeBits)
+    val op2Binary = bigintToBinaryStringWithWidth(BigInt(size), width = sizeWidth)
+
+    val matMulBinary = opBinary + flagsBinary + op2Binary + op1Binary + op0Binary
+
+    (BigInt(matMulBinary,2),matMulBinary)
   }
 
   def configureGen(register:Int,value:BigInt,arch: Architecture):BigInt = {
-    // pc = 10 / runcycles = 9
+    // pc = 10 / run cycles = 9
     val layOut = InstructionLayOut(arch)
     val opcode = 15
     val flags = 0
@@ -195,4 +220,5 @@ object test extends App{
   // println(InstructionGen.loadWeightGen(true,16,4,128,Architecture.tiny()))
   // println(InstructionGen.configureGen(9,0,Architecture.tiny()))
   // println(SimTools.reshapeMemoryMatrix("00010010011001000011001000100110")(0)(0))
+  // println(InstructionGen.matMulGen(Architecture.tiny(),zero = false,localAddress = 16,localStride = 2,accumulatorAddress = 32,accumulatorStride = 2,size = 4)._2)
 }

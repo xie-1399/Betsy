@@ -9,7 +9,7 @@ package Betsy
  */
 
 import Betsy.Until._
-import BetsyLibs.{BetsyStreamDemux, BetsyStreamMux}
+import BetsyLibs._
 import spinal.core._
 import spinal.lib._
 
@@ -60,7 +60,8 @@ class LocalRouter[T <: Data](gen:HardType[T],arch:Architecture) extends BetsyMod
   }
 
   def IsWriteAcc(sel: UInt): Bool = {
-    val select = sel === LocalDataFlowControl.arrayToAcc || sel === LocalDataFlowControl.memoryToAccumulator
+    val select = sel === LocalDataFlowControl.arrayToAcc || sel === LocalDataFlowControl.memoryToAccumulator||
+      sel === LocalDataFlowControl.memoryToArrayToAcc
     select
   }
 
@@ -72,12 +73,12 @@ class LocalRouter[T <: Data](gen:HardType[T],arch:Architecture) extends BetsyMod
   /* memory -> array.weight || memory -> array.input */
   val memReadStreams = new BetsyStreamDemux(gen,3)
   memReadStreams.io.InStream << io.memoryDataFlow.memOut
-  memReadStreams.io.OutStreams(1) >> io.arrayDataFlow.weight
-  memReadStreams.io.OutStreams(2) >> io.arrayDataFlow.input
+  memReadStreams.io.OutStreams(0) >> io.arrayDataFlow.weight
+  memReadStreams.io.OutStreams(1) >> io.arrayDataFlow.input
   /* array to Acc || memory -> Acc*/
   val writeAccStream = new BetsyStreamMux(gen,2)
-  writeAccStream.io.InStreams(1) << io.arrayDataFlow.output
-  writeAccStream.io.InStreams(0) << memReadStreams.io.OutStreams(0)
+  writeAccStream.io.InStreams(0) << io.arrayDataFlow.output
+  writeAccStream.io.InStreams(1) << memReadStreams.io.OutStreams(2)
   writeAccStream.io.OutStream >> io.accumulatorDataFlow.accIn
   /* acc to memory connect */
   val writeMemStream = new BetsyStreamMux(gen,2)
@@ -89,29 +90,63 @@ class LocalRouter[T <: Data](gen:HardType[T],arch:Architecture) extends BetsyMod
   /* control the read and write size*/
   val memReadSizeHandler = new SizeHandler(new LocalDataFlowControlWithSize(arch.localDepth),
     new DataFlowSel(LocalDataFlowControl.locaDataFlowNums),depth = arch.localDepth)
-  memReadSizeHandler.io.into.payload := io.control.payload
-  memReadSizeHandler.io.into.valid := io.control.valid 
-  memReadSizeHandler.io.output.ready := memReadStreams.io.sel.ready
-  memReadStreams.io.sel.valid := memReadSizeHandler.io.output.valid && IsMemRead(io.control.sel)
-  memReadStreams.io.sel.payload := memReadSizeHandler.io.output.sel.resized
-
   val writeAccSizeHandler = new SizeHandler(new LocalDataFlowControlWithSize(arch.localDepth),
     new DataFlowSel(LocalDataFlowControl.locaDataFlowNums),depth = arch.localDepth)
-  writeAccSizeHandler.io.into.payload := io.control.payload
-  writeAccSizeHandler.io.into.valid := io.control.valid
-  writeAccSizeHandler.io.output.ready := writeAccStream.io.sel.ready
-  writeAccStream.io.sel.valid := writeAccSizeHandler.io.output.valid && IsWriteAcc(io.control.sel)
-  writeAccStream.io.sel.payload := writeAccSizeHandler.io.output.sel.resized
-
   val writeMemSizeHandler = new SizeHandler(new LocalDataFlowControlWithSize(arch.localDepth),
     new DataFlowSel(LocalDataFlowControl.locaDataFlowNums),depth = arch.localDepth)
-  writeMemSizeHandler.io.into.payload := io.control.payload
-  writeMemSizeHandler.io.into.valid := io.control.valid
-  writeMemSizeHandler.io.output.ready := writeMemStream.io.sel.ready
-  writeMemStream.io.sel.valid := writeMemSizeHandler.io.output.valid && IsWriteMem(io.control.sel)
-  writeMemStream.io.sel.payload := writeMemSizeHandler.io.output.sel.resized
 
-  io.control.ready := writeMemSizeHandler.io.into.ready || writeAccSizeHandler.io.into.ready || memReadSizeHandler.io.into.ready
+  val logic = new Area{
+
+    val enqueue1 = new MultiEnqControl(2)
+    val enqueue2 = new MultiEnqControl(2)
+    enqueue1.block()
+    enqueue2.block()
+
+    memReadSizeHandler.io.into.valid := io.control.valid && IsMemRead(io.control.sel)
+    memReadSizeHandler.io.into.payload := io.control.payload
+    memReadSizeHandler.io.output.ready := memReadStreams.io.sel.ready
+    memReadStreams.io.sel.valid := memReadSizeHandler.io.output.valid && IsMemRead(io.control.sel)
+    memReadStreams.io.sel.payload.clearAll()
+
+    writeAccSizeHandler.io.into.payload := io.control.payload
+    writeAccSizeHandler.io.into.valid := io.control.valid && IsWriteAcc(io.control.sel)
+    writeAccSizeHandler.io.output.ready := writeAccStream.io.sel.ready
+    writeAccStream.io.sel.valid := writeAccSizeHandler.io.output.valid && IsWriteAcc(io.control.sel)
+    writeAccStream.io.sel.payload.clearAll()
+
+    writeMemSizeHandler.io.into.payload := io.control.payload
+    writeMemSizeHandler.io.into.valid := io.control.valid && IsWriteMem(io.control.sel)
+    writeMemSizeHandler.io.output.ready := writeMemStream.io.sel.ready
+    writeMemStream.io.sel.valid := writeMemSizeHandler.io.output.valid && IsWriteMem(io.control.sel)
+    writeMemStream.io.sel.payload.clearAll()
+
+    when(io.control.sel === LocalDataFlowControl.memoryToArrayWeight){
+      memReadStreams.io.sel.payload := U(0).resized
+      io.control.ready := memReadSizeHandler.io.into.ready
+    }.elsewhen(io.control.sel === LocalDataFlowControl.memoryToArrayToAcc){
+      memReadStreams.io.sel.payload := U(1, 2 bits)
+      writeAccStream.io.sel.payload := U(0 ,1 bits)
+      enqueue1.io.into.valid := io.control.valid
+      enqueue1.io.output(0).ready := memReadSizeHandler.io.into.ready
+      enqueue1.io.output(1).ready := writeAccSizeHandler.io.into.ready
+      io.control.ready := enqueue1.io.into.ready
+    }.elsewhen(io.control.sel === LocalDataFlowControl.arrayToAcc){
+      writeAccStream.io.sel.payload := U(0).resized
+      io.control.ready := writeAccSizeHandler.io.into.ready
+    }.elsewhen(io.control.sel === LocalDataFlowControl.accumulatorToMemory){
+      writeMemStream.io.sel.payload := U(1).resized
+      io.control.ready := writeMemSizeHandler.io.into.ready
+    }.elsewhen(io.control.sel === LocalDataFlowControl.memoryToAccumulator){
+      memReadStreams.io.sel.payload := U(2, 2 bits)
+      writeAccStream.io.sel.payload := U(1, 1 bits)
+      enqueue2.io.into.valid := io.control.valid
+      enqueue2.io.output(0).ready := memReadSizeHandler.io.into.ready
+      enqueue2.io.output(1).ready := writeAccSizeHandler.io.into.ready
+      io.control.ready := enqueue2.io.into.ready
+    }.otherwise{
+      io.control.ready := True
+    }
+  }
 }
 
 

@@ -23,6 +23,12 @@ class SizeHandler[T <: Bundle with Size, S <: Bundle](inGen: HardType[T], outGen
     val output = master Stream outGen()
   }
 
+  def block(): Unit = {
+    io.into.valid.clear()
+    io.into.payload.clearAll()
+    io.output.ready.clear()
+  }
+
   val sizeCounter = BetsyCounter(depth)
   for (outelem <- io.output.payload.elements) {
     for (inelem <- io.into.payload.elements) {

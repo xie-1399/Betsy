@@ -198,7 +198,7 @@ class Decode(arch: Architecture, Sampler: Boolean = false)(implicit layOut: Inst
     when(ismatMul){
       /* no care about the alt address */
       accumulatorHandler.io.into.valid := ismatMul
-      accumulatorHandler.io.into.payload.size := matMulArgs.size.resized
+      accumulatorHandler.io.into.payload.size := (matMulArgs.size - 1).resized
       accumulatorHandler.io.into.payload.stride := matMulArgs.accStride
       accumulatorHandler.io.into.payload.reverse := False /* address increase / decrease*/
       accumulatorHandler.io.into.payload.accumulate := False
@@ -220,13 +220,13 @@ class Decode(arch: Architecture, Sampler: Boolean = false)(implicit layOut: Inst
       PortAstrideHandler.io.into.payload.address := matMulArgs.memAddress
       PortAstrideHandler.io.into.payload.size := matMulArgs.size.resized
       PortAstrideHandler.io.into.payload.write := False
-
-      io.instruction.ready := accumulatorHandler.io.into.ready
       when(zeroes){
         /* running zeroes / no need read the port A */
         io.localDataFlow.payload.sel := LocalDataFlowControl.arrayToAcc
+        io.instruction.ready := systolicArrayControlHandler.io.into.ready
       }.otherwise{
         /* running input */
+        io.instruction.ready := PortAstrideHandler.io.into.ready
         io.localDataFlow.payload.sel := LocalDataFlowControl.memoryToArrayToAcc
       }
     }
@@ -239,7 +239,7 @@ class Decode(arch: Architecture, Sampler: Boolean = false)(implicit layOut: Inst
     /* the configure instruction is used to configure some regs in the NPU */
     val isConfigure = io.instruction.valid && io.instruction.opcode === Opcode.Configure
     val configureArgs = ConfigureArgs(op1, op0)
-    val configureError = !isValid(op0.asUInt)
+    val configureError = isConfigure && !isValid(op0.asUInt)
 
     when(isConfigure) {
       switch(configureArgs.register.asUInt) {

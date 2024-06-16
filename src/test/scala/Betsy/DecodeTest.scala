@@ -14,7 +14,6 @@ import SimTools._
 class DecodeTest extends AnyFunSuite{
 
   def init(dut:Top[SInt]) = {
-    dut.clockDomain.forkStimulus(10)
     dut.io.instruction.valid #= false
     dut.io.instruction.payload.randomize()
     dut.clockDomain.waitSampling()
@@ -33,6 +32,8 @@ class DecodeTest extends AnyFunSuite{
     }.doSimUntilVoid {
       dut =>
         SimTimeout(10 us)
+        dut.clockDomain.forkStimulus(10)
+        println("start testing the Load Instruction ================>  ")
         def loadWeight(testCase: Int) = {
           var idx = 0
           val zeroes = Array.fill(testCase){Random.nextInt(10) > 5}
@@ -48,11 +49,6 @@ class DecodeTest extends AnyFunSuite{
             dut.io.instruction.payload #= payload
             dut.clockDomain.waitSampling()
             if(dut.io.instruction.ready.toBoolean) {
-              if (dut.io.instruction.valid.toBoolean && !zero) {
-                println(s"from ${address} load ${size} data into systolic array with stride ${stride} ...")
-              } else if (dut.io.instruction.valid.toBoolean && zero) {
-                println(s"load ${size} size 0 into the systolic array ... ")
-              }
               dut.io.instruction.valid #= true
               dut.io.instruction.payload #= InstructionGen.loadWeightGen(true, 1, 0, 0, Architecture.tiny()) //load zeroes
               dut.clockDomain.waitSamplingWhere(dut.io.instruction.ready.toBoolean)
@@ -83,10 +79,12 @@ class DecodeTest extends AnyFunSuite{
         }
         init(dut)
         loadWeight(1024)
+        println("load instruction test success!")
         simSuccess()
     }
   }
 
+  // Todo tested it
   test("matmul"){
     SIMCFG().compile {
       val arch = Architecture.tiny()
@@ -94,17 +92,18 @@ class DecodeTest extends AnyFunSuite{
       dut.systolicArray.io.weight.simPublic()
       dut.systolicArray.array.mac.foreach(_.foreach(_.weight.simPublic()))
       dut.systolicArray.array.bias.simPublic()
+      dut.accumulatorWithALUArray.io.simPublic()
       dut
     }.doSimUntilVoid {
       dut =>
-        SimTimeout(10 us)
+        SimTimeout(1 us)
         dut.clockDomain.forkStimulus(10)
         /* first load some weights in the 8 × 8 array */
-
+        println("start testing the MatMul Instruction ================>  ")
         /* when loading the weight */
         def Load(address:Int,stride:Int,size:Int,loadMatrixPrint:Boolean = false) = {
           init(dut)
-          println(s"load the memory content at address ${address} with ${size} size and ${stride} stride ")
+            println(s"========== load the memory content at address ${address} with ${size} size and ${stride} stride ======= ")
 
           val payload = InstructionGen.loadWeightGen(false, size , stride, address, Architecture.tiny())
           dut.io.instruction.valid #= true
@@ -128,37 +127,96 @@ class DecodeTest extends AnyFunSuite{
           }
         }
 
-        def LoadTest(testCase:Int) = {
-          for(idx <- 0 until testCase){
+        def Matmul(zero: Boolean, localAddress: Int, localStride: Int,
+                   accumulatorAddress: Int, accumulatorStride: Int, size: Int) = {
+          init(dut)
+          // load weight is ready
+          val payload = InstructionGen.matMulGen(Architecture.tiny(), zero, localAddress, localStride, accumulatorAddress, accumulatorStride, size)._1
+          dut.io.instruction.valid #= true
+          dut.io.instruction.payload #= payload
+          dut.clockDomain.waitSamplingWhere(dut.io.instruction.ready.toBoolean)
+
+          dut.io.instruction.valid #= true
+          dut.io.instruction.payload #= InstructionGen.noOpGen(Architecture.tiny())
+          dut.clockDomain.waitSamplingWhere(dut.io.instruction.ready.toBoolean)
+        }
+
+        def MatmulTest(testCase: Int) = {
+          for (test <- 0 until testCase) {
+            val accwriteMatrix = new ArrayBuffer[Array[Int]]()
+            dut.clockDomain.onSamplings {
+              if (dut.accumulatorWithALUArray.io.control.valid.toBoolean && dut.accumulatorWithALUArray.io.control.ready.toBoolean
+                && dut.accumulatorWithALUArray.io.control.write.toBoolean) {
+                accwriteMatrix += dut.accumulatorWithALUArray.io.inputs.payload.map(_.toInt).toArray
+              }
+            }
             val address = Random.nextInt(1024)
             val stride = Random.nextInt(4)
             val step = 1 << stride
-            val size = 8
+            val loadsize = 8
             val contentArray = new ArrayBuffer[BigInt]()
-            for (idx <- address until address + size * step by step) {
+            for (idx <- address until address + loadsize * step by step) {
               contentArray += memoryContent(idx)
             }
-            Load(address,stride,8,false)
-            val refMatrix = MemoryContentToMatrix(contentArray.toArray,size,4)
+            Load(address, stride, 8, false)
+            val refMatrix = MemoryContentToMatrix(contentArray.toArray, loadsize, 4)
             val refVec = refMatrix.flatten
             val loadMatrix = dut.systolicArray.array.mac.map(_.map(_.weight.toBigInt).toArray).toArray
             val loadVec = loadMatrix.flatten
-            assert(refVec.sameElements(loadVec),"load value error!!!")
+            assert(refVec.sameElements(loadVec), "load value error!!!")
             contentArray.clear()
+
+            val zero = false
+            val localAddress = Random.nextInt(1024)
+            val localStride = Random.nextInt(4)
+            val accumulatorAddress = Random.nextInt(1024)
+            val accumulatorStride = 0 //Todo
+            val inputsize = 8
+            val inputstep = 1 << localStride
+            for (idx <- localAddress until localAddress + inputsize * inputstep by inputstep) {
+              contentArray += memoryContent(idx)
+            }
+            val inputMatrix = MemoryContentToMatrix(contentArray.toArray, inputsize, 4)
+            Matmul(zero,localAddress, localStride, accumulatorAddress, accumulatorStride, inputsize)
+            val refGemm = Matrix.multiply(inputMatrix.map(_.map(_.toInt)),refMatrix.map(_.map(_.toInt)))
+            println("input matrix:")
+            inputMatrix.foreach{
+              input =>
+                println(input.mkString(","))
+            }
+
+            println("weight matrix:")
+            refMatrix.foreach {
+              weight =>
+                println(weight.mkString(","))
+            }
+
+            println("ref matrix:")
+            refGemm.foreach{
+              ref =>
+                println(ref.mkString(","))
+            }
+            println("test matmul matrix : ")
+            accwriteMatrix.foreach {
+              test =>
+                println(test.mkString(","))
+            }
+            contentArray.clear()
+            accwriteMatrix.clear()
           }
+          println("GEMM test success!  :)")
         }
 
         init(dut)
-        LoadTest(128)
+        MatmulTest(2)
         simSuccess()
     }
   }
 
-
+  //Todo update
   test("configure"){
     /* configure the regs in the top module */
     SIMCFG().compile{
-      SimTimeout(10 us)
       val arch = Architecture.tiny()
       val dut = new Top(SInt(4 bits), arch)
       dut.decode.io.pc.simPublic()
@@ -166,6 +224,8 @@ class DecodeTest extends AnyFunSuite{
       dut
     }.doSimUntilVoid{
       dut =>
+        SimTimeout(10 us)
+        println("start testing the Configure Instruction ================>  ")
         dut.clockDomain.forkStimulus(10)
         init(dut)
 

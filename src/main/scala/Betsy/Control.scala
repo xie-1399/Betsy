@@ -185,8 +185,8 @@ object LocalDataFlowControl{
   def memoryToArrayWeight: UInt = U(0x1)
   def memoryToArrayToAcc: UInt = U(0x2)
   def arrayToAcc: UInt = U(0x3)
-  def memoryToAccumulator: UInt = U(0x4)
-  def accumulatorToMemory: UInt = U(0x5)
+  def accumulatorToMemory: UInt = U(0x4)
+  def memoryToAccumulator: UInt = U(0x5)
   def unused: UInt = U(0x6)
   def localDataFlows: Array[UInt] = Array(memoryToArrayWeight, memoryToArrayToAcc, arrayToAcc, accumulatorToMemory, memoryToAccumulator, unused)
   def locaDataFlowNums = localDataFlows.length

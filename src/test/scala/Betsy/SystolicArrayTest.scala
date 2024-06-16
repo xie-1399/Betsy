@@ -1,6 +1,5 @@
 package Betsy
 
-import Betsy.Experimental.Matrix
 import BetsyLibs._
 import org.scalatest.funsuite.AnyFunSuite
 import spinal.core._

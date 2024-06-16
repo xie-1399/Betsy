@@ -1,6 +1,5 @@
 package Betsy
 
-import Betsy.Experimental.Matrix
 import Betsy.SimTools._
 import BetsyLibs.SIMCFG
 import org.scalatest.funsuite.AnyFunSuite

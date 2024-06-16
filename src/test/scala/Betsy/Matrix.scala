@@ -1,4 +1,4 @@
-package Betsy.Experimental
+package Betsy
 
 import scala.collection.mutable.ArrayBuffer
 

@@ -16,10 +16,10 @@ import BetsyLibs._
 
 class SystolicArray[T <: Data with Num[T]](gen:HardType[T],height:Int,width:Int) extends BetsyModule{
   val io = new Bundle{
-    val control = slave Stream(SystolicArrayControl())
-    val weight = slave Stream(Vec(gen, height))
-    val input = slave Stream(Vec(gen, width))
-    val output = master Stream(Vec(gen, height))
+    val control = slave Stream SystolicArrayControl()
+    val weight = slave Stream Vec(gen, height)
+    val input = slave Stream Vec(gen, width)
+    val output = master Stream Vec(gen, height)
   }
 
   val array = new InnerSystolicArray(gen,height,width)
