@@ -42,10 +42,26 @@ case class Architecture( dataType:String = "UInt_16",
 
 object Architecture{
 
+  def embeddings():Architecture = {
+    val arch = Architecture(
+      dataType = "SInt_4",
+      arraySize = 8,
+      dram0Depth = 1024 * 1024, // 20 bits dram address
+      dram1Depth = 1024 * 1024,
+      localDepth = 8192, // 13 bits
+      accumulatorDepth = 2048,
+      simdRegistersDepth = 1,
+      stride0Depth = 8,
+      stride1Depth = 8,
+    )
+    arch
+  }
+
+  //Todo update the tiny module to the 8 bits
   def tiny(): Architecture = {
     // 4 + 4 + 16 + 20 + 20 = 64
     val arch = Architecture(
-      dataType = "SInt_4",
+      dataType = "SInt_8",
       arraySize = 8,
       dram0Depth = 1024 * 1024,  // 20 bits dram address
       dram1Depth = 1024 * 1024,

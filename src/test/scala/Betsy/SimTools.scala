@@ -39,13 +39,14 @@ object SimTools {
     buffer.toArray
   }
 
-  def loadMatrixReorder(test: Array[Array[BigInt]]): ArrayBuffer[BigInt] = {
+  def loadMatrixReorder(test: Array[Array[BigInt]],size:Int): ArrayBuffer[BigInt] = {
     val testArray = new ArrayBuffer[BigInt]()
+    val powerSource = math.pow(2,size).toInt
     for (j <- 0 until test(0).length) {
       var temp = BigInt(0)
       for (i <- 0 until test.length) {
         if (i == 0) temp = test(i)(j)
-        else temp += math.pow(16, i).toInt * test(i)(j)
+        else temp += math.pow(powerSource, i).toInt * test(i)(j)
       }
       testArray += temp
     }

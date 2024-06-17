@@ -210,5 +210,5 @@ class AccumulatorWithALUArray[T <: Data with Num[T]](gen:HardType[T],arch: Archi
 
 
 object AccumulatorWithALUArray extends App{
-  SpinalVerilog(new AccumulatorWithALUArray(SInt(4 bits),Architecture.tiny()))
+  SpinalVerilog(new AccumulatorWithALUArray(SInt(8 bits),Architecture.tiny()))
 }

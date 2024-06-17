@@ -19,7 +19,6 @@ import scala.util.Random
  ** U(5) -> acc to memory
  **/
 
-//Todo shrink the test
 class LocalRouterTest extends AnyFunSuite{
 
   test("data move"){

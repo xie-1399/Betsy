@@ -14,7 +14,6 @@ import Betsy.Until._
  ** Some ML operations, such as padding, are achieved by changing the memory layout. **
  */
 
-/* the npu top temporal */
 
 class Top[T <: Data with Num[T]](gen:HardType[T],arch: Architecture,log:Boolean = false,initContent:Array[BigInt] = null) extends BetsyModule{
 
@@ -84,5 +83,5 @@ class Top[T <: Data with Num[T]](gen:HardType[T],arch: Architecture,log:Boolean 
 }
 
 object Top extends App{
-  SpinalSystemVerilog(new Top(SInt(4 bits),Architecture.tiny()))
+  SpinalSystemVerilog(new Top(SInt(8 bits),Architecture.tiny()))
 }

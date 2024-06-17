@@ -44,6 +44,7 @@ class MultiEnqControl(size:Int) extends BetsyModule{
     io.output.foreach(_.ready := False)
   }
 
+
   def enqueue[T <: Data](valid: Bool, out: Stream[T], payload: T): Bool = {
     io.into.valid := valid
     out <> io.output(0).toStream(payload)
@@ -84,6 +85,24 @@ class MultiEnqControl(size:Int) extends BetsyModule{
     out4 <> io.output(4).toStream(out4Bits)
     io.into.ready
   }
+
+  /* two ready enqueue */
+  def Readyenqueue2(valid: Bool, ready1: Bool, ready2: Bool): Bool = {
+    io.into.valid := valid
+    io.output(0).ready := ready1
+    io.output(1).ready := ready2
+    io.into.ready
+  }
+
+  /* three ready enqueue */
+  def Readyenqueue3(valid: Bool, ready1: Bool, ready2: Bool, ready3:Bool): Bool = {
+    io.into.valid := valid
+    io.output(0).ready := ready1
+    io.output(1).ready := ready2
+    io.output(2).ready := ready3
+    io.into.ready
+  }
+
 }
 
 /* demo using the Control to create 4 multi queue*/

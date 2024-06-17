@@ -126,10 +126,7 @@ class LocalRouter[T <: Data](gen:HardType[T],arch:Architecture) extends BetsyMod
     }.elsewhen(io.control.sel === LocalDataFlowControl.memoryToArrayToAcc){
       memReadStreams.io.sel.payload := U(1, 2 bits)
       writeAccStream.io.sel.payload := U(0 ,1 bits)
-      enqueue1.io.into.valid := io.control.valid
-      enqueue1.io.output(0).ready := memReadSizeHandler.io.into.ready
-      enqueue1.io.output(1).ready := writeAccSizeHandler.io.into.ready
-      io.control.ready := enqueue1.io.into.ready
+      io.control.ready := enqueue1.Readyenqueue2(io.control.valid,memReadSizeHandler.io.into.ready,writeAccSizeHandler.io.into.ready)
     }.elsewhen(io.control.sel === LocalDataFlowControl.arrayToAcc){
       writeAccStream.io.sel.payload := U(0).resized
       io.control.ready := writeAccSizeHandler.io.into.ready
@@ -139,10 +136,7 @@ class LocalRouter[T <: Data](gen:HardType[T],arch:Architecture) extends BetsyMod
     }.elsewhen(io.control.sel === LocalDataFlowControl.memoryToAccumulator){
       memReadStreams.io.sel.payload := U(2, 2 bits)
       writeAccStream.io.sel.payload := U(1, 1 bits)
-      enqueue2.io.into.valid := io.control.valid
-      enqueue2.io.output(0).ready := memReadSizeHandler.io.into.ready
-      enqueue2.io.output(1).ready := writeAccSizeHandler.io.into.ready
-      io.control.ready := enqueue2.io.into.ready
+      io.control.ready := enqueue2.Readyenqueue2(io.control.valid,memReadSizeHandler.io.into.ready,writeAccSizeHandler.io.into.ready)
     }.otherwise{
       io.control.ready := True
     }

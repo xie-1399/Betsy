@@ -14,7 +14,7 @@ import spinal.lib._
 import Betsy._
 import BetsyLibs._
 import Betsy.Instruction._
-import Betsy.Until.{BetsyModule, zero}
+import Betsy.Until._
 
 /** Decode test order : NoOp -> DataMove -> LoadWeight -> MatMul -> Configure -> SIMD
  * this version instruction only enqueue when fire (so the instruction is blocked when before instruction not done !!!)
@@ -35,7 +35,8 @@ class Decode(arch: Architecture, Sampler: Boolean = false)(implicit layOut: Inst
     val systolicArrayControl = master Stream SystolicArrayControl()
     val accumulatorWithALUArrayControl = master Stream AccumulatorWithALUArrayControl(layOut)
     val error = out Bool()
-    val nop = out Bool() /* the noOP instruction */
+    val nop = out Bool()
+    /* the noOP instruction */
     val pc = out(UInt(arch.pcWidth bits))
   }
 
@@ -77,17 +78,29 @@ class Decode(arch: Architecture, Sampler: Boolean = false)(implicit layOut: Inst
   io.accumulatorWithALUArrayControl.arbitrationFrom(accumulatorHandler.io.output)
   setDefault(accumulatorHandler.io.into)
 
+  val dram0Handler = new StrideHandler(new MemControlWithStride(arch.dram0Depth, arch.stride0Depth), MemControl(arch.dram0Depth),arch.dram0Depth)
+  dram0Handler.io.output >> io.dram0
+  setDefault(dram0Handler.io.into)
+
+  val dram1Handler = new StrideHandler(new MemControlWithStride(arch.dram1Depth, arch.stride1Depth), MemControl(arch.dram1Depth), arch.dram1Depth)
+  dram1Handler.io.output >> io.dram1
+  setDefault(dram1Handler.io.into)
+
+  val hostDataFlowHandler = new SizeHandler(cloneOf(new HostDataFlowControlWithSize(arch.localDepth)), cloneOf(new HostDataFlowControl()), arch.localDepth)
+  hostDataFlowHandler.io.output >> io.hostDataFlow
+  setDefault(hostDataFlowHandler.io.into)
+
+  val twoQueue = new MultiEnqControl(2)
+  twoQueue.block()
+
+  val threeQueue = new MultiEnqControl(3)
+  threeQueue.block()
+
   val Block = new Composite(this, "NoOp") {
-    io.dram0.valid.clear()
-    io.dram0.payload.clearAll()
-    io.dram1.valid.clear()
-    io.dram1.payload.clearAll()
     io.memPortB.valid.clear()
     io.memPortB.payload.clearAll()
     io.localDataFlow.valid.clear()
     io.localDataFlow.payload.clearAll()
-    io.hostDataFlow.valid.clear()
-    io.hostDataFlow.payload.clearAll()
     io.instruction.ready := False
 
     // build the nop instruction
@@ -102,53 +115,48 @@ class Decode(arch: Architecture, Sampler: Boolean = false)(implicit layOut: Inst
 
   //build the data move instruction path
   val dataMove = new Composite(this, "DataMove") {
-    //      val isDataMove = io.instruction.valid && io.instruction.opcode === Opcode.DataMove
-    //      val dataMoveArgs = DataMoveArgs.fromBits(op0,op1,op2)
-    //      val dataMoveFlags = DataMoveFlags()
-    //      dataMoveFlags.kind := flags.asUInt
-    //
-    //      val DataMoveQueueControl = new MultiEnqControl(1)
-    //      DataMoveQueueControl.block()
-    //      val dataMoveValidError = RegInit(False).setWhen(!DataMoveKind.isValid(dataMoveFlags.kind) && isDataMove)
-    //      val dram0Gen = new MemControlWithStride(arch.dram0Depth,arch.stride1Depth)
-    //      val dram1Gen = new MemControlWithStride(arch.dram1Depth,arch.stride1Depth)
-    //
-    //      val hostDataFlowHandler = new SizeHandler(cloneOf(new HostDataFlowControlWithSize(arch.localDepth)),cloneOf(new HostDataFlowControl()),arch.localDepth)
-    //      hostDataFlowHandler.io.output >> io.hostDataFlow
-    //
-    //      import DataMoveKind._
-    //      when(isDataMove){
-    //        /* using the flags show */
-    //        switch(flags.asUInt){
-    //          is(dram0ToMemory){ //from the DRAM0 to the memory
-    //            hostDataFlowHandler.io.into.valid := True
-    //            hostDataFlowHandler.io.into.payload.size := dataMoveArgs.size.resized
-    //            hostDataFlowHandler.io.into.payload.kind := HostDataFlowControl.In0
-    //
-    //          }
-    //          is(memoryToDram0){
-    //
-    //          }
-    //          is(dram1ToMemory){
-    //
-    //          }
-    //
-    //          is(memoryToDram1){
-    //
-    //          }
-    //          is(accumulatorToMemory){
-    //
-    //          }
-    //          is(memoryToAccumulator){
-    //
-    //          }
-    //          is(memoryToAccumulatorAccumulate){
-    //
-    //          }
-    //
-    //        }
-    //
-    //      }
+    val isDataMove = io.instruction.valid && io.instruction.opcode === Opcode.DataMove
+    val dataMoveArgs = DataMoveArgs.fromBits(op0, op1, op2)
+    val dataMoveFlags = DataMoveFlags()
+    dataMoveFlags.kind := flags.asUInt
+
+    val dataMoveValidError = RegInit(False).setWhen(!DataMoveKind.isValid(dataMoveFlags.kind) && isDataMove)
+    val dram0Gen = new MemControlWithStride(arch.dram0Depth, arch.stride1Depth)
+    val dram1Gen = new MemControlWithStride(arch.dram1Depth, arch.stride1Depth)
+
+    import DataMoveKind._
+
+//    when(isDataMove) {
+//      /* using the flags show */
+//      switch(flags.asUInt) {
+//        is(dram0ToMemory) { //from the DRAM0 to the memory
+//          hostDataFlowHandler.io.into.valid := True
+//          hostDataFlowHandler.io.into.payload.size := dataMoveArgs.size.resized
+//          hostDataFlowHandler.io.into.payload.kind := HostDataFlowControl.In0
+//        }
+//        is(memoryToDram0) {
+//
+//        }
+//        is(dram1ToMemory) {
+//
+//        }
+//
+//        is(memoryToDram1) {
+//
+//        }
+//        is(accumulatorToMemory) {
+//
+//        }
+//        is(memoryToAccumulator) {
+//
+//        }
+//        is(memoryToAccumulatorAccumulate) {
+//
+//        }
+//
+//      }
+//
+//    }
   }
 
 
@@ -160,7 +168,7 @@ class Decode(arch: Architecture, Sampler: Boolean = false)(implicit layOut: Inst
     val zeroes = flags(0)
     val loadError = isLoad && !LoadWeightFlags.isValid(flags)
 
-    when(isLoad){
+    when(isLoad) {
       /* load control signals */
       PortAstrideHandler.io.into.valid := isLoad && !zeroes
       PortAstrideHandler.io.into.payload.stride := loadArgs.stride
@@ -181,7 +189,7 @@ class Decode(arch: Architecture, Sampler: Boolean = false)(implicit layOut: Inst
       when(zeroes) {
         io.instruction.ready := systolicArrayControlHandler.io.into.ready
       }.otherwise {
-        io.instruction.ready := PortAstrideHandler.io.into.ready
+        io.instruction.ready := twoQueue.Readyenqueue2(True, systolicArrayControlHandler.io.into.ready, PortAstrideHandler.io.into.ready)
       }
     }
   }
@@ -190,12 +198,12 @@ class Decode(arch: Architecture, Sampler: Boolean = false)(implicit layOut: Inst
     /* if zero will run zero and let data move array -> accumulator
     ** if accumulate will output and Memory -> Array -> Acc*/
     val ismatMul = io.instruction.valid && io.instruction.opcode === Opcode.MatMul
-    val matMulArgs = MatMulArgs.fromBits(op0,op1,op2)
+    val matMulArgs = MatMulArgs.fromBits(op0, op1, op2)
     val zeroes = flags(0)
     val accumulate = flags(1)
     val matMulError = ismatMul && !MatMulFlags.isValid(flags.asUInt)
 
-    when(ismatMul){
+    when(ismatMul) {
       /* no care about the alt address */
       accumulatorHandler.io.into.valid := ismatMul
       accumulatorHandler.io.into.payload.size := (matMulArgs.size - 1).resized
@@ -210,7 +218,8 @@ class Decode(arch: Architecture, Sampler: Boolean = false)(implicit layOut: Inst
       io.localDataFlow.payload.size := matMulArgs.size.resized
       io.localDataFlow.valid := ismatMul
 
-      systolicArrayControlHandler.io.into.valid := ismatMul
+      val inputDone = RegInit(False).setWhen(systolicArrayControlHandler.io.into.fire).clearWhen(io.instruction.ready)
+      systolicArrayControlHandler.io.into.valid := ismatMul && !inputDone
       systolicArrayControlHandler.io.into.zeroes := zeroes
       systolicArrayControlHandler.io.into.load := False
       systolicArrayControlHandler.io.into.size := (matMulArgs.size - 1).resized
@@ -220,14 +229,14 @@ class Decode(arch: Architecture, Sampler: Boolean = false)(implicit layOut: Inst
       PortAstrideHandler.io.into.payload.address := matMulArgs.memAddress
       PortAstrideHandler.io.into.payload.size := matMulArgs.size.resized
       PortAstrideHandler.io.into.payload.write := False
-      when(zeroes){
+      when(zeroes) {
         /* running zeroes / no need read the port A */
         io.localDataFlow.payload.sel := LocalDataFlowControl.arrayToAcc
-        io.instruction.ready := systolicArrayControlHandler.io.into.ready
-      }.otherwise{
+        io.instruction.ready := twoQueue.Readyenqueue2(ismatMul, systolicArrayControlHandler.io.into.ready, accumulatorHandler.io.into.ready)
+      }.otherwise {
         /* running input */
-        io.instruction.ready := PortAstrideHandler.io.into.ready
         io.localDataFlow.payload.sel := LocalDataFlowControl.memoryToArrayToAcc
+        io.instruction.ready := threeQueue.Readyenqueue3(ismatMul, PortAstrideHandler.io.into.ready, systolicArrayControlHandler.io.into.ready, accumulatorHandler.io.into.ready)
       }
     }
   }
@@ -251,7 +260,7 @@ class Decode(arch: Architecture, Sampler: Boolean = false)(implicit layOut: Inst
           runCycles := configureArgs.value.asUInt.resized
           io.instruction.ready := True
         }
-        default{
+        default {
           io.instruction.ready := True
         }
       }
