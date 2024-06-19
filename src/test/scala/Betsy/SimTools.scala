@@ -27,13 +27,21 @@ object SimTools {
     clip
   }
 
-  def reorderMatrix(array: Array[Array[Int]]) = {
+  def reorderMatrix(array: Array[Array[Int]],orderChange:Boolean = true) = {
     val rows = array.length
     val cols = array(0).length
     val buffer = new ArrayBuffer[Int]()
-    for (j <- cols - 1 to 0 by -1) {
-      for (i <- 0 until rows) {
-        buffer += array(i)(j)
+    if(orderChange){
+      for (j <- cols - 1 to 0 by -1) {
+        for (i <- 0 until rows) {
+          buffer += array(i)(j)
+        }
+      }
+    }else{
+      for (j <- 0 to cols - 1) {
+        for (i <- 0 until rows) {
+          buffer += array(i)(j)
+        }
       }
     }
     buffer.toArray
@@ -51,6 +59,12 @@ object SimTools {
       testArray += temp
     }
     testArray
+  }
+
+  def signClip(number:BigInt,size:Int):BigInt = {
+    val maxValue = math.pow(2,size).toInt
+    val result = if(number >= 0) number else maxValue + number
+    result
   }
 
 
@@ -82,22 +96,22 @@ object SimTools {
     val maxValue = (math.pow(2, bit) / 2 - 1).toInt
     val content = new ArrayBuffer[BigInt]()
     for (idx <- 0 until depth) {
-      val values = Array.fill(size) {Random.nextInt(maxValue)}
+      val values = Array.fill(size) {Random.nextInt(4)}
       val valuesBinary = values.map(value => bigintToBinaryStringWithWidth(value, bit)).reduce(_ + _)
       content += BigInt(valuesBinary, 2)
     }
     content.toArray
   }
 
-  def reshapeMemoryMatrix(binary: String): Array[Array[BigInt]] = {
-    require(binary.length % 4 == 0, "binary format error!!!")
-    val width = binary.length / 4
+  def reshapeMemoryMatrix(binary: String,bitWidth:Int): Array[Array[BigInt]] = {
+    require(binary.length % bitWidth == 0, "binary format error!!!")
+    val width = binary.length / bitWidth
     val temp = Array.fill(width) {
       Array.fill(1) {
         BigInt(0)
       }
     }
-    val binaryArray = binary.grouped(4).toArray
+    val binaryArray = binary.grouped(bitWidth).toArray
     val rows = binaryArray.map(BigInt(_, 2))
     for (idx <- 0 until width) {
       temp(idx)(0) = rows(idx)
@@ -110,7 +124,7 @@ object SimTools {
     val mergedArray = Array.fill(size){Array.fill(size){BigInt(0)}}
     contentBinary.zipWithIndex.foreach{
       binary =>
-        val cols = reshapeMemoryMatrix(binary._1)
+        val cols = reshapeMemoryMatrix(binary._1,bit)
         for(idx <- 0 until size){
           mergedArray(idx)(size - 1 - binary._2) = cols(size - idx - 1)(0)
         }

@@ -20,9 +20,10 @@ class DecodeTest extends AnyFunSuite{
 
   val memoryContent = genMemoryValue(8,8,8192) /* for the tiny memory content */
 
+  /* test the embedding arch(4 bits) */
   test("Load_Weight"){
     SIMCFG().compile{
-      val arch = Architecture.embeddings()
+      val arch = Architecture.embeddings()/* the tiny arch will use 8 bits to inference*/
       val dut = new Top(SInt(4 bits),arch,initContent = (0 until arch.localDepth.toInt).toArray.map(_.toBigInt))
       dut.systolicArray.io.weight.simPublic()
       dut.systolicArray.array.mac.foreach(_.foreach(_.weight.simPublic()))
@@ -41,6 +42,7 @@ class DecodeTest extends AnyFunSuite{
           while (idx < testCase){
             val zero = zeroes(idx)
             val size = 8
+            val bitWidth = 4
             val stride = strides(idx)
             val address = addressList(idx)
             dut.io.instruction.valid #= true
@@ -66,8 +68,9 @@ class DecodeTest extends AnyFunSuite{
                 val test = dut.systolicArray.array.mac.map(_.map(_.weight.toBigInt).toArray).toArray.flatten
                 assert(ref.sameElements(test), "load the all zeroes failed!!!")
               } else {
-                val test = dut.systolicArray.array.mac.map(_.map(_.weight.toBigInt).toArray).toArray
-                val testArray = loadMatrixReorder(test,4).reverse
+                val test = dut.systolicArray.array.mac.map(_.map(_.weight.toInt).toArray).toArray
+                val unsignTest = test.map{ t => t.map(v => SimTools.signClip(v,bitWidth))}
+                val testArray = loadMatrixReorder(unsignTest,bitWidth).reverse
                 val step = 1 << stride
                 val ref = Range(address,address + size * step,step).toArray
                 assert(ref.sameElements(testArray),"load the value error!!!")
@@ -83,7 +86,7 @@ class DecodeTest extends AnyFunSuite{
     }
   }
 
-  // Todo tested it
+  // Todo understand the data layout in the memory
   test("matmul"){
     SIMCFG().compile {
       val arch = Architecture.tiny()
@@ -147,8 +150,10 @@ class DecodeTest extends AnyFunSuite{
               if (dut.accumulatorWithALUArray.io.control.valid.toBoolean && dut.accumulatorWithALUArray.io.control.ready.toBoolean
                 && dut.accumulatorWithALUArray.io.control.write.toBoolean) {
                 accwriteMatrix += dut.accumulatorWithALUArray.io.inputs.payload.map(_.toInt).toArray
+                // println(dut.accumulatorWithALUArray.io.control.writeAddress.toBigInt)
               }
             }
+            val bitWidth = 8
             val address = Random.nextInt(1024)
             val stride = Random.nextInt(4)
             val step = 1 << stride
@@ -158,48 +163,69 @@ class DecodeTest extends AnyFunSuite{
               contentArray += memoryContent(idx)
             }
             Load(address, stride, 8, false)
+
             val refMatrix = MemoryContentToMatrix(contentArray.toArray, loadsize, 8)
             val refVec = refMatrix.flatten
-            val loadMatrix = dut.systolicArray.array.mac.map(_.map(_.weight.toBigInt).toArray).toArray
-            val loadVec = loadMatrix.flatten
-            // assert(refVec.sameElements(loadVec), "load value error!!!")
+
+            val loadMatrix = dut.systolicArray.array.mac.map(_.map(_.weight.toInt).toArray).toArray
+            val testVec = loadMatrix.map{ t => t.map(v => SimTools.signClip(v,bitWidth))}
+            val loadVec = testVec.flatten
+            assert(refVec.sameElements(loadVec), "load value error!!!")
             contentArray.clear()
 
-            val zero = false
+            val zero = Random.nextInt(10) > 5
             val localAddress = Random.nextInt(1024)
             val localStride = Random.nextInt(4)
             val accumulatorAddress = Random.nextInt(1024)
-            val accumulatorStride = 0 //Todo
+            val accumulatorStride = Random.nextInt(16)
             val inputsize = 8
             val inputstep = 1 << localStride
             for (idx <- localAddress until localAddress + inputsize * inputstep by inputstep) {
               contentArray += memoryContent(idx)
             }
-            val inputMatrix = MemoryContentToMatrix(contentArray.toArray, inputsize, 8)
+            val inputMatrix = MemoryContentToMatrix(contentArray.toArray.reverse, inputsize, 8) // input reverse and matrix * input
             Matmul(zero,localAddress, localStride, accumulatorAddress, accumulatorStride, inputsize)
-            val refGemm = Matrix.multiply(inputMatrix.map(_.map(_.toInt)),refMatrix.map(_.map(_.toInt)))
-            println("input matrix:")
-            inputMatrix.foreach{
-              input =>
-                println(input.mkString(","))
+            if(zero) {
+              val zeroref = Array.fill(Architecture.tiny().arraySize) {
+                Array.fill(Architecture.tiny().arraySize) {
+                  0
+                }
+              }.flatten
+              val testGemmVec = accwriteMatrix.flatten
+              assert(zeroref.sameElements(testGemmVec), "matmul 0 value error!!!")
             }
+            else{
+                val refGemm = Matrix.multiply(refMatrix.map(_.map(_.toInt)), inputMatrix.map(_.map(_.toInt)))
+                val refGemmVec = SimTools.reorderMatrix(refGemm, false)
+                val testGemmVec = accwriteMatrix.flatten
+                assert(refGemmVec.sameElements(testGemmVec), "matmul value error!!!")
+              }
 
-            println("weight matrix:")
-            refMatrix.foreach {
-              weight =>
-                println(weight.mkString(","))
-            }
 
-            println("ref matrix:")
-            refGemm.foreach{
-              ref =>
-                println(ref.mkString(","))
-            }
-            println("test matmul matrix : ")
-            accwriteMatrix.foreach {
-              test =>
-                println(test.mkString(","))
-            }
+//            def show() = {
+//              println("input matrix:")
+//              inputMatrix.foreach {
+//                input =>
+//                  println(input.mkString(","))
+//              }
+//
+//              println("weight matrix:")
+//              refMatrix.foreach {
+//                weight =>
+//                  println(weight.mkString(","))
+//              }
+//
+//              println("ref matrix:")
+//              refGemm.foreach {
+//                ref =>
+//                  println(ref.mkString(","))
+//              }
+//              println("test matmul matrix : ")
+//              accwriteMatrix.foreach {
+//                test =>
+//                  println(test.mkString(","))
+//              }
+//            }
             contentArray.clear()
             accwriteMatrix.clear()
           }
@@ -207,7 +233,7 @@ class DecodeTest extends AnyFunSuite{
         }
 
         init(dut)
-        MatmulTest(2)
+        MatmulTest(128)
         simSuccess()
     }
   }
