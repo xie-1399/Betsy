@@ -25,7 +25,7 @@ import Betsy._
 case class DataMoveArgs(layOut:InstructionLayOut) extends Bundle {
   val size = UInt(layOut.operand2SizeBits bits)
   val _unused1 = Bits(layOut.operand1Padding bits)
-  val accStride = UInt(layOut.stride1SizeBits bits)
+  val accStride = UInt(layOut.stride1SizeBits bits) /* also the dram */
   val accAddress = UInt(layOut.operand1AddressSizeBits bits)
   val _unused0 = Bits(layOut.operand0Padding bits)
   val memStride = UInt(layOut.stride0SizeBits bits)

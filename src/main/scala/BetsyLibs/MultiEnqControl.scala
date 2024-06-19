@@ -103,6 +103,16 @@ class MultiEnqControl(size:Int) extends BetsyModule{
     io.into.ready
   }
 
+  /* four ready enqueue */
+  def Readyenqueue4(valid: Bool, ready1: Bool, ready2: Bool, ready3: Bool, ready4:Bool): Bool = {
+    io.into.valid := valid
+    io.output(0).ready := ready1
+    io.output(1).ready := ready2
+    io.output(2).ready := ready3
+    io.output(3).ready := ready4
+    io.into.ready
+  }
+
 }
 
 /* demo using the Control to create 4 multi queue*/

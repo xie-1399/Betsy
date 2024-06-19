@@ -72,6 +72,11 @@ class Decode(arch: Architecture, Sampler: Boolean = false)(implicit layOut: Inst
   PortAstrideHandler.io.output >> io.memPortA
   setDefault(PortAstrideHandler.io.into)
 
+  //control the portB
+  val PortBstrideHandler = new StrideHandler(new MemControlWithStride(arch.localDepth, arch.stride1Depth), MemControl(arch.localDepth), arch.localDepth)
+  PortBstrideHandler.io.output >> io.memPortB
+  setDefault(PortBstrideHandler.io.into)
+
   // accumulator stride/size handler
   val accumulatorHandler = new StrideHandler(new AccumulatorMemControlWithSizeWithStride(layOut), AccumulatorMemControl(layOut), arch.accumulatorDepth)
   accumulatorHandler.io.output.payload.toAccumulatorWithALUArrayControl(arch) <> io.accumulatorWithALUArrayControl.payload
@@ -96,9 +101,10 @@ class Decode(arch: Architecture, Sampler: Boolean = false)(implicit layOut: Inst
   val threeQueue = new MultiEnqControl(3)
   threeQueue.block()
 
+  val fourQueue = new MultiEnqControl(4)
+  fourQueue.block()
+
   val Block = new Composite(this, "NoOp") {
-    io.memPortB.valid.clear()
-    io.memPortB.payload.clearAll()
     io.localDataFlow.valid.clear()
     io.localDataFlow.payload.clearAll()
     io.instruction.ready := False
@@ -121,42 +127,162 @@ class Decode(arch: Architecture, Sampler: Boolean = false)(implicit layOut: Inst
     dataMoveFlags.kind := flags.asUInt
 
     val dataMoveValidError = RegInit(False).setWhen(!DataMoveKind.isValid(dataMoveFlags.kind) && isDataMove)
-    val dram0Gen = new MemControlWithStride(arch.dram0Depth, arch.stride1Depth)
-    val dram1Gen = new MemControlWithStride(arch.dram1Depth, arch.stride1Depth)
 
     import DataMoveKind._
 
-//    when(isDataMove) {
-//      /* using the flags show */
-//      switch(flags.asUInt) {
-//        is(dram0ToMemory) { //from the DRAM0 to the memory
-//          hostDataFlowHandler.io.into.valid := True
-//          hostDataFlowHandler.io.into.payload.size := dataMoveArgs.size.resized
-//          hostDataFlowHandler.io.into.payload.kind := HostDataFlowControl.In0
-//        }
-//        is(memoryToDram0) {
-//
-//        }
-//        is(dram1ToMemory) {
-//
-//        }
-//
-//        is(memoryToDram1) {
-//
-//        }
-//        is(accumulatorToMemory) {
-//
-//        }
-//        is(memoryToAccumulator) {
-//
-//        }
-//        is(memoryToAccumulatorAccumulate) {
-//
-//        }
-//
-//      }
-//
-//    }
+    when(isDataMove) {
+      /* using the flags show */
+      switch(flags.asUInt) {
+        is(dram0ToMemory) { //from the DRAM0 to the memory
+          hostDataFlowHandler.io.into.valid := isDataMove
+          hostDataFlowHandler.io.into.payload.size := dataMoveArgs.size.resized
+          hostDataFlowHandler.io.into.payload.kind := HostDataFlowControl.In0
+
+          PortBstrideHandler.io.into.valid := isDataMove
+          PortBstrideHandler.io.into.payload.write := True
+          PortBstrideHandler.io.into.payload.stride := dataMoveArgs.memStride
+          PortBstrideHandler.io.into.payload.address := dataMoveArgs.memAddress
+          PortBstrideHandler.io.into.payload.size := dataMoveArgs.size.resized
+
+          dram0Handler.io.into.valid := isDataMove
+          dram0Handler.io.into.payload.stride := dataMoveArgs.accStride
+          dram0Handler.io.into.payload.address := dataMoveArgs.accAddress
+          dram0Handler.io.into.payload.write := False
+          dram0Handler.io.into.payload.size := dataMoveArgs.size.resized
+
+          io.instruction.ready := threeQueue.Readyenqueue3(isDataMove,hostDataFlowHandler.io.into.ready,PortBstrideHandler.io.into.ready,dram0Handler.io.into.ready)
+        }
+        is(memoryToDram0) { // from memory to dram0
+          hostDataFlowHandler.io.into.valid := isDataMove
+          hostDataFlowHandler.io.into.payload.size := dataMoveArgs.size.resized
+          hostDataFlowHandler.io.into.payload.kind := HostDataFlowControl.Out0
+
+          PortBstrideHandler.io.into.valid := isDataMove
+          PortBstrideHandler.io.into.payload.write := False
+          PortBstrideHandler.io.into.payload.stride := dataMoveArgs.memStride
+          PortBstrideHandler.io.into.payload.address := dataMoveArgs.memAddress
+          PortBstrideHandler.io.into.payload.size := dataMoveArgs.size.resized
+
+          dram0Handler.io.into.valid := isDataMove
+          dram0Handler.io.into.payload.stride := dataMoveArgs.accStride
+          dram0Handler.io.into.payload.address := dataMoveArgs.accAddress
+          dram0Handler.io.into.payload.write := True
+          dram0Handler.io.into.payload.size := dataMoveArgs.size.resized
+
+          io.instruction.ready := threeQueue.Readyenqueue3(isDataMove,hostDataFlowHandler.io.into.ready,PortBstrideHandler.io.into.ready,dram0Handler.io.into.ready)
+
+        }
+        is(dram1ToMemory) { // from dram1 to the memory
+          hostDataFlowHandler.io.into.valid := isDataMove
+          hostDataFlowHandler.io.into.payload.size := dataMoveArgs.size.resized
+          hostDataFlowHandler.io.into.payload.kind := HostDataFlowControl.In1
+
+          PortBstrideHandler.io.into.valid := isDataMove
+          PortBstrideHandler.io.into.payload.write := True
+          PortBstrideHandler.io.into.payload.stride := dataMoveArgs.memStride
+          PortBstrideHandler.io.into.payload.address := dataMoveArgs.memAddress
+          PortBstrideHandler.io.into.payload.size := dataMoveArgs.size.resized
+
+          dram1Handler.io.into.valid := isDataMove
+          dram1Handler.io.into.payload.stride := dataMoveArgs.accStride
+          dram1Handler.io.into.payload.address := dataMoveArgs.accAddress
+          dram1Handler.io.into.payload.write := False
+          dram1Handler.io.into.payload.size := dataMoveArgs.size.resized
+
+          io.instruction.ready := threeQueue.Readyenqueue3(isDataMove, hostDataFlowHandler.io.into.ready, PortBstrideHandler.io.into.ready, dram1Handler.io.into.ready)
+        }
+
+        is(memoryToDram1) { // from memory to dram1
+
+          hostDataFlowHandler.io.into.valid := isDataMove
+          hostDataFlowHandler.io.into.payload.size := dataMoveArgs.size.resized
+          hostDataFlowHandler.io.into.payload.kind := HostDataFlowControl.Out1
+
+          PortBstrideHandler.io.into.valid := isDataMove
+          PortBstrideHandler.io.into.payload.write := False
+          PortBstrideHandler.io.into.payload.stride := dataMoveArgs.memStride
+          PortBstrideHandler.io.into.payload.address := dataMoveArgs.memAddress
+          PortBstrideHandler.io.into.payload.size := dataMoveArgs.size.resized
+
+          dram1Handler.io.into.valid := isDataMove
+          dram1Handler.io.into.payload.stride := dataMoveArgs.accStride
+          dram1Handler.io.into.payload.address := dataMoveArgs.accAddress
+          dram1Handler.io.into.payload.write := True
+          dram1Handler.io.into.payload.size := dataMoveArgs.size.resized
+
+          io.instruction.ready := threeQueue.Readyenqueue3(isDataMove,hostDataFlowHandler.io.into.ready,PortBstrideHandler.io.into.ready,dram1Handler.io.into.ready)
+
+        }
+        is(accumulatorToMemory) {
+          io.localDataFlow.valid := isDataMove
+          io.localDataFlow.payload.size := dataMoveArgs.size.resized
+          io.localDataFlow.payload.sel := LocalDataFlowControl.accumulatorToMemory
+
+          PortAstrideHandler.io.into.valid := isDataMove
+          PortAstrideHandler.io.into.payload.write := True
+          PortAstrideHandler.io.into.payload.stride := dataMoveArgs.memStride
+          PortAstrideHandler.io.into.payload.address := dataMoveArgs.memAddress
+          PortAstrideHandler.io.into.payload.size := dataMoveArgs.size.resized
+
+          accumulatorHandler.io.into.valid := isDataMove
+          accumulatorHandler.io.into.payload.stride := dataMoveArgs.accStride.resized
+          accumulatorHandler.io.into.payload.address := dataMoveArgs.accAddress.resized
+          accumulatorHandler.io.into.payload.write := False
+          accumulatorHandler.io.into.payload.read := True
+          accumulatorHandler.io.into.payload.size := dataMoveArgs.size.resized
+          accumulatorHandler.io.into.payload.accumulate := False
+
+          io.instruction.ready := threeQueue.Readyenqueue3(isDataMove,io.localDataFlow.ready,PortAstrideHandler.io.into.ready,accumulatorHandler.io.into.ready)
+        }
+        is(memoryToAccumulator) {
+          io.localDataFlow.valid := isDataMove
+          io.localDataFlow.payload.size := dataMoveArgs.size.resized
+          io.localDataFlow.payload.sel := LocalDataFlowControl.memoryToAccumulator
+
+          PortAstrideHandler.io.into.valid := isDataMove
+          PortAstrideHandler.io.into.payload.write := False
+          PortAstrideHandler.io.into.payload.stride := dataMoveArgs.memStride
+          PortAstrideHandler.io.into.payload.address := dataMoveArgs.memAddress
+          PortAstrideHandler.io.into.payload.size := dataMoveArgs.size.resized
+
+          accumulatorHandler.io.into.valid := isDataMove
+          accumulatorHandler.io.into.payload.stride := dataMoveArgs.accStride.resized
+          accumulatorHandler.io.into.payload.address := dataMoveArgs.accAddress.resized
+          accumulatorHandler.io.into.payload.write := True
+          accumulatorHandler.io.into.payload.read := False
+          accumulatorHandler.io.into.payload.size := dataMoveArgs.size.resized
+          accumulatorHandler.io.into.payload.accumulate := False
+
+          io.instruction.ready := threeQueue.Readyenqueue3(isDataMove,io.localDataFlow.ready,PortAstrideHandler.io.into.ready,accumulatorHandler.io.into.ready)
+        }
+
+        /* what happens to the accumulate */
+        is(memoryToAccumulatorAccumulate) {
+          io.localDataFlow.valid := isDataMove
+          io.localDataFlow.payload.size := dataMoveArgs.size.resized
+          io.localDataFlow.payload.sel := LocalDataFlowControl.memoryToAccumulator
+
+          PortAstrideHandler.io.into.valid := isDataMove
+          PortAstrideHandler.io.into.payload.write := False
+          PortAstrideHandler.io.into.payload.stride := dataMoveArgs.memStride
+          PortAstrideHandler.io.into.payload.address := dataMoveArgs.memAddress
+          PortAstrideHandler.io.into.payload.size := dataMoveArgs.size.resized
+
+          accumulatorHandler.io.into.valid := isDataMove
+          accumulatorHandler.io.into.payload.stride := dataMoveArgs.accStride.resized
+          accumulatorHandler.io.into.payload.address := dataMoveArgs.accAddress.resized
+          // Todo
+          accumulatorHandler.io.into.payload.write := True
+          accumulatorHandler.io.into.payload.read := True
+          accumulatorHandler.io.into.payload.size := dataMoveArgs.size.resized
+          accumulatorHandler.io.into.payload.accumulate := True
+
+          io.instruction.ready := threeQueue.Readyenqueue3(isDataMove,io.localDataFlow.ready,PortAstrideHandler.io.into.ready,accumulatorHandler.io.into.ready)
+        }
+
+      }
+
+    }
   }
 
 
@@ -187,9 +313,9 @@ class Decode(arch: Architecture, Sampler: Boolean = false)(implicit layOut: Inst
       io.localDataFlow.payload.size := loadArgs.size.resized
       io.localDataFlow.payload.sel := LocalDataFlowControl.memoryToArrayWeight
       when(zeroes) {
-        io.instruction.ready := systolicArrayControlHandler.io.into.ready
+        io.instruction.ready := twoQueue.Readyenqueue2(isLoad, systolicArrayControlHandler.io.into.ready, io.localDataFlow.ready)
       }.otherwise {
-        io.instruction.ready := twoQueue.Readyenqueue2(True, systolicArrayControlHandler.io.into.ready, PortAstrideHandler.io.into.ready)
+        io.instruction.ready := threeQueue.Readyenqueue3(isLoad, systolicArrayControlHandler.io.into.ready, PortAstrideHandler.io.into.ready, io.localDataFlow.ready)
       }
     }
   }

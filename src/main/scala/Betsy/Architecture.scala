@@ -45,11 +45,11 @@ object Architecture{
   def embeddings():Architecture = {
     val arch = Architecture(
       dataType = "SInt_4",
-      arraySize = 8,
+      arraySize = 4,
       dram0Depth = 1024 * 1024, // 20 bits dram address
       dram1Depth = 1024 * 1024,
-      localDepth = 8192, // 13 bits
-      accumulatorDepth = 2048,
+      localDepth = 2048, // 13 bits
+      accumulatorDepth = 1024,
       simdRegistersDepth = 1,
       stride0Depth = 8,
       stride1Depth = 8,
