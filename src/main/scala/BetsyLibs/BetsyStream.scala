@@ -44,6 +44,13 @@ case class BetsyStreamPass[T <: Data](data: HardType[T]) extends Bundle with IMa
     slave(dataIn)
     master(dataOut)
   }
+
+  // if the input is blocked
+  def block() = {
+    this.dataIn.valid := False
+    this.dataOut.ready := False
+  }
+
 }
 
 class BetsyStreamMux[T<:Data](val gen:HardType[T],val num:Int) extends BetsyModule{

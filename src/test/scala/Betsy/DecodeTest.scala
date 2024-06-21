@@ -10,6 +10,8 @@ import scala.util.Random
 import scala.collection.mutable.ArrayBuffer
 import SimTools._
 
+/* Todo Reformat the test */
+
 class DecodeTest extends AnyFunSuite{
 
   def init(dut:Top[SInt]) = {
@@ -20,11 +22,10 @@ class DecodeTest extends AnyFunSuite{
 
   val memoryContent = genMemoryValue(8,8,8192) /* for the tiny memory content */
 
-  /* test the embedding arch(4 bits) */
   test("Load_Weight"){
     SIMCFG().compile{
-      val arch = Architecture.embeddings()/* the tiny arch will use 8 bits to inference*/
-      val dut = new Top(SInt(4 bits),arch,initContent = (0 until arch.localDepth.toInt).toArray.map(_.toBigInt))
+      val arch = Architecture.tiny()
+      val dut = new Top(SInt(8 bits),arch,initContent = (0 until arch.localDepth.toInt).toArray.map(_.toBigInt))
       dut.systolicArray.io.weight.simPublic()
       dut.systolicArray.array.mac.foreach(_.foreach(_.weight.simPublic()))
       dut.systolicArray.array.bias.simPublic()
@@ -42,7 +43,7 @@ class DecodeTest extends AnyFunSuite{
           while (idx < testCase){
             val zero = zeroes(idx)
             val size = 8
-            val bitWidth = 4
+            val bitWidth = 8
             val stride = strides(idx)
             val address = addressList(idx)
             dut.io.instruction.valid #= true
@@ -61,7 +62,7 @@ class DecodeTest extends AnyFunSuite{
               idx += 1
               if (zero) {
                 val ref = Array.fill(Architecture.tiny().arraySize) {
-                  Array.fill(8) {
+                  Array.fill(Architecture.tiny().arraySize) {
                     0
                   }
                 }.flatten
@@ -86,7 +87,6 @@ class DecodeTest extends AnyFunSuite{
     }
   }
 
-  // Todo understand the data layout in the memory
   test("matmul"){
     SIMCFG().compile {
       val arch = Architecture.tiny()
@@ -137,10 +137,6 @@ class DecodeTest extends AnyFunSuite{
           dut.io.instruction.valid #= true
           dut.io.instruction.payload #= payload
           dut.clockDomain.waitSamplingWhere(dut.io.instruction.ready.toBoolean)
-
-          dut.io.instruction.valid #= true
-          dut.io.instruction.payload #= InstructionGen.noOpGen(Architecture.tiny())
-          dut.clockDomain.waitSamplingWhere(dut.io.instruction.ready.toBoolean)
         }
 
         def MatmulTest(testCase: Int) = {
@@ -178,7 +174,7 @@ class DecodeTest extends AnyFunSuite{
             val localStride = Random.nextInt(4)
             val accumulatorAddress = Random.nextInt(1024)
             val accumulatorStride = Random.nextInt(16)
-            val inputsize = 8
+            val inputsize = Random.nextInt(8) + 8
             val inputstep = 1 << localStride
             for (idx <- localAddress until localAddress + inputsize * inputstep by inputstep) {
               contentArray += memoryContent(idx)
@@ -187,7 +183,7 @@ class DecodeTest extends AnyFunSuite{
             Matmul(zero,localAddress, localStride, accumulatorAddress, accumulatorStride, inputsize)
             if(zero) {
               val zeroref = Array.fill(Architecture.tiny().arraySize) {
-                Array.fill(Architecture.tiny().arraySize) {
+                Array.fill(inputsize) {
                   0
                 }
               }.flatten
@@ -195,37 +191,12 @@ class DecodeTest extends AnyFunSuite{
               assert(zeroref.sameElements(testGemmVec), "matmul 0 value error!!!")
             }
             else{
+                /* notice the activation layout */
                 val refGemm = Matrix.multiply(refMatrix.map(_.map(_.toInt)), inputMatrix.map(_.map(_.toInt)))
                 val refGemmVec = SimTools.reorderMatrix(refGemm, false)
                 val testGemmVec = accwriteMatrix.flatten
                 assert(refGemmVec.sameElements(testGemmVec), "matmul value error!!!")
               }
-
-
-//            def show() = {
-//              println("input matrix:")
-//              inputMatrix.foreach {
-//                input =>
-//                  println(input.mkString(","))
-//              }
-//
-//              println("weight matrix:")
-//              refMatrix.foreach {
-//                weight =>
-//                  println(weight.mkString(","))
-//              }
-//
-//              println("ref matrix:")
-//              refGemm.foreach {
-//                ref =>
-//                  println(ref.mkString(","))
-//              }
-//              println("test matmul matrix : ")
-//              accwriteMatrix.foreach {
-//                test =>
-//                  println(test.mkString(","))
-//              }
-//            }
             contentArray.clear()
             accwriteMatrix.clear()
           }
@@ -238,7 +209,6 @@ class DecodeTest extends AnyFunSuite{
     }
   }
 
-  //Todo update
   test("configure"){
     /* configure the regs in the top module */
     SIMCFG().compile{

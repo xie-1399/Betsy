@@ -70,10 +70,9 @@ object DataMoveKind {
   def memoryToDram0: UInt = U(1, 4 bits)
   def dram1ToMemory: UInt = U(2, 4 bits)
   def memoryToDram1: UInt = U(3, 4 bits)
-  //update it
   def accumulatorToMemory: UInt = U(0xc, 4 bits)
-  def memoryToAccumulator: UInt = U(0xb, 4 bits)
-  def memoryToAccumulatorAccumulate: UInt = U(0xa)
+  def memoryToAccumulator: UInt = U(0xd, 4 bits)
+  def memoryToAccumulatorAccumulate: UInt = U(0xf, 4 bits)
 
   val all = Array(
     dram0ToMemory,

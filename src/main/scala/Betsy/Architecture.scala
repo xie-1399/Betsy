@@ -10,6 +10,7 @@ package Betsy
 
 import spinal.core._
 import spinal.lib._
+import spinal.lib.bus.amba4.axi.Axi4Config
 
 abstract class ArchitectureDataType(name:String){
   def sizeBytes:Double
@@ -57,7 +58,6 @@ object Architecture{
     arch
   }
 
-  //Todo update the tiny module to the 8 bits
   def tiny(): Architecture = {
     // 4 + 4 + 16 + 20 + 20 = 64
     val arch = Architecture(
@@ -88,7 +88,22 @@ object Architecture{
     )
     arch
   }
+
+  def getWeightBusConfig(arch:Architecture) = Axi4Config(addressWidth = log2Up(arch.dram0Depth),
+    dataWidth = arch.arraySize * arch.dataWidth,
+    idWidth = -1, useId = false, /* no need for the id*/
+    useRegion = false, useBurst = true, useLock = false,
+    useCache = false, useSize = true, useQos = false, useLen = true,
+    useLast = true, useProt = false)
+
+  def getActivationBusConfig(arch: Architecture) = Axi4Config(addressWidth = log2Up(arch.dram1Depth),
+    dataWidth = arch.arraySize * arch.dataWidth,
+    idWidth = -1, useId = false, /* no need for the id*/
+    useRegion = false, useBurst = true, useLock = false,
+    useCache = false, useSize = true, useQos = false, useLen = true,
+    useLast = true, useProt = false)
 }
+
 
 object ArchitectureTest extends App{
   val layOut = InstructionLayOut(Architecture.large(),gen = true)

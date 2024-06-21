@@ -21,6 +21,11 @@ import Betsy.Until._
  * */
 
 /* rebuild stage will pipeline the decode stage */
+case class dramBus(layOut: InstructionLayOut) extends Bundle{
+  val len = UInt(log2Up(layOut.operand2SizeBits) bits) /* burst length */
+  val size = UInt(3 bits)  /* burst size */
+  val address = UInt(layOut.operand1AddressSizeBits bits) /* start address */
+}
 
 class Decode(arch: Architecture, Sampler: Boolean = false)(implicit layOut: InstructionLayOut) extends BetsyModule {
 
@@ -28,6 +33,7 @@ class Decode(arch: Architecture, Sampler: Boolean = false)(implicit layOut: Inst
     val instruction = slave Stream InstructionFormat(layOut.instructionSizeBytes * 8)
     val dram0 = master Stream MemControl(arch.dram0Depth)
     val dram1 = master Stream MemControl(arch.dram0Depth)
+    val bus = master Stream dramBus(layOut)
     val hostDataFlow = master Stream new HostDataFlowControl()
     val memPortA = master Stream MemControl(arch.localDepth)
     val memPortB = master Stream MemControl(arch.localDepth)
@@ -35,8 +41,7 @@ class Decode(arch: Architecture, Sampler: Boolean = false)(implicit layOut: Inst
     val systolicArrayControl = master Stream SystolicArrayControl()
     val accumulatorWithALUArrayControl = master Stream AccumulatorWithALUArrayControl(layOut)
     val error = out Bool()
-    val nop = out Bool()
-    /* the noOP instruction */
+    val nop = out Bool() /* the noOP instruction */
     val pc = out(UInt(arch.pcWidth bits))
   }
 
@@ -108,7 +113,7 @@ class Decode(arch: Architecture, Sampler: Boolean = false)(implicit layOut: Inst
     io.localDataFlow.valid.clear()
     io.localDataFlow.payload.clearAll()
     io.instruction.ready := False
-
+    setDefault(io.bus)
     // build the nop instruction
     val isNoOp = io.instruction.valid && io.instruction.opcode === Opcode.NoOp
     when(isNoOp) {
@@ -125,7 +130,7 @@ class Decode(arch: Architecture, Sampler: Boolean = false)(implicit layOut: Inst
     val dataMoveArgs = DataMoveArgs.fromBits(op0, op1, op2)
     val dataMoveFlags = DataMoveFlags()
     dataMoveFlags.kind := flags.asUInt
-
+    val dataMoveError = isDataMove && !DataMoveKind.isValid(flags.asUInt)
     val dataMoveValidError = RegInit(False).setWhen(!DataMoveKind.isValid(dataMoveFlags.kind) && isDataMove)
 
     import DataMoveKind._
@@ -313,9 +318,9 @@ class Decode(arch: Architecture, Sampler: Boolean = false)(implicit layOut: Inst
       io.localDataFlow.payload.size := loadArgs.size.resized
       io.localDataFlow.payload.sel := LocalDataFlowControl.memoryToArrayWeight
       when(zeroes) {
-        io.instruction.ready := twoQueue.Readyenqueue2(isLoad, systolicArrayControlHandler.io.into.ready, io.localDataFlow.ready)
+        io.instruction.ready := systolicArrayControlHandler.io.into.ready
       }.otherwise {
-        io.instruction.ready := threeQueue.Readyenqueue3(isLoad, systolicArrayControlHandler.io.into.ready, PortAstrideHandler.io.into.ready, io.localDataFlow.ready)
+        io.instruction.ready := twoQueue.Readyenqueue2(True, systolicArrayControlHandler.io.into.ready, PortAstrideHandler.io.into.ready)
       }
     }
   }
@@ -398,7 +403,8 @@ class Decode(arch: Architecture, Sampler: Boolean = false)(implicit layOut: Inst
   }
 
   val HasError = RegInit(False).setWhen(
-    io.instruction.valid && Opcode.Operror(io.instruction.opcode) || loadWeight.loadError || configure.configureError || matMul.matMulError
+    io.instruction.valid && Opcode.Operror(io.instruction.opcode) || loadWeight.loadError || configure.configureError
+      || matMul.matMulError || dataMove.dataMoveError
   )
 
   io.error := HasError

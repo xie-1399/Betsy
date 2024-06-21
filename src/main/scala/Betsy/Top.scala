@@ -1,9 +1,11 @@
 package Betsy
 
+import Betsy.Architecture.{getActivationBusConfig, getWeightBusConfig}
 import spinal.core._
 import spinal.lib._
 import BetsyLibs._
 import Betsy.Until._
+import spinal.lib.bus.amba4.axi.Axi4
 
 /**
  ** Betsy follow the MiT Licence.(c) xxl, All rights reserved **
@@ -22,63 +24,43 @@ class Top[T <: Data with Num[T]](gen:HardType[T],arch: Architecture,log:Boolean 
   require(gen().getClass.toString.split("\\.").last == arch.dataKind , "the clare data type is not match in the arch !!!")
 
   val io = new Bundle{
-    // val dram0 = master(BetsyStreamPass(gen))
-    // val dram1 = master(BetsyStreamPass(gen))
-    val instruction = slave Stream Bits(instructionLayOut.instructionSizeBytes * 8 bits)
+     val weightBus = master(Axi4(getWeightBusConfig(arch)))
+     val activationBus = master(Axi4(getActivationBusConfig(arch)))
+     val instruction = slave Stream Bits(instructionLayOut.instructionSizeBytes * 8 bits)
   }
   val decode = new Decode(arch)(instructionLayOut)
   val scratchPad = new DualPortMem(Vec(gen,arch.arraySize),arch.localDepth,initContent = initContent) // no mask with
   val systolicArray = new SystolicArray(gen,height = arch.arraySize,width = arch.arraySize)
   val accumulatorWithALUArray = new AccumulatorWithALUArray(gen,arch)
   val localRouter = new LocalRouter(Vec(gen,arch.arraySize),arch)
+  val hostRouter = new HostRouter(Vec(gen,arch.arraySize))
 
-  def decode_to_localRouter():Unit = {
+  /* Betsy connection */
+  val Betsy = new Area {
+
+    decode.io.instruction.arbitrationFrom(io.instruction)
+    decode.io.instruction.payload := InstructionFormat.fromBits(io.instruction.payload)(instructionLayOut)
+    /* decode out */
     localRouter.io.control << decode.io.localDataFlow
-  }
+    hostRouter.io.control << decode.io.hostDataFlow
+    systolicArray.io.control << decode.io.systolicArrayControl
+    accumulatorWithALUArray.io.control << decode.io.accumulatorWithALUArrayControl
+    scratchPad.io.portA.control << decode.io.memPortA
+    scratchPad.io.portB.control << decode.io.memPortB
 
-  def localRouter_to_accumulatorALU():Unit = {
+    /* local router connect */
     localRouter.io.accumulatorDataFlow.accIn >> accumulatorWithALUArray.io.inputs
     localRouter.io.accumulatorDataFlow.accOut << accumulatorWithALUArray.io.outputs
-  }
-
-  def localRouter_to_systolicArray():Unit ={
-    systolicArray.io.weight << localRouter.io.arrayDataFlow.weight
-    systolicArray.io.input << localRouter.io.arrayDataFlow.input
-    systolicArray.io.output >> localRouter.io.arrayDataFlow.output
-  }
-
-  def localRouter_to_scratchPad():Unit = {
+    localRouter.io.arrayDataFlow.weight >> systolicArray.io.weight
+    localRouter.io.arrayDataFlow.input >> systolicArray.io.input
+    localRouter.io.arrayDataFlow.output << systolicArray.io.output
     localRouter.io.memoryDataFlow.memOut << scratchPad.io.portA.dataOut
     localRouter.io.memoryDataFlow.memIn >> scratchPad.io.portA.dataIn
+
+    /* host Router */
+    hostRouter.io.mem.dataIn >> scratchPad.io.portB.dataIn
+    hostRouter.io.mem.dataOut << scratchPad.io.portB.dataOut
   }
-
-  def decode_to_systolicArray():Unit = {
-    systolicArray.io.control << decode.io.systolicArrayControl
-  }
-
-  def decode_to_accumulatorALU():Unit = {
-    decode.io.accumulatorWithALUArrayControl >> accumulatorWithALUArray.io.control
-  }
-
-  def decode_to_scratchPad():Unit = {
-    scratchPad.io.portA.control << decode.io.memPortA
-    scratchPad.io.portB.blockPort()
-
-  }
-
-  def ConnectAll(): Unit = {
-    decode_to_localRouter()
-    localRouter_to_accumulatorALU()
-    localRouter_to_systolicArray()
-    localRouter_to_scratchPad()
-    decode_to_systolicArray()
-    decode_to_accumulatorALU()
-    decode_to_scratchPad()
-    decode.io.instruction.payload := InstructionFormat.fromBits(io.instruction.payload)(instructionLayOut)
-    decode.io.instruction.arbitrationFrom(io.instruction)
-  }
-
-  ConnectAll() //connect the top module
 
 }
 
