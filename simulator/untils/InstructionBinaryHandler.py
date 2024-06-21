@@ -4,29 +4,7 @@
 """
 
 
-def read_binary_file(input_file):
-    with open(input_file, 'rb') as f:
-        content = f.read()
-    f.close()
-    return content
-
-
-def write_binary_as_01_strings(data, output_file, width):
-    with open(output_file, 'w') as f:
-        # Convert each byte to its binary representation and join into a string
-        bin_string = ''.join(format(byte, '08b') for byte in data)
-        # Split the string into chunks of 64 bits (8 bytes) and write each chunk to a new line
-        for i in range(0, len(bin_string), width):
-            f.write(bin_string[i:i + width] + '\n')
-        f.close()
-
-
-def process_files(input_file_path, output_file_path, width):
-    binary_data = read_binary_file(input_file_path)
-    write_binary_as_01_strings(binary_data, output_file_path, width)
-    print("Process File Successfully !")
-
-
+# deal the instruction file
 def Instruction_statistics(input_file):
     with open(input_file, 'r') as file:
         lines = file.readlines()
@@ -39,21 +17,14 @@ def Instruction_statistics(input_file):
         print(f"Total Instruction number {len(lines)}")
         for line in lines:
             opcode = str(line)[-9] + str(line)[-8] + str(line)[-7] + str(line)[-6]
-            if opcode == "0000":
-                nop += 1
-            elif opcode == "0001":
-                matmul += 1
-            elif opcode == "0010":
-                data_move += 1
-            elif opcode == "0011":
-                load += 1
-            elif opcode == "0100":
-                simd += 1
-            elif opcode == "1111":
-                configure += 1
-            else:
-                print(line)
-                print("No Define !!!")
+            match opcode:
+                case "0000": nop += 1
+                case "0001": matmul += 1
+                case "0010": data_move += 1
+                case "0011": load += 1
+                case "0100": simd += 1
+                case "1111": configure += 1
+                case _: print("No Define !!!")
         print(f"nop operation number: {nop}")
         print(f"matmul operation number: {matmul}")
         print(f"data_move operation number: {data_move}")

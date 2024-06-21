@@ -4,6 +4,8 @@
 """
 
 
+# configure the betsy registers takes one cycle
+
 class Configure:
     def __init__(self):
         self.opcode = None
