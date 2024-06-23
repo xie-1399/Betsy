@@ -9,7 +9,8 @@ the tensil now focuses on the CNN backbone Model(such as ResNet、YOLO), we will
 
 
 #### Architecture
-![architecture V1](https://github.com/xie-1399/Betsy/tree/main/doc/img/ArchtectureV1.png)
+![architecture V1](https://github.com/xie-1399/Betsy/blob/main/doc/img/ArchtectureV1.png)
+
 
 
 #### Licences
