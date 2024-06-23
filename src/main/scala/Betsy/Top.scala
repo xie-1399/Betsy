@@ -24,9 +24,11 @@ class Top[T <: Data with Num[T]](gen:HardType[T],arch: Architecture,log:Boolean 
   require(gen().getClass.toString.split("\\.").last == arch.dataKind , "the clare data type is not match in the arch !!!")
 
   val io = new Bundle{
-     val weightBus = master(Axi4(getWeightBusConfig(arch)))
-     val activationBus = master(Axi4(getActivationBusConfig(arch)))
-     val instruction = slave Stream Bits(instructionLayOut.instructionSizeBytes * 8 bits)
+     // val weightBus = master(Axi4(getWeightBusConfig(arch)))
+     // val activationBus = master(Axi4(getActivationBusConfig(arch)))
+    val dram0 = master(BetsyStreamPass(Vec(gen(),arch.arraySize)))
+    val dram1 = master(BetsyStreamPass(Vec(gen(),arch.arraySize)))
+    val instruction = slave Stream Bits(instructionLayOut.instructionSizeBytes * 8 bits)
   }
   val decode = new Decode(arch)(instructionLayOut)
   val scratchPad = new DualPortMem(Vec(gen,arch.arraySize),arch.localDepth,initContent = initContent) // no mask with
@@ -60,6 +62,11 @@ class Top[T <: Data with Num[T]](gen:HardType[T],arch: Architecture,log:Boolean 
     /* host Router */
     hostRouter.io.mem.dataIn >> scratchPad.io.portB.dataIn
     hostRouter.io.mem.dataOut << scratchPad.io.portB.dataOut
+    hostRouter.io.dram0 <> io.dram0
+    hostRouter.io.dram1 <> io.dram1
+
+    decode.io.dram0.ready := True
+    decode.io.dram1.ready := True
   }
 
 }

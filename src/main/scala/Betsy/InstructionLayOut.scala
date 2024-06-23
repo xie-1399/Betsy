@@ -144,12 +144,12 @@ object InstructionFormat{
     inst
   }
 
-  def fromBits(bit: Bits)(implicit layout: InstructionLayOut): InstructionFormat = {
-    val width = layout.instructionSizeBytes * 8
+  def fromBits(bit: Bits)(implicit layOut: InstructionLayOut): InstructionFormat = {
+    val width = layOut.instructionSizeBytes * 8
     val opcode = bit(width - 1 downto width - 4)
     val flags = bit(width - 5 downto width - 8)
     val arguments = bit(width - 9 downto 0)
-    val inst = InstructionFormat(layout.instructionSizeBytes * 8)
+    val inst = InstructionFormat(layOut.instructionSizeBytes * 8)
     inst.opcode := opcode
     inst.flags.assignFromBits(flags.asBits)
     inst.arguments.assignFromBits(arguments.asBits)
@@ -159,11 +159,11 @@ object InstructionFormat{
 
 
 /* the simd unit driver instruction using the ALU opcode */
-case class SIMDInstruction(layout: InstructionLayOut) extends Bundle with IMasterSlave {
-  val op = UInt(layout.simdOpSizeBits bits)
-  val sourceLeft = UInt(layout.simdOperandSizeBits bits) // 0 = io.input, 1 = register 0, ...
-  val sourceRight = UInt(layout.simdOperandSizeBits bits)
-  val dest = UInt(layout.simdOperandSizeBits bits)
+case class SIMDInstruction(layOut: InstructionLayOut) extends Bundle with IMasterSlave {
+  val op = UInt(layOut.simdOpSizeBits bits)
+  val sourceLeft = UInt(layOut.simdOperandSizeBits bits) // 0 = io.input, 1 = register 0, ...
+  val sourceRight = UInt(layOut.simdOperandSizeBits bits)
+  val dest = UInt(layOut.simdOperandSizeBits bits)
 
   override def asMaster(): Unit = {
     out(op,dest,sourceLeft,sourceRight)

@@ -39,10 +39,25 @@ object SIMDArgs {
             instruction: SIMDInstruction)(implicit layOut: InstructionLayOut): SIMDArgs = {
     val arguments = SIMDArgs(layOut)
     arguments._unused.clearAll()
-    arguments.instruction <> instruction
+    arguments.instruction.op := instruction.op.resized
+    arguments.instruction.sourceLeft := instruction.sourceLeft.resized
+    arguments.instruction.sourceRight := instruction.sourceRight.resized
+    arguments.instruction.dest := instruction.dest.resized
     arguments.accReadAddress := accReadAddress.resized
     arguments.accWriteAddress := accWriteAddress.resized
     arguments
+  }
+
+  // Todo check the instruction format
+  def fromBits(op0:Bits, op1:Bits, op2:Bits)(implicit layOut:InstructionLayOut) = {
+    val accWriteAddress = op0.asUInt
+    val accReadAddress = op1.asUInt
+    val simdInstruction = SIMDInstruction(layOut)
+    simdInstruction.dest := op2(layOut.simdOperandSizeBits - 1 downto 0).asUInt.resized
+    simdInstruction.sourceRight := op2(layOut.simdOperandSizeBits * 2 - 1 downto layOut.simdOperandSizeBits).asUInt.resized
+    simdInstruction.sourceLeft := op2(layOut.simdOperandSizeBits * 3 - 1 downto layOut.simdOperandSizeBits * 2).asUInt.resized
+    simdInstruction.op := op2(layOut.simdOperandSizeBits * 3 + layOut.simdOpSizeBits downto layOut.simdOperandSizeBits * 3).asUInt.resized
+    apply(accReadAddress,accWriteAddress,simdInstruction)
   }
 }
 

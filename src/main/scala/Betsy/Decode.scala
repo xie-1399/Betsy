@@ -20,20 +20,12 @@ import Betsy.Until._
  * this version instruction only enqueue when fire (so the instruction is blocked when before instruction not done !!!)
  * */
 
-/* rebuild stage will pipeline the decode stage */
-case class dramBus(layOut: InstructionLayOut) extends Bundle{
-  val len = UInt(log2Up(layOut.operand2SizeBits) bits) /* burst length */
-  val size = UInt(3 bits)  /* burst size */
-  val address = UInt(layOut.operand1AddressSizeBits bits) /* start address */
-}
-
 class Decode(arch: Architecture, Sampler: Boolean = false)(implicit layOut: InstructionLayOut) extends BetsyModule {
 
   val io = new Bundle {
     val instruction = slave Stream InstructionFormat(layOut.instructionSizeBytes * 8)
     val dram0 = master Stream MemControl(arch.dram0Depth)
     val dram1 = master Stream MemControl(arch.dram0Depth)
-    val bus = master Stream dramBus(layOut)
     val hostDataFlow = master Stream new HostDataFlowControl()
     val memPortA = master Stream MemControl(arch.localDepth)
     val memPortB = master Stream MemControl(arch.localDepth)
@@ -113,7 +105,6 @@ class Decode(arch: Architecture, Sampler: Boolean = false)(implicit layOut: Inst
     io.localDataFlow.valid.clear()
     io.localDataFlow.payload.clearAll()
     io.instruction.ready := False
-    setDefault(io.bus)
     // build the nop instruction
     val isNoOp = io.instruction.valid && io.instruction.opcode === Opcode.NoOp
     when(isNoOp) {
@@ -372,6 +363,33 @@ class Decode(arch: Architecture, Sampler: Boolean = false)(implicit layOut: Inst
     }
   }
 
+  val SIMD = new Composite(this, "SIMD") {
+    val isSimd = io.instruction.valid && io.instruction.opcode === Opcode.SIMD
+    val simdArgs = SIMDArgs.fromBits(op0,op1,op2)
+    val simdRead = flags(2)
+    val simdWrite = flags(1)
+    val simdAcc = flags(0)
+    val simdError = isSimd && !SIMDFlags.isValid(flags.asUInt)
+
+    when(isSimd){
+      accumulatorHandler.io.into.valid := isSimd
+      accumulatorHandler.io.into.payload.size.clearAll()
+      accumulatorHandler.io.into.payload.stride.clearAll()
+      accumulatorHandler.io.into.payload.reverse := False
+      accumulatorHandler.io.into.payload.accumulate := simdAcc
+      accumulatorHandler.io.into.payload.read := simdRead
+      accumulatorHandler.io.into.payload.write := simdWrite
+      accumulatorHandler.io.into.payload.address := simdArgs.accReadAddress.resized
+      accumulatorHandler.io.into.payload.altAddress:= simdArgs.accWriteAddress.resized
+      accumulatorHandler.io.into.payload.instruction.dest := simdArgs.instruction.dest
+      accumulatorHandler.io.into.payload.instruction.op := simdArgs.instruction.op
+      accumulatorHandler.io.into.payload.instruction.sourceLeft := simdArgs.instruction.sourceLeft
+      accumulatorHandler.io.into.payload.instruction.sourceRight := simdArgs.instruction.sourceLeft
+
+      io.instruction.ready := accumulatorHandler.io.into.ready
+    }
+  }
+
   val configure = new Composite(this, "Configure") {
 
     import Configure._
@@ -398,13 +416,11 @@ class Decode(arch: Architecture, Sampler: Boolean = false)(implicit layOut: Inst
     }
   }
 
-  val SIMD = new Composite(this, "SIMD") {
 
-  }
 
   val HasError = RegInit(False).setWhen(
     io.instruction.valid && Opcode.Operror(io.instruction.opcode) || loadWeight.loadError || configure.configureError
-      || matMul.matMulError || dataMove.dataMoveError
+      || matMul.matMulError || dataMove.dataMoveError || SIMD.simdError
   )
 
   io.error := HasError
