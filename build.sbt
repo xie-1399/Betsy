@@ -1,3 +1,5 @@
+//import com.thesamet.sbtprotoc.ProtocPlugin.autoImport._
+//import scalapb.compiler.Version.scalapbVersion
 name := "Betsy"
 
 ThisBuild / version := "1.0"
@@ -12,14 +14,19 @@ val spinalIdslPlugin = compilerPlugin("com.github.spinalhdl" %% "spinalhdl-idsl-
 lazy val projectname = (project in file("."))
   .settings(
     Compile / scalaSource := baseDirectory.value / "src" / "main" / "scala" ,
-    // Compile / unmanagedSourceDirectories += baseDirectory.value / "software",  // the row compiler
+    Compile / unmanagedSourceDirectories += baseDirectory.value / "software" / "compiler",  // the row compiler
     libraryDependencies ++= Seq(spinalCore,
       spinalLib,
       spinalIdslPlugin,
       "org.scalatest" %% "scalatest" % "3.2.5",
       "com.lihaoyi" %% "upickle" % "3.1.1",
-      // "org.tensorflow" % "tensorflow" % "1.15.0"
-    )
+      "org.tensorflow" % "tensorflow" % "1.15.0",
+      "com.thesamet.scalapb" %% "scalapb-runtime" % "0.11.11" % "protobuf"
+    ),
+//    Compile / PB.includePaths += baseDirectory.value / "software" / "compiler" / "tools" / "protobuf",
+//    Compile / PB.targets := Seq(
+//      scalapb.gen() -> (Compile / sourceManaged).value / "scalapb"
+//    )
   )
 
 fork := true
