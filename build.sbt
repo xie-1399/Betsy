@@ -14,19 +14,21 @@ val spinalIdslPlugin = compilerPlugin("com.github.spinalhdl" %% "spinalhdl-idsl-
 lazy val projectname = (project in file("."))
   .settings(
     Compile / scalaSource := baseDirectory.value / "src" / "main" / "scala" ,
-    Compile / unmanagedSourceDirectories += baseDirectory.value / "software" / "compiler",  // the row compiler
+    Compile / unmanagedSourceDirectories += baseDirectory.value / "software" / "src",  // the row compiler
+//    Compile / PB.protoSources := Seq(baseDirectory.value / "software" / "compiler" / "tools" / "protobuf" / "tensorflow" / "core"/ "framework" ),
+//    Compile / PB.targets := Seq(
+//      scalapb.gen() -> (Compile / sourceManaged).value
+//    ),
     libraryDependencies ++= Seq(spinalCore,
       spinalLib,
       spinalIdslPlugin,
       "org.scalatest" %% "scalatest" % "3.2.5",
       "com.lihaoyi" %% "upickle" % "3.1.1",
-      "org.tensorflow" % "tensorflow" % "1.15.0",
-      "com.thesamet.scalapb" %% "scalapb-runtime" % "0.11.11" % "protobuf"
-    ),
-//    Compile / PB.includePaths += baseDirectory.value / "software" / "compiler" / "tools" / "protobuf",
-//    Compile / PB.targets := Seq(
-//      scalapb.gen() -> (Compile / sourceManaged).value / "scalapb"
-//    )
+      "com.google.protobuf" % "protobuf-java" % "3.21.0",
+      "com.microsoft.onnx" % "onnx" % "1.8.0",
+      //      "org.tensorflow" % "tensorflow" % "1.15.0",
+//      "com.thesamet.scalapb" %% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf"
+    )
   )
 
 fork := true
