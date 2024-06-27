@@ -23,7 +23,7 @@ import tensil.tools.{
 }
 import tensil.tools.compiler.scheduler._
 import tensil.tools.util
-import tensil.{TablePrinter, TableLine, Architecture}
+import tensil.common.{TablePrinter, TableLine, Architecture}
 
 case class SchedulerResult(
     numberOfStages: Int = 0,

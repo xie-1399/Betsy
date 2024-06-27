@@ -8,8 +8,7 @@ package tensil.tools.compiler
 import java.io.OutputStream
 
 import scala.collection.mutable
-
-import tensil.onnx.{NodeProto, ModelProto, TensorProto, ValueInfoProto}
+import onnx.onnx.{NodeProto, ModelProto, TensorProto, ValueInfoProto}
 
 import tensil.tools.{
   CompilerException,
@@ -1298,7 +1297,7 @@ class OnnxFrontend(
           outputAddresses(indexPair._1) = adjustedOutputVars.span(indexPair._1)
         }
 
-        Seq(inputVars.name, adjustedOutputVars.name),
+        Seq(inputVars.name, adjustedOutputVars.name)
       } else
         Seq(inputVars.name)
 

@@ -1,5 +1,3 @@
-//import com.thesamet.sbtprotoc.ProtocPlugin.autoImport._
-//import scalapb.compiler.Version.scalapbVersion
 name := "Betsy"
 
 ThisBuild / version := "1.0"
@@ -15,19 +13,17 @@ lazy val projectname = (project in file("."))
   .settings(
     Compile / scalaSource := baseDirectory.value / "src" / "main" / "scala" ,
     Compile / unmanagedSourceDirectories += baseDirectory.value / "software" / "src",  // the row compiler
-//    Compile / PB.protoSources := Seq(baseDirectory.value / "software" / "compiler" / "tools" / "protobuf" / "tensorflow" / "core"/ "framework" ),
-//    Compile / PB.targets := Seq(
-//      scalapb.gen() -> (Compile / sourceManaged).value
-//    ),
+    Compile / PB.protoSources := Seq(baseDirectory.value / "software"/ "protobuf"),
+    Compile / PB.targets := Seq(
+      scalapb.gen() -> (Compile / sourceManaged).value
+    ),
     libraryDependencies ++= Seq(spinalCore,
       spinalLib,
       spinalIdslPlugin,
       "org.scalatest" %% "scalatest" % "3.2.5",
       "com.lihaoyi" %% "upickle" % "3.1.1",
       "com.google.protobuf" % "protobuf-java" % "3.21.0",
-      "com.microsoft.onnx" % "onnx" % "1.8.0",
-      //      "org.tensorflow" % "tensorflow" % "1.15.0",
-//      "com.thesamet.scalapb" %% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf"
+      "com.thesamet.scalapb" %% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf"
     )
   )
 

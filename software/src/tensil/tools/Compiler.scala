@@ -7,6 +7,7 @@ import java.io._
 import scala.collection.mutable
 import org.tensorflow.framework.graph.GraphDef
 import onnx.onnx.ModelProto
+
 import tensil.common.{
   Architecture,
   ArchitectureDataType,

@@ -6,7 +6,6 @@ package tensil.common
 import java.io._
 import scala.io.Source
 import scala.reflect.ClassTag
-import tensil.common.ArchitectureDataType
 
 object ArchitectureDataTypeUtil {
   def readResult(
