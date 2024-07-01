@@ -7,7 +7,6 @@ import spinal.core.sim._
 import scala.util.Random
 
 /* no care about the memory usage and bus interface */
-
 object HostRouterTest extends App{
   SIMCFG().compile {
     val dut = new HostRouter(Bits(8 bits))

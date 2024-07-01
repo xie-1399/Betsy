@@ -13,6 +13,9 @@ object generator extends App{
     modelFile = new File("/media/xxl/Betsy/model/onnx/resnet20v2_cifar.onnx"),
     outputNodes = Seq("Identity:0"),
     targetDir = new File("/media/xxl/Betsy/software/src/tensil/tools/gen"),
+    summary = true,
+    instructionsSummary = true,
+    writeProgramAssembly = true
   )
 
   val arch = Architecture.read(genArg.archFile)
