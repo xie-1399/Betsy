@@ -79,7 +79,4 @@ object CountBy extends App{
       }
       simSuccess()
   }
-
-
-
 }

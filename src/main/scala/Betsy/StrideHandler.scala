@@ -7,7 +7,7 @@ package Betsy
  ** You should have received a copy of the MIT License along with this library **
  ** the size is show the address stride length
  ** when the size is 4 , step is 2 -> stride 2 with 4 times
- ** Test Status : PASS :)         Version:0.1  **
+ ** Test Status : PASS :)         Version:0.2  **
  */
 
 import BetsyLibs.{BetsyCounter, CountBy}
@@ -15,16 +15,26 @@ import spinal.core._
 import spinal.lib._
 import Until._
 
+/* the v0.2 clean and extend the error signal about illegal address and illegal stride format */
+
 class StrideHandler[T <: Bundle with Address with Size with Stride with Reverse,
   S <: Bundle with Address with Size](inGen:HardType[T],outGen:HardType[S],depth:Long) extends BetsyModule {
 
   val io = new Bundle{
     val into = slave Stream inGen()
     val output = master Stream outGen()
+    val error = out Bool()
   }
 
-  val stride = U(1) << io.into.payload.stride //Todo with size * stride > depth
-  val sizeCounter = new BetsyCounter(depth) //using the Counter can also work out
+  def block(): Unit = {
+    io.into.valid.clear()
+    io.into.payload.clearAll()
+    io.output.ready.clear()
+  }
+
+  val stride = U(1) << io.into.payload.stride
+
+  val sizeCounter = new BetsyCounter(depth)
   sizeCounter.io.value.ready := False
   sizeCounter.io.resetValue := False
 
@@ -33,11 +43,11 @@ class StrideHandler[T <: Bundle with Address with Size with Stride with Reverse,
   countBy.io.step := stride.resized
   countBy.io.resetValue := False
 
-  when(io.into.size === 0){
+  when(io.into.size === 0){ // when the size is zero , translate one cycle
     for (outelem <- io.output.payload.elements) {
       for (inelem <- io.into.payload.elements) {
         if (outelem._1 == inelem._1 && outelem._1 != "address" && outelem._1 != "size") {
-          outelem._2 := inelem._2 // connect other bundles
+          outelem._2 := inelem._2
         }
       }
     }
@@ -69,9 +79,14 @@ class StrideHandler[T <: Bundle with Address with Size with Stride with Reverse,
     io.output.payload.address := Mux(io.into.reverse, io.into.address - countBy.io.value.payload, io.into.address + countBy.io.value.payload)
     io.output.valid := io.into.valid
   }
+
+  val error = RegInit(False)
   when(io.into.valid){
-    assert(!(io.into.size === 0 && stride =/= 1),"the size is 0 but stride is over 0 !!!")
+    error := (io.into.size === 0 && stride =/= 1) || io.output.payload.address >= depth
+    assert(!(io.into.size === 0 && stride =/= 1),"the size is 0 but stride is over 0 in the [StrideHandler]!!!")
+    assert(io.output.payload.address < depth,"the address is illegal in the [StrideHandler]!!!" )
   }
+  io.error := error
 }
 
 

@@ -41,6 +41,7 @@ class StrideHandlerTest extends AnyFunSuite{
       dut
     }.doSimUntilVoid{
       dut =>
+        /* the stride is no overflow the depth */
         SimTimeout(10 us)
         dut.clockDomain.forkStimulus(10)
         StreamReadyRandomizer(dut.io.output,dut.clockDomain)
@@ -69,7 +70,7 @@ class StrideHandlerTest extends AnyFunSuite{
           }else{
             while(!(dut.io.into.ready.toBoolean && dut.io.into.valid.toBoolean)){
               dut.clockDomain.waitSampling()
-              if (dut.io.output.valid.toBoolean && dut.io.output.ready.toBoolean && !(dut.io.into.ready.toBoolean && dut.io.into.valid.toBoolean)) {
+              if (dut.io.output.valid.toBoolean && dut.io.output.ready.toBoolean) {
                 address += dut.io.output.address.toBigInt
               }
             }
@@ -80,14 +81,11 @@ class StrideHandlerTest extends AnyFunSuite{
         }
         def testCase = 1024
         for (idx <- 0 until testCase){
-          val baseAddr = Random.nextInt(1024 * 1024)
+          val baseAddr = Random.nextInt(512)
           val size = Random.nextInt(15) + 1
           getAddress(baseAddr,0,0,false) // when the size is 0 and stride should be also 0
           val address = getAddress(baseAddr,stride = 2,size = size,reverse = false)
-          val ref = (baseAddr until baseAddr + 4 * size by 4).toArray
-          /* println(s"BASE ADDR:  ${baseAddr}")
-          println(address.mkString(","))
-          println(ref.mkString(",")) */
+          val ref = (baseAddr to baseAddr + 4 * size by 4).toArray
           assert(address.sameElements(ref))
         }
         simSuccess()
@@ -115,12 +113,12 @@ class StrideHandlerTest extends AnyFunSuite{
           dut.io.into.valid #= true
           dut.io.into.size #= sizes(idx)
           dut.clockDomain.waitSamplingWhere{
-            if(dut.io.output.ready.toBoolean && dut.io.output.valid.toBoolean && !(dut.io.into.ready.toBoolean && dut.io.into.valid.toBoolean)){
+            if(dut.io.output.ready.toBoolean && dut.io.output.valid.toBoolean ){
               cycles += 1
             }
             dut.io.into.ready.toBoolean && dut.io.into.valid.toBoolean
           }
-          assert(cycles == sizes(idx),s"${cycles} not match the ${sizes(idx)}!!!")
+          assert(cycles == sizes(idx) + 1,s"${cycles} not match the ${sizes(idx)}!!!")
           dut.io.into.valid #= false
           dut.clockDomain.waitSampling()
         }

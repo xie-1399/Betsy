@@ -106,5 +106,5 @@ object Architecture{
 
 
 object ArchitectureTest extends App{
-  val layOut = InstructionLayOut(Architecture.large(),gen = true)
+  val layOut = InstructionLayOut(Architecture.tiny(),gen = true)
 }

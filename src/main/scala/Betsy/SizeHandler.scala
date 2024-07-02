@@ -14,7 +14,9 @@ import spinal.lib._
  ** Test Status : PASS :)         Version:0.1 **
  */
 
-/* Todo can simplify it and common with the Stride handler */
+/* just think about the length of the translation */
+/* when the size valid is always true , seems will translate with (size + 1) cycles */
+/* the size width is under log2up(depth) and so no check error */
 
 class SizeHandler[T <: Bundle with Size, S <: Bundle](inGen: HardType[T], outGen: HardType[S], depth: Long) extends BetsyModule{
 
@@ -47,12 +49,4 @@ class SizeHandler[T <: Bundle with Size, S <: Bundle](inGen: HardType[T], outGen
   }
 
   io.output.valid := io.into.valid
-}
-
-
-
-object SizeHandlerDemo extends App{
-  // test for the generate...
-  val rtl = SpinalSystemVerilog(new SizeHandler(new LocalDataFlowControlWithSize(1024),
-    new DataFlowSel(LocalDataFlowControl.locaDataFlowNums),depth = 1024))
 }

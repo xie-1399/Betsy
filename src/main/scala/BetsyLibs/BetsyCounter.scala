@@ -19,7 +19,7 @@ class BetsyCounter(number:Long) extends BetsyModule {
   }
   val value = Reg(UInt(log2Up(number) bits)).init(0)
   when(io.value.fire){
-    when(value === U(number-1)){
+    when(value === U(number - 1)){
       value.clearAll()
     }.otherwise{
       value := value + 1
