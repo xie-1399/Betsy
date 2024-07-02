@@ -21,7 +21,7 @@ import scala.util.Random
 
 class LocalRouterTest extends AnyFunSuite{
 
-  test("data move"){
+  test("local data move"){
     SIMCFG().compile{
       val arch = Architecture()
       val dut = new LocalRouter(Bits(16 bits),arch)

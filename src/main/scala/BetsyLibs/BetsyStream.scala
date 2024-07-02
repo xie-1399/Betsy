@@ -35,24 +35,6 @@ case class BetsyReadyValid() extends Bundle with IMasterSlave {
   def nodeq() = {this.ready := False}
 }
 
-case class BetsyStreamPass[T <: Data](data: HardType[T]) extends Bundle with IMasterSlave {
-  /* operation between in and out stream */
-  val dataIn = Stream(data)
-  val dataOut = Stream(data)
-
-  override def asMaster(): Unit = {
-    slave(dataIn)
-    master(dataOut)
-  }
-
-  // if the input is blocked
-  def block() = {
-    this.dataIn.valid := False
-    this.dataOut.ready := False
-  }
-
-}
-
 class BetsyStreamMux[T<:Data](val gen:HardType[T],val num:Int) extends BetsyModule{
   /* the select stream is Drive by the sel stream*/
   val io = new Bundle{
@@ -78,6 +60,16 @@ object BetsyStreamMux{
     mux.io.InStreams(1) << in1
     mux.io.OutStream >> out
     mux.io.sel
+  }
+
+  def apply[T <: Data](in0: Stream[T], in1: Stream[T], out: Stream[T], valid: Bool, kind: UInt): Bool = {
+    val mux = new BetsyStreamMux(cloneOf(in0.payload), 2)
+    mux.io.InStreams(0) << in0
+    mux.io.InStreams(1) << in1
+    mux.io.OutStream >> out
+    mux.io.sel.valid := valid
+    mux.io.sel.payload := kind.resized
+    mux.io.sel.ready
   }
 }
 
@@ -107,6 +99,16 @@ object BetsyStreamDemux{
     demux.io.OutStreams(0) >> out0
     demux.io.OutStreams(1) >> out1
     demux.io.sel
+  }
+
+  def apply[T <: Data](in: Stream[T], out0: Stream[T], out1: Stream[T], valid: Bool, kind: UInt): Bool =  {
+    val demux = new BetsyStreamDemux(cloneOf(in.payload), 2)
+    demux.io.InStream << in
+    demux.io.OutStreams(0) >> out0
+    demux.io.OutStreams(1) >> out1
+    demux.io.sel.valid := valid
+    demux.io.sel.payload := kind.resized
+    demux.io.sel.ready
   }
 }
 

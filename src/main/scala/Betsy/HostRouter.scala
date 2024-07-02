@@ -12,38 +12,48 @@ import BetsyLibs._
  ** the data out is get the memory data to the dram **
  ** the data in is get the dram data to the memory **
  ** the kind show is data in or data out and which port to in out **
- ** Test Status : PASS :)         Version:0.1 **
+ ** Test Status : PASS :)         Version:0.2 **
  */
+
+case class HostData[T <: Data](val gen:HardType[T]) extends Bundle with IMasterSlave {
+  val dataIn = Stream(gen())
+  val dataOut = Stream(gen())
+  override def asMaster(): Unit = {
+    master(dataOut)
+    slave(dataIn)
+  }
+}
+
 
 class HostRouter[T <: Data](val gen:HardType[T]) extends BetsyModule{
   /* the stream mux lib looks like also work (update it later...) */
   val io = new Bundle{
     val control = slave(Stream(new HostDataFlowControl())) /* with kind control */
-    val dram0 = master (BetsyStreamPass(gen))
-    val dram1 = master (BetsyStreamPass(gen))
-    val mem = slave (BetsyStreamPass(gen))
+    val dram0 = master (HostData(gen))
+    val dram1 = master (HostData(gen))
+    val mem = slave (HostData(gen))
   }
 
-  val BetsyStreamMux = new BetsyStreamMux(gen,2)
-  val BetsyStreamDeMux = new BetsyStreamDemux(gen,2)
   val isDataIn = HostDataFlowControl.isDataIn(io.control.kind)
   val isDataOut = HostDataFlowControl.isDataOut(io.control.kind)
 
   /* dram 0 and dram 1 -> mem.dataIn*/
-  BetsyStreamMux.io.InStreams(0) <>io.dram0.dataIn
-  BetsyStreamMux.io.InStreams(1) <> io.dram1.dataIn
-  io.mem.dataIn <> BetsyStreamMux.io.OutStream
-  BetsyStreamMux.io.sel.valid := io.control.valid && isDataIn
-  BetsyStreamMux.io.sel.payload.assignFromBits(io.control.kind(1).asBits)
+  val memInSel = BetsyStreamMux(
+    io.dram0.dataIn,
+    io.dram1.dataIn,
+    io.mem.dataIn,
+    io.control.valid && isDataIn,
+    io.control.kind.msb.asUInt)
 
   /* memory.dataOut -> dram 0 and dram 1*/
-  BetsyStreamDeMux.io.InStream <> io.mem.dataOut
-  BetsyStreamDeMux.io.OutStreams(0) <> io.dram0.dataOut
-  BetsyStreamDeMux.io.OutStreams(1) <> io.dram1.dataOut
-  BetsyStreamDeMux.io.sel.valid := io.control.valid && isDataOut
-  BetsyStreamDeMux.io.sel.payload.assignFromBits(io.control.kind(1).asBits)
-
-  io.control.ready := (isDataIn && BetsyStreamMux.io.sel.ready) || (isDataOut && BetsyStreamDeMux.io.sel.ready)
+  val dramOutSel = BetsyStreamDemux(
+    io.mem.dataOut,
+    io.dram0.dataOut,
+    io.dram1.dataOut,
+    io.control.valid && isDataOut,
+    io.control.kind.msb.asUInt
+  )
+  io.control.ready := (isDataIn && memInSel) || (isDataOut && dramOutSel)
 }
 
 

@@ -12,8 +12,6 @@ import spinal.core._
 import spinal.lib._
 import BetsyLibs._
 
-//Todo with the size?
-
 case class MemControl(depth:Long,maskWidth:Int = -1) extends Bundle with Size with Address{
   val write = Bool()
   val address = UInt(log2Up(depth) bits)
