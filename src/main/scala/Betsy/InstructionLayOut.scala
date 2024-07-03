@@ -171,16 +171,16 @@ case class SIMDInstruction(layOut: InstructionLayOut) extends Bundle with IMaste
 }
 
 object SIMDInstruction{
-  def apply(op: BigInt, sourceLeft: BigInt, sourceRight: BigInt, dest: BigInt)(implicit layOut: InstructionLayOut): SIMDInstruction = {
+  def apply(op: UInt, sourceLeft: UInt, sourceRight: UInt, dest: UInt)(implicit layOut: InstructionLayOut): SIMDInstruction = {
     val aluInstruction = new SIMDInstruction(layOut)
-    aluInstruction.op := op
-    aluInstruction.sourceLeft := sourceLeft
-    aluInstruction.sourceRight := sourceRight
-    aluInstruction.dest := dest
+    aluInstruction.op := op.resized
+    aluInstruction.sourceLeft := sourceLeft.resized
+    aluInstruction.sourceRight := sourceRight.resized
+    aluInstruction.dest := dest.resized
     aluInstruction
   }
 
   def noOp()(implicit layOut: InstructionLayOut): SIMDInstruction = {
-    SIMDInstruction(ALUOp.NoOp, 0, 0, 0)
+    SIMDInstruction(ALUOp.NoOp, U(0), U(0), U(0))
   }
 }

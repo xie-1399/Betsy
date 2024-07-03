@@ -35,6 +35,20 @@ class MemControlWithStride(depth:Long, strideDepth:Int,maskWidth:Int = -1) exten
   }
 }
 
+object MemControlWithStride{
+
+  def apply(depth: Long, strideDepth: Int, write: Bool, address: UInt, size: UInt, reverse: Bool, stride: UInt): MemControlWithStride = {
+    val memControlWithStride = new MemControlWithStride(depth, strideDepth)
+    memControlWithStride.write := write
+    memControlWithStride.address := address
+    memControlWithStride.size := size
+    memControlWithStride.reverse := reverse
+    memControlWithStride.stride := stride
+    memControlWithStride
+  }
+
+}
+
 case class Status() extends Bundle{
   val Isread = Bool()
   val Iswrite = Bool()

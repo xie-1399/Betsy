@@ -27,6 +27,16 @@ class SystolicArrayControlWithSize(depth:Long) extends SystolicArrayControl with
   override val size: UInt = UInt(log2Up(depth) bits)
 }
 
+object SystolicArrayControlWithSize{
+  def apply(depth: Long, load: Bool, zeroes: Bool, size: UInt): SystolicArrayControlWithSize = {
+    val systolicArrayControlWithSize = new SystolicArrayControlWithSize(depth)
+    systolicArrayControlWithSize.size := size
+    systolicArrayControlWithSize.load := load
+    systolicArrayControlWithSize.zeroes := zeroes
+    systolicArrayControlWithSize
+  }
+}
+
 /*=======================Accumulator Control========================== */
 class AccumulatorControl(depth:Long) extends Bundle{
   val address = UInt(log2Up(depth) bits)
@@ -122,6 +132,25 @@ class AccumulatorMemControlWithSizeWithStride(layOut: InstructionLayOut) extends
   with Reverse {
   val stride  = UInt(log2Up(layOut.arch.stride1Depth) bits)
   val reverse = Bool()
+}
+
+object AccumulatorMemControlWithSizeWithStride{
+
+  def apply(layOut: InstructionLayOut, instruction: SIMDInstruction, address: UInt, altAddress: UInt, read: Bool,
+            write: Bool, accumulate: Bool, size: UInt, stride: UInt, reverse: Bool): AccumulatorMemControlWithSizeWithStride = {
+    val accumulatorMemControlWithSizeWithStride = new AccumulatorMemControlWithSizeWithStride(layOut)
+    accumulatorMemControlWithSizeWithStride.instruction := instruction
+    accumulatorMemControlWithSizeWithStride.address := address
+    accumulatorMemControlWithSizeWithStride.altAddress := altAddress
+    accumulatorMemControlWithSizeWithStride.read := read
+    accumulatorMemControlWithSizeWithStride.write := write
+    accumulatorMemControlWithSizeWithStride.accumulate := accumulate
+    accumulatorMemControlWithSizeWithStride.size := size
+    accumulatorMemControlWithSizeWithStride.stride := stride
+    accumulatorMemControlWithSizeWithStride.reverse := reverse
+    accumulatorMemControlWithSizeWithStride
+  }
+
 }
 
 

@@ -39,7 +39,7 @@ class MultiEnqControl(size:Int) extends BetsyModule{
   }
   io.into.ready := allEnqueue
 
-  def block() = {
+  def block(): Unit = {
     io.into.valid := False
     io.output.foreach(_.ready := False)
   }
@@ -111,6 +111,15 @@ class MultiEnqControl(size:Int) extends BetsyModule{
     io.output(2).ready := ready3
     io.output(3).ready := ready4
     io.into.ready
+  }
+}
+
+object MultiEnqControl{
+
+  def apply(size: Int): MultiEnqControl = {
+    val multiQueue = new MultiEnqControl(size)
+    multiQueue.block()
+    multiQueue
   }
 
 }
