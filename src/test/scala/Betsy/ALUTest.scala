@@ -8,12 +8,11 @@ import spinal.core.sim._
 
 import scala.util.Random
 
-object ALUTest extends AnyFunSuite {
+class ALUTest extends AnyFunSuite {
 
-  /* the register pipe tested later ...*/
   test("without insert register ") {
     SIMCFG().compile {
-      val dut = new ALU(SInt(16 bits), numOps = 16, numRegisters = 1) /* no insert registers */
+      val dut = new ALU(SInt(8 bits), numOps = 16, numRegisters = 1) /* no insert registers */
       dut.registers.simPublic()
       dut
     }.doSimUntilVoid {
@@ -21,9 +20,10 @@ object ALUTest extends AnyFunSuite {
         SimTimeout(10 us)
         dut.clockDomain.forkStimulus(10)
         def testCase = 4096 * 4
-        def bitWidth = 16
+        def bitWidth = 8
         val sign = true
-        def ALUInit() = {
+
+        def ALUInit(): Unit = {
           dut.io.input #= 0
           dut.io.op #= 0
           dut.io.dest #= 0
@@ -33,14 +33,9 @@ object ALUTest extends AnyFunSuite {
         }
 
         ALUInit()
+        val inputs = if (sign) Array.fill(testCase) {Random.nextInt(255) - 128}
+        else {Array.fill(testCase) {Random.nextInt(256)}}
 
-        val inputs = if (sign) Array.fill(testCase) {
-          Random.nextInt(120) - 120
-        } else {
-          Array.fill(testCase) {
-            Random.nextInt(256)
-          }
-        }
         for (idx <- 0 until testCase) {
           val randOp = Random.nextInt(16)
           val randLeft = Random.nextInt(2)
@@ -53,46 +48,14 @@ object ALUTest extends AnyFunSuite {
           dut.io.input #= inputs(idx)
           dut.clockDomain.waitSampling()
 
-          val sourceLeftValue = if (randLeft == 0) {
-            inputs(idx)
-          } else {
-            dut.registers(0).toInt
-          }
-          val sourceRightValue = if (randRight == 0) {
-            inputs(idx)
-          } else {
-            dut.registers(0).toInt
-          }
-          val leftBoolValue = if (sourceLeftValue != 0) {
-            true
-          } else {
-            false
-          }
-          val rightBoolValue = if (sourceRightValue != 0) {
-            true
-          } else {
-            false
-          }
-          val greater = if (sourceLeftValue > sourceRightValue) {
-            true
-          } else {
-            false
-          }
-          val greaterThan = if (sourceLeftValue >= sourceRightValue) {
-            true
-          } else {
-            false
-          }
-          val min = if (sourceLeftValue > sourceRightValue) {
-            sourceRightValue
-          } else {
-            sourceLeftValue
-          }
-          val max = if (sourceLeftValue > sourceRightValue) {
-            sourceLeftValue
-          } else {
-            sourceRightValue
-          }
+          val sourceLeftValue = if (randLeft == 0) {inputs(idx)} else {dut.registers(0).toInt}
+          val sourceRightValue = if (randRight == 0) {inputs(idx)} else {dut.registers(0).toInt}
+          val leftBoolValue = sourceLeftValue != 0
+          val rightBoolValue = sourceRightValue != 0
+          val greater = sourceLeftValue > sourceRightValue
+          val greaterThan = sourceLeftValue >= sourceRightValue
+          val min = if (sourceLeftValue > sourceRightValue) {sourceRightValue} else {sourceLeftValue}
+          val max = if (sourceLeftValue > sourceRightValue) {sourceLeftValue} else {sourceRightValue}
 
           randOp match {
             case 0 => assert(dut.io.output.toInt == inputs(idx), "NoOp error !!!")
@@ -109,6 +72,8 @@ object ALUTest extends AnyFunSuite {
             case 11 =>
               if (sourceLeftValue.abs != math.pow(2, bitWidth - 1)) {
                 assert(dut.io.output.toInt == (sourceLeftValue.abs), s"${dut.io.output.toInt} /= ${(sourceLeftValue.abs)} -> Abs error !!!")
+              }else{
+                assert(dut.io.output.toInt == math.pow(2, bitWidth - 1) - 1)
               }
             case 12 => assert(dut.io.output.toInt == greater.toInt, "greater error !!!")
             case 13 => assert(dut.io.output.toInt == greaterThan.toInt, "greater than error !!!")
