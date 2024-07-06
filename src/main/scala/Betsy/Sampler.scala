@@ -11,25 +11,14 @@ import Betsy.Until._
 import spinal.core._
 import spinal.lib._
 
-case class DecoupledFlags() extends Bundle{
-  val ready = Bool()
-  val valid = Bool()
-
-  def connect(data:Stream[Data]) = {
-    ready := data.ready
-    valid := data.valid
-  }
+object SamplerInstruction extends SpinalEnum{
+  val nop,load,matmul,datamove,simd,configure = newElement()
 }
 
 case class SamplerFlags() extends Bundle{
-  val instruction = new DecoupledFlags
-  val memPortA = new DecoupledFlags
-  val memPortB = new DecoupledFlags
-  val dram0 = new DecoupledFlags
-  val dram1 = new DecoupledFlags
-  val dataflow = new DecoupledFlags
-  val acc = new DecoupledFlags
-  val array = new DecoupledFlags
+  val valid = Bool()
+  val ready = Bool()
+  val instruction = SamplerInstruction()
 }
 
 case class Sample(pcWidth:Int) extends Bundle{
@@ -42,79 +31,46 @@ case class Sample(pcWidth:Int) extends Bundle{
   }
 }
 
-object Sample{
-  def apply(pcWidth:Int) = {
-    val sample = new Sample(pcWidth)
-    sample.pc := 0
-    sample.flags.assignFromBits(B(0,16 bits))
-    sample
-  }
-}
 
-// Todo update it with My sampler
-class Sampler(arch:Architecture,blockSize:Int) extends BetsyModule{
+class Sampler(arch:Architecture) extends BetsyModule{
 
   val io = new Bundle{
-    val flags = in(SamplerFlags())
+    val flags = in (SamplerFlags())
     val pc = in UInt(arch.pcWidth bits)
-    val interval = in UInt(arch.pcWidth/2 bits)
-    val sample = master Stream withLast(new Sample(arch.pcWidth))
+    val interval = in UInt(arch.pcWidth / 2 bits)
+    val sample = master Stream Sample(arch.pcWidth)
   }
 
+  val finish = io.flags.valid && io.flags.ready
+  val cycles = Reg(UInt(arch.pcWidth/2 bits)).init(0) /* instruction running cycles */
+  when(io.flags.valid && io.flags.ready){
+    cycles.clearAll()
+  }.elsewhen(io.flags.valid){
+    cycles := cycles + 1
+  }
+  val sample = Sample(arch.pcWidth)
   val cycleCounter = Reg(UInt(arch.pcWidth/2 bits)).init(0)  /* the counter is used to keep the sampler interval */
 
-  val outSample = RegInit(Sample(arch.pcWidth))
-  val outValid = RegInit(False)
-  val outLast = RegInit(False)
-  val outCounter = Reg(UInt(32 bits)).init(0)
-
-  val sampleReady = Bool()
-  val sample = new Sample(arch.pcWidth)
-
-  io.sample.valid := outValid
-  io.sample.payload.last := outLast
-  io.sample.payload.payload := outSample
-
-  when(io.interval =/= 0){
+  when(io.interval =/= 0 && io.flags.valid) {
     sample.pc := io.pc
     sample.flags := io.flags
-    when(cycleCounter === 0){
-      sampleReady.set()
+    when(cycleCounter === 0) {
       cycleCounter := io.interval - 1
-    }.otherwise{
-      sampleReady.clear()
+      io.sample.valid := True
+    }.otherwise {
       cycleCounter := cycleCounter - 1
+      io.sample.valid := False
     }
-  }.otherwise{
+  }.otherwise {
     sample.initAssign()
-    sampleReady.clear()
+    io.sample.valid := False
     cycleCounter.clearAll()
   }
-
-  when(!outValid || io.sample.ready){
-    when(sampleReady){
-      when(outCounter === blockSize){
-        outLast.set()
-        outCounter.clearAll()
-      }.otherwise{
-        outLast.clear()
-        outCounter := outCounter + 1
-      }
-
-      outValid := True
-      outSample := sample
-    }.otherwise{
-      outValid.clear()
-      outLast.clear()
-    }
-  }
-
+  io.sample.payload.pc := sample.pc
+  io.sample.payload.flags := sample.flags
 }
-
 
 object Sampler extends App{
   val arch = Architecture()
-
-  SpinalSystemVerilog(new Sampler(arch,16))
-
+  SpinalSystemVerilog(new Sampler(arch))
 }

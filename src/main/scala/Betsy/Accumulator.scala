@@ -19,7 +19,7 @@ class Accumulator[T<:Data with Num[T]](gen:HardType[T],SimdHeight:Int,depth:Long
     val control = slave(Stream(new AccumulatorControl(depth)))
   }
 
-  val accumulator = new DualPortMem(Vec(gen,SimdHeight),depth)  // Todo with the bits width...
+  val accumulator = new DualPortMem(Vec(gen,SimdHeight),depth)
   /* two ports accumulator port A write and port B read*/
   val portA = accumulator.io.portA
   val portB = accumulator.io.portB
@@ -28,7 +28,7 @@ class Accumulator[T<:Data with Num[T]](gen:HardType[T],SimdHeight:Int,depth:Long
   portA.blockPort()
   /* Port B （just read）*/
   portB.blockPort()
-  // val accMultiQueue = new MultiEnqControl(2) /* for the accumulate control (read + accumulate + write into) */
+  // val accMultiQueue = MultiEnqControl(2) /* for the accumulate control (read + accumulate + write into) */
 
   val inputDemux = new BetsyStreamDemux(cloneOf(io.dataIn.payload),2)
   inputDemux.io.InStream <> io.dataIn
@@ -37,7 +37,7 @@ class Accumulator[T<:Data with Num[T]](gen:HardType[T],SimdHeight:Int,depth:Long
 
   val vecAdder = new VecAdder(gen,size = SimdHeight)
   val fifo = new BetsyFIFO(cloneOf(inputDemux.io.OutStreams(1).payload),1)
-  fifo.io.push.valid := inputDemux.io.OutStreams(1).valid && !fifo.io.pop.valid //Todo
+  fifo.io.push.valid := inputDemux.io.OutStreams(1).valid && !fifo.io.pop.valid
   fifo.io.push.payload := inputDemux.io.OutStreams(1).payload
   inputDemux.io.OutStreams(1).ready := fifo.io.push.ready
   vecAdder.io.left << fifo.io.pop
@@ -78,8 +78,4 @@ class Accumulator[T<:Data with Num[T]](gen:HardType[T],SimdHeight:Int,depth:Long
     io.control.ready := portA.dataOut.fire
   }
   io.dataOut <> portA.dataOut
-}
-
-object Accumulator extends App{
-  SpinalSystemVerilog(new Accumulator(UInt(4 bits),4,128))
 }

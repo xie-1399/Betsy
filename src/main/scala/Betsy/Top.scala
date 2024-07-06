@@ -24,11 +24,11 @@ class Top[T <: Data with Num[T]](gen:HardType[T],arch: Architecture,log:Boolean 
   require(gen().getClass.toString.split("\\.").last == arch.dataKind , "the clare data type is not match in the arch !!!")
 
   val io = new Bundle{
-     // val weightBus = master(Axi4(getWeightBusConfig(arch)))
-     // val activationBus = master(Axi4(getActivationBusConfig(arch)))
-     // val dram0 = master(BetsyStreamPass(Vec(gen(),arch.arraySize)))
-     // val dram1 = master(BetsyStreamPass(Vec(gen(),arch.arraySize)))
-    val instruction = slave Stream Bits(instructionLayOut.instructionSizeBytes * 8 bits)
+     val weightBus = master(Axi4(getWeightBusConfig(arch)))
+     val activationBus = master(Axi4(getActivationBusConfig(arch)))
+//     val dram0 = master(HostData(Vec(gen(),arch.arraySize)))
+//     val dram1 = master(HostData(Vec(gen(),arch.arraySize)))
+     val instruction = slave Stream Bits(instructionLayOut.instructionSizeBytes * 8 bits)
   }
   val decode = new Decode(arch)(instructionLayOut)
   val scratchPad = new DualPortMem(Vec(gen,arch.arraySize),arch.localDepth,initContent = initContent) // no mask with
@@ -39,9 +39,8 @@ class Top[T <: Data with Num[T]](gen:HardType[T],arch: Architecture,log:Boolean 
 
   /* Betsy connection */
   val Betsy = new Area {
-
-    decode.io.instruction.arbitrationFrom(io.instruction)
-    decode.io.instruction.payload := InstructionFormat.fromBits(io.instruction.payload)(instructionLayOut)
+    decode.io.instructionFormat.arbitrationFrom(io.instruction)
+    decode.io.instructionFormat.payload := InstructionFormat.fromBits(io.instruction.payload)(instructionLayOut)
     /* decode out */
     localRouter.io.control << decode.io.localDataFlow
     hostRouter.io.control << decode.io.hostDataFlow

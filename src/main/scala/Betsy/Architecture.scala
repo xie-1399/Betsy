@@ -27,19 +27,19 @@ case class Architecture( dataType:String = "UInt_16",
                          stride0Depth: Int = 1,
                          stride1Depth: Int = 1,
                          pcWidth:Int = 32,   /* the program counter width */
-                         numberOfThreads:Int = 1
+                         numberOfThreads:Int = 1,
+                         withSampler:Boolean = true,
+                         addressWidth:Int = 32 /* the bus address width */
                        ) extends ArchitectureDataType(dataType) {
   val dataWidth = dataType.split("_")(1).toInt
   require(dataWidth > 0, "the data width must > 0 !!!")
   val dataKind = dataType.split("_")(0)
   require(dataKind == "SInt" || dataKind == "UInt", "Only Support (SInt,UInt) datatype, Please check the name!!!")
-
+  require(isPow2(arraySize),"the array size should be pow of 2!!!")
   override def sizeBytes: Double = dataWidth / 8
 }
 
 /* add more architecture examples here */
-
-/* 64 bits tiny instruction for the betsy npu */
 
 object Architecture{
 
@@ -65,7 +65,7 @@ object Architecture{
       arraySize = 8,
       dram0Depth = 1024 * 1024,  // 20 bits dram address
       dram1Depth = 1024 * 1024,
-      localDepth = 8192, // 13 bits
+      localDepth = 2048, // max 13 bits
       accumulatorDepth = 2048,
       simdRegistersDepth = 1,
       stride0Depth = 8,

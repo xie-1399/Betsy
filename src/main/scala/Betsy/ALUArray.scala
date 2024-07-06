@@ -3,7 +3,8 @@ package Betsy
 /**
  ** Betsy follow the MiT Licence.(c) xxl, All rights reserved **
  ** Update Time : 2024/4/21      SpinalHDL Version: 1.94       **
- ** You should have received a copy of the MIT License along with this library **
+ ** You should have received a copy of the MIT License along with this library
+ ** 3 cycles for one simd operation with input(the alu array size vectors ) **
  ** Test Status : PASS :)         Version:0.1 **
  */
 
@@ -13,7 +14,6 @@ import spinal.core._
 import spinal.lib._
 
 class ALUArray[T <: Data with Num[T]](gen:HardType[T],arch: Architecture) extends BetsyModule{
-
   val layOut = InstructionLayOut(arch)
 
   val io = new Bundle{
@@ -28,7 +28,6 @@ class ALUArray[T <: Data with Num[T]](gen:HardType[T],arch: Architecture) extend
   val alus = for(idx <- 0 until arch.arraySize) yield {
     val alu = new ALU(gen,numOps = ALUOp.numOps,numRegisters = arch.simdRegistersDepth,inputPipe = true,outputPipe = true)
     alu.io.op := Mux(io.instruction.fire,io.instruction.payload.op,U(ALUOp.NoOp).resized)
-      // io.instruction.payload.op
     alu.io.input := io.inputs.payload(idx)
     alu.io.sourceLeft := io.instruction.payload.sourceLeft
     alu.io.sourceRight := io.instruction.payload.sourceRight
@@ -36,8 +35,10 @@ class ALUArray[T <: Data with Num[T]](gen:HardType[T],arch: Architecture) extend
     outputsFifo.io.push.payload(idx) := alu.io.output
   }
   io.outputs <> outputsFifo.io.pop
+
   val inputNotNeeded = io.instruction.op === ALUOp.NoOp || io.instruction.op === ALUOp.Zero ||
-    (ALUOp.isUnary(io.instruction.op) && io.instruction.sourceLeft =/= 0) || (io.instruction.sourceLeft =/= 0 && io.instruction.sourceRight =/= 0)
+    (ALUOp.isUnary(io.instruction.op) && io.instruction.sourceLeft =/= 0) ||
+    (io.instruction.sourceLeft =/= 0 && io.instruction.sourceRight =/= 0)
   val inputNeeded = !inputNotNeeded
 
   /* Notice it's reset false */
