@@ -69,8 +69,3 @@ class Sampler(arch:Architecture) extends BetsyModule{
   io.sample.payload.pc := sample.pc
   io.sample.payload.flags := sample.flags
 }
-
-object Sampler extends App{
-  val arch = Architecture()
-  SpinalSystemVerilog(new Sampler(arch))
-}

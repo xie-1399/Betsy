@@ -622,8 +622,8 @@ class Decode(arch: Architecture)(implicit layOut: InstructionLayOut) extends Bet
   }
 }
 
-object Decode extends App {
-  val arch = Architecture.tiny()
-  val layOut = InstructionLayOut(arch)
-  SpinalSystemVerilog(new Decode(arch)(layOut))
-}
+//object Decode extends App {
+//  val arch = Architecture.tiny()
+//  val layOut = InstructionLayOut(arch)
+//  SpinalSystemVerilog(new Decode(arch)(layOut))
+//}

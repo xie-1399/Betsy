@@ -147,9 +147,3 @@ class LocalRouter[T <: Data](gen: HardType[T], arch: Architecture) extends Betsy
     }
   }
 }
-
-
-object LocalRouter extends App {
-  val arch = Architecture()
-  SpinalSystemVerilog(new LocalRouter(Vec(Bits(16 bits), 3), arch))
-}
