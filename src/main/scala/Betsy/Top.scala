@@ -11,7 +11,7 @@ import spinal.lib.bus.amba4.axi.Axi4
  ** Betsy follow the MiT Licence.(c) xxl, All rights reserved **
  ** Update Time : 2024/5/31      SpinalHDL Version: 1.94       **
  ** You should have received a copy of the MIT License along with this library **
- ** integration the compute/control/datamove module in the BetsyNPU **
+ ** integration the compute/control/data move module in the BetsyNPU **
  ** The ML activations, average and maximum pooling, normalization, and image resizing use SIMD instruction.
  ** Some ML operations, such as padding, are achieved by changing the memory layout. **
  */
@@ -26,8 +26,6 @@ class Top[T <: Data with Num[T]](gen:HardType[T],arch: Architecture,log:Boolean 
   val io = new Bundle{
      val weightBus = master(Axi4(getWeightBusConfig(arch)))
      val activationBus = master(Axi4(getActivationBusConfig(arch)))
-//     val dram0 = master(HostData(Vec(gen(),arch.arraySize)))
-//     val dram1 = master(HostData(Vec(gen(),arch.arraySize)))
      val instruction = slave Stream Bits(instructionLayOut.instructionSizeBytes * 8 bits)
   }
   val decode = new Decode(arch)(instructionLayOut)
@@ -37,8 +35,67 @@ class Top[T <: Data with Num[T]](gen:HardType[T],arch: Architecture,log:Boolean 
   val localRouter = new LocalRouter(Vec(gen,arch.arraySize),arch)
   val hostRouter = new HostRouter(Vec(gen,arch.arraySize))
 
+  val Dram = new Composite(this,"Dram"){
+    // weight bus for the dram0 and activation bus for dram1\
+    val dram0In = Vec(Reg(gen).init(zero(gen())),arch.arraySize)
+    val dram0Out = Vec(Reg(gen).init(zero(gen())),arch.arraySize)
+    val dram0Counter = Counter(256).init(0)
+    val dram0 = decode.io.dram0.toAxi4(
+      axi4Config = getWeightBusConfig(arch),
+      arValid = decode.io.dram0.valid && (!decode.io.dram0.write),
+      awValid = decode.io.dram0.valid && decode.io.dram0.write,
+      address = decode.io.dram0offset.offset,
+      size = arch.dataWidth / 8 - 1,
+      data = hostRouter.io.dram0.dataOut.payload(dram0Counter(log2Up(arch.arraySize) - 1 downto 0)).asBits
+    )
+    when(dram0.r.fire){
+      dram0Counter.increment()
+      dram0In(dram0Counter(log2Up(arch.arraySize) - 1 downto 0)).assignFromBits(dram0.r.payload.data)
+    }
+    when(dram0.w.fire){
+      dram0Counter.increment()
+      dram0Out(dram0Counter(log2Up(arch.arraySize) - 1 downto 0)).assignFromBits(dram0.w.payload.data)
+    }
+    when(dram0.r.last || dram0.w.last){
+      dram0Counter.clear()
+    }
+    dram0 >> io.weightBus
+    decode.io.dram0.ready := dram0.r.last
+    hostRouter.io.dram0.dataIn.valid := dram0.r.fire
+    hostRouter.io.dram0.dataIn.payload := dram0In
+    hostRouter.io.dram0.dataOut.ready := dram0.w.last
+
+    val dram1In = Vec(Reg(gen).init(zero(gen())), arch.arraySize)
+    val dram1Out = Vec(Reg(gen).init(zero(gen())),arch.arraySize)
+    val dram1Counter = Counter(256).init(0)
+    val dram1 = decode.io.dram1.toAxi4(
+      axi4Config = getActivationBusConfig(arch),
+      arValid = decode.io.dram1.valid && (!decode.io.dram1.write),
+      awValid = decode.io.dram1.valid && decode.io.dram1.write,
+      address = decode.io.dram1offset.offset,
+      size = arch.dataWidth / 8 - 1,
+      data = hostRouter.io.dram1.dataOut.payload(dram1Counter(log2Up(arch.arraySize) - 1 downto 0)).asBits
+    )
+    when(dram1.r.fire) {
+      dram1Counter.increment()
+      dram1In(dram1Counter(log2Up(arch.arraySize) - 1 downto 0)).assignFromBits(dram1.r.payload.data)
+    }
+    when(dram1.w.fire) {
+      dram1Counter.increment()
+      dram1Out(dram1Counter(log2Up(arch.arraySize) - 1 downto 0)).assignFromBits(dram1.w.payload.data)
+    }
+    when(dram1.r.last || dram1.w.last) {
+      dram1Counter.clear()
+    }
+    decode.io.dram1.ready := dram1.r.last
+    hostRouter.io.dram1.dataIn.valid := dram1.r.fire
+    hostRouter.io.dram1.dataIn.payload := dram1In
+    hostRouter.io.dram1.dataOut.ready := dram1.w.last
+    dram1 >> io.activationBus
+  }
+
   /* Betsy connection */
-  val Betsy = new Area {
+  val Betsy = new Composite(this,"NPU") {
     decode.io.instructionFormat.arbitrationFrom(io.instruction)
     decode.io.instructionFormat.payload := InstructionFormat.fromBits(io.instruction.payload)(instructionLayOut)
     /* decode out */
@@ -61,15 +118,10 @@ class Top[T <: Data with Num[T]](gen:HardType[T],arch: Architecture,log:Boolean 
     /* host Router */
     hostRouter.io.mem.dataIn >> scratchPad.io.portB.dataIn
     hostRouter.io.mem.dataOut << scratchPad.io.portB.dataOut
-    // hostRouter.io.dram0 <> io.dram0
-    // hostRouter.io.dram1 <> io.dram1
-
-    decode.io.dram0.ready := True
-    decode.io.dram1.ready := True
   }
 
 }
 
 object Top extends App{
-  SpinalSystemVerilog(new Top(SInt(8 bits),Architecture.tiny()))
+  SpinalSystemVerilog(new Top(SInt(8 bits),Architecture.large()))
 }

@@ -11,6 +11,7 @@ import Betsy.Until._
 import spinal.core._
 import spinal.lib._
 import BetsyLibs._
+import spinal.lib.bus.amba4.axi._
 
 case class MemControl(depth:Long,maskWidth:Int = -1) extends Bundle with Size with Address{
   val write = Bool()
@@ -20,6 +21,38 @@ case class MemControl(depth:Long,maskWidth:Int = -1) extends Bundle with Size wi
 
   def equal(other:MemControl):Bool = {
     this.write === other.write && this.address === other.address && this.size === other.size
+  }
+
+  def toAxi4(axi4Config: Axi4Config,arValid:Bool,awValid:Bool,address:UInt, size:UInt, data:Bits):Axi4 = {
+    val axi4 = Axi4(axi4Config)
+    axi4.ar.valid := arValid
+    axi4.ar.setBurstINCR()
+    axi4.ar.len := this.size.resized
+    axi4.ar.size := size.resized
+    axi4.ar.addr := address
+    axi4.r.ready := True
+
+    axi4.aw.valid := awValid
+    axi4.aw.setBurstINCR()
+    axi4.aw.len := this.size.resized
+    axi4.aw.size := address.resized
+    axi4.aw.addr := address
+
+    axi4.w.valid := RegNext(axi4.aw.fire).init(False)
+    axi4.w.data := data
+    axi4.w.setStrb()
+
+    val wCounter = Counter(256).init(0)
+    when(axi4.w.fire){
+      wCounter.increment()
+    }
+    val wlast = RegInit(False).setWhen(wCounter === this.size - 1).clearWhen(wCounter === this.size)
+    when(wCounter === this.size){
+      wCounter.clear()
+    }
+    axi4.w.last := wlast
+    axi4.b.ready := True
+    axi4
   }
 }
 

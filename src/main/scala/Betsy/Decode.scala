@@ -15,6 +15,7 @@ import BetsyLibs._
 import Betsy.Instruction._
 import Betsy.Until._
 import spinal.core.sim._
+import Architecture._
 /** Decode test order : NoOp -> DataMove -> LoadWeight -> MatMul -> Configure -> SIMD
  * this version instruction only enqueue when fire (so the instruction is blocked when before instruction not done !!!)
  * */
@@ -28,9 +29,9 @@ class Decode(arch: Architecture)(implicit layOut: InstructionLayOut) extends Bet
   val io = new Bundle {
     val instructionFormat = slave Stream InstructionFormat(layOut.instructionSizeBytes * 8)
     val dram0 = master Stream MemControl(arch.dram0Depth)
-    val dram0offset = out (dramAddressOffset(arch.dataWidth))
+    val dram0offset = out (dramAddressOffset(getWeightBusConfig(arch).addressWidth))
     val dram1 = master Stream MemControl(arch.dram0Depth)
-    val dram1offset = out (dramAddressOffset(arch.dataWidth))
+    val dram1offset = out (dramAddressOffset(getActivationBusConfig(arch).addressWidth))
     val hostDataFlow = master Stream new HostDataFlowControl()
     val memPortA = master Stream MemControl(arch.localDepth)
     val memPortB = master Stream MemControl(arch.localDepth)

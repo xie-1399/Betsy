@@ -28,8 +28,7 @@ case class Architecture( dataType:String = "UInt_16",
                          stride1Depth: Int = 1,
                          pcWidth:Int = 32,   /* the program counter width */
                          numberOfThreads:Int = 1,
-                         withSampler:Boolean = true,
-                         addressWidth:Int = 32 /* the bus address width */
+                         withSampler:Boolean = true
                        ) extends ArchitectureDataType(dataType) {
   val dataWidth = dataType.split("_")(1).toInt
   require(dataWidth > 0, "the data width must > 0 !!!")
@@ -89,15 +88,15 @@ object Architecture{
     arch
   }
 
-  def getWeightBusConfig(arch:Architecture) = Axi4Config(addressWidth = log2Up(arch.dram0Depth),
-    dataWidth = arch.arraySize * arch.dataWidth,
+  def getWeightBusConfig(arch:Architecture) = Axi4Config(addressWidth = log2Up(arch.dram0Depth) + log2Up(arch.arraySize),
+    dataWidth = arch.dataWidth,
     idWidth = -1, useId = false, /* no need for the id*/
     useRegion = false, useBurst = true, useLock = false,
     useCache = false, useSize = true, useQos = false, useLen = true,
     useLast = true, useProt = false)
 
-  def getActivationBusConfig(arch: Architecture) = Axi4Config(addressWidth = log2Up(arch.dram1Depth),
-    dataWidth = arch.arraySize * arch.dataWidth,
+  def getActivationBusConfig(arch: Architecture) = Axi4Config(addressWidth = log2Up(arch.dram1Depth) + log2Up(arch.arraySize),
+    dataWidth = arch.dataWidth,
     idWidth = -1, useId = false, /* no need for the id*/
     useRegion = false, useBurst = true, useLock = false,
     useCache = false, useSize = true, useQos = false, useLen = true,
