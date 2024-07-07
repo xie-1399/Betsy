@@ -110,10 +110,8 @@ class LocalRouter[T <: Data](gen: HardType[T], arch: Architecture) extends Betsy
 
   val logic = new Area {
 
-    val enqueue1 = new MultiEnqControl(2)
-    val enqueue2 = new MultiEnqControl(2)
-    enqueue1.block()
-    enqueue2.block()
+    val enqueue1 = MultiEnqControl(2)
+    val enqueue2 = MultiEnqControl(2)
 
     memReadSizeHandler.io.into.valid := io.control.valid && IsMemRead(io.control.sel)
     memReadSizeHandler.io.into.payload := io.control.payload
@@ -148,10 +146,4 @@ class LocalRouter[T <: Data](gen: HardType[T], arch: Architecture) extends Betsy
       io.control.ready := True
     }
   }
-}
-
-
-object LocalRouter extends App {
-  val arch = Architecture()
-  SpinalSystemVerilog(new LocalRouter(Vec(Bits(16 bits), 3), arch))
 }

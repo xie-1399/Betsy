@@ -27,6 +27,16 @@ class SystolicArrayControlWithSize(depth:Long) extends SystolicArrayControl with
   override val size: UInt = UInt(log2Up(depth) bits)
 }
 
+object SystolicArrayControlWithSize{
+  def apply(depth: Long, load: Bool, zeroes: Bool, size: UInt): SystolicArrayControlWithSize = {
+    val systolicArrayControlWithSize = new SystolicArrayControlWithSize(depth)
+    systolicArrayControlWithSize.size := size
+    systolicArrayControlWithSize.load := load
+    systolicArrayControlWithSize.zeroes := zeroes
+    systolicArrayControlWithSize
+  }
+}
+
 /*=======================Accumulator Control========================== */
 class AccumulatorControl(depth:Long) extends Bundle{
   val address = UInt(log2Up(depth) bits)
@@ -124,6 +134,25 @@ class AccumulatorMemControlWithSizeWithStride(layOut: InstructionLayOut) extends
   val reverse = Bool()
 }
 
+object AccumulatorMemControlWithSizeWithStride{
+
+  def apply(layOut: InstructionLayOut, instruction: SIMDInstruction, address: UInt, altAddress: UInt, read: Bool,
+            write: Bool, accumulate: Bool, size: UInt, stride: UInt, reverse: Bool): AccumulatorMemControlWithSizeWithStride = {
+    val accumulatorMemControlWithSizeWithStride = new AccumulatorMemControlWithSizeWithStride(layOut)
+    accumulatorMemControlWithSizeWithStride.instruction := instruction
+    accumulatorMemControlWithSizeWithStride.address := address
+    accumulatorMemControlWithSizeWithStride.altAddress := altAddress
+    accumulatorMemControlWithSizeWithStride.read := read
+    accumulatorMemControlWithSizeWithStride.write := write
+    accumulatorMemControlWithSizeWithStride.accumulate := accumulate
+    accumulatorMemControlWithSizeWithStride.size := size
+    accumulatorMemControlWithSizeWithStride.stride := stride
+    accumulatorMemControlWithSizeWithStride.reverse := reverse
+    accumulatorMemControlWithSizeWithStride
+  }
+
+}
+
 
 /*=======================Host Router Control========================== */
 class HostDataFlowControl() extends Bundle{
@@ -136,10 +165,13 @@ case class HostDataFlowControlWithSize(depth:Long) extends HostDataFlowControl w
 }
 
 object HostDataFlowControl{
-  def In0 = U(0x0) /* dram 0 -> to the memory*/
-  def Out0 = U(0x1) /* memory -> to the dram0 */
-  def In1 = U(0x2) /* dram 1 -> to the memory */
-  def Out1 = U(0x3) /* memory -> to the dram1 */
+  def In0: UInt = U(0x0)
+  /* dram 0 -> to the memory*/
+  def Out0: UInt = U(0x1)
+  /* memory -> to the dram0 */
+  def In1: UInt = U(0x2)
+  /* dram 1 -> to the memory */
+  def Out1: UInt = U(0x3) /* memory -> to the dram1 */
   def isDataIn(kind: UInt): Bool = {
     kind === In0 || kind === In1
   }
@@ -222,82 +254,4 @@ object DataFlowSelWithSize{
     select.size := size
     select
   }
-}
-
-/*=======================Lock Control========================== */
-case class Lock(numActors:Int) extends Bundle{
-  val held = Bool()
-  val by = UInt(log2Up(numActors) bits)
-}
-
-object Lock{
-  def apply(numActors:Int,held:Bool,by:UInt):Lock = {
-    val lock = Lock(numActors)
-    lock.held := held
-    lock.by := by
-    lock
-  }
-  def apply(numActors:Int):Lock = apply(numActors,False,U(0))
-}
-
-case class LockControl(numActors:Int,numLocks:Int) extends Bundle {
-  val lock = UInt(log2Up(numLocks) bits)
-  val acquire = Bool() /* False -> release the lock */
-  val by = UInt(log2Up(numActors) bits)
-}
-
-
-/* release the lock */
-class ConditionalReleaseLock[T <: Data](gen:HardType[T],numActors:Int,maxDelay:Int) extends Lock(numActors){
-  val delayRelease = UInt(log2Up(maxDelay) bits)
-  val cond = gen()
-}
-
-object ConditionalReleaseLock{
-  /* 4 control signal */
-  def apply[T <: Data](gen: HardType[T], numActors: Int, maxDelay: Int, held: Bool, by: UInt, delayRelease: UInt, cond: T): ConditionalReleaseLock[T] = {
-    val releaseLock = new ConditionalReleaseLock[T](gen, numActors, maxDelay)
-    releaseLock.held := held
-    releaseLock.by := by
-    releaseLock.delayRelease := delayRelease
-    releaseLock.cond := cond
-    releaseLock
-  }
-
-  def apply[T <: Data](gen: HardType[T], numActors: Int, maxDelay: Int): ConditionalReleaseLock[T] = {
-    apply(gen, numActors, maxDelay, False, U(0), U(0), zero(gen()))
-  }
-}
-
-/* release the lock control*/
-class ConditionalReleaseLockControl[T <: Data](gen:HardType[T],numActors:Int,numLocks:Int,maxDelay:Int) extends LockControl(numActors, numLocks){
-  val delayRelease = UInt(log2Up(maxDelay) bits)
-  val cond = gen()
-}
-
-object ConditionalReleaseLockControl{
-  /* 5 control signals */
-  def apply[T <: Data](gen: HardType[T],
-                       numActors: Int,
-                       numLocks: Int,
-                       maxDelay: Int,
-                       lock: UInt,
-                       acquire: Bool,
-                       by: UInt,
-                       delayRelease: UInt,
-                       cond: T): ConditionalReleaseLockControl[T] = {
-    val releaseLockControl = new ConditionalReleaseLockControl(gen, numActors, numLocks, maxDelay)
-    releaseLockControl.lock := lock
-    releaseLockControl.acquire := acquire
-    releaseLockControl.by := by
-    releaseLockControl.delayRelease := delayRelease
-    releaseLockControl.cond := cond
-    releaseLockControl
-  }
-
-  def apply[T <: Data](gen: HardType[T],
-                       numActors: Int,
-                       numLocks: Int,
-                       maxDelay: Int): ConditionalReleaseLockControl[T]
-  = apply(gen, numActors, numLocks, maxDelay, U(0), False, U(0), U(0), zero(gen()))
 }

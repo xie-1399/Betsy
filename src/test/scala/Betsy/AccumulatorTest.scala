@@ -54,6 +54,7 @@ class AccumulatorTest extends AnyFunSuite{
           assert(dut.io.dataOut.valid.toBoolean && dut.io.dataOut.ready.toBoolean, "read ready signal error !!!")
           dut.io.dataOut.payload.map(_.toInt).toArray
         }
+
         // accumulate it(read and write at the same address)
         def accumulate(address:Int,data:Array[Int]) = {
           while (!(dut.io.control.ready.toBoolean && dut.io.control.payload.accumulate.toBoolean)) {

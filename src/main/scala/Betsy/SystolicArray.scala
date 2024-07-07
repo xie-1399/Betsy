@@ -159,8 +159,3 @@ class SystolicArray[T <: Data with Num[T]](gen:HardType[T],height:Int,width:Int)
 //  /* assert running error */
 //  assert(io.control.fire && io.control.load && io.input.fire,"error while load weight and load input at the same time !!!")
 //}
-
-
-object SystolicArrayV2 extends App{
-  SpinalSystemVerilog(new SystolicArray(SInt(8 bits),4,4))
-}

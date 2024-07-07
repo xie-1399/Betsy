@@ -7,22 +7,9 @@ import spinal.core.sim._
 
 import scala.util.Random
 
-// Todo with more simd ops like not input...
-
 class ALUArrayTest extends AnyFunSuite{
 
-  test("no Input check") {
-    SIMCFG().compile {
-      val dut = new ALUArray(SInt(16 bits), Architecture(arraySize = 4))
-      dut
-    }.doSimUntilVoid {
-      dut =>
-        def testCase = 10
-        dut.clockDomain.forkStimulus(10)
-        simSuccess()
-    }
-  }
-
+  // input in -> add it -> move and clear
   test("vectors add"){
     SIMCFG().compile{
       val dut = new ALUArray(SInt(16 bits),Architecture(arraySize = 4))

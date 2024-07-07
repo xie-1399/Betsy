@@ -64,20 +64,13 @@ class AccumulatorWithALUArray[T <: Data with Num[T]](gen:HardType[T],arch: Archi
   val readEnqueued = RegInit(False)
   readEnqueued := False
 
-  val accWriteEnqueuer = new MultiEnqControl(2)
-  val accReadEnqueuer = new MultiEnqControl(2)
-  val simdRWWriteEnqueuer = new MultiEnqControl(3)
-  val simdRWReadEnqueuer = new MultiEnqControl(3)
-  val simdWriteEnqueuer = new MultiEnqControl(4)
-  val simdReadEnqueuer = new MultiEnqControl(4)
-  val simdEnqueuer = new MultiEnqControl(2)
-  accWriteEnqueuer.block()
-  accReadEnqueuer.block()
-  simdRWWriteEnqueuer.block()
-  simdRWReadEnqueuer.block()
-  simdWriteEnqueuer.block()
-  simdReadEnqueuer.block()
-  simdEnqueuer.block()
+  val accWriteEnqueuer = MultiEnqControl(2)
+  val accReadEnqueuer =  MultiEnqControl(2)
+  val simdRWWriteEnqueuer = MultiEnqControl(3)
+  val simdRWReadEnqueuer = MultiEnqControl(3)
+  val simdWriteEnqueuer = MultiEnqControl(4)
+  val simdReadEnqueuer = MultiEnqControl(4)
+  val simdEnqueuer = MultiEnqControl(2)
 
   val isNoOp = io.control.payload.SIMDInstruction.op === ALUOp.NoOp
   when(isNoOp) {

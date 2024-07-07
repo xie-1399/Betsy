@@ -33,7 +33,8 @@ object Until{
 
   case class BetsyFlow[T <: Data](flow:HardType[T]) extends Bundle{
     val transFlow = Flow(flow)
-    def push(b:T) = transFlow.push(b) /* set valid and push the data in the flow */
+
+    def push(b: T): Unit = transFlow.push(b) /* set valid and push the data in the flow */
     def pop():T = {
       transFlow.valid := False
       transFlow.payload
@@ -47,11 +48,11 @@ object Until{
   }
 
 
-  def Demux[T <: Data](cond:Bool,con:T,alt:T) = {
+  def Demux[T <: Data](cond: Bool, con: T, alt: T): T = {
     val input = cloneOf(con)
-    when(cond){
+    when(cond) {
       con := input
-    }.otherwise{
+    }.otherwise {
       alt := input
     }
     input
@@ -91,7 +92,7 @@ object Until{
     one.asInstanceOf[T]
   }
 
-  def min[T <: Data](gen: T) = {
+  def min[T <: Data](gen: T): BigInt = {
     val min = gen match {
       case _: UInt => BigInt(0)
       case _: SInt => gen.asInstanceOf[SInt].minValue.toBigInt
@@ -101,7 +102,7 @@ object Until{
     min
   }
 
-  def max[T <: Data](gen: T) = {
+  def max[T <: Data](gen: T): BigInt = {
     val max = gen match {
       case _: UInt => gen.asInstanceOf[UInt].maxValue.toBigInt
       case _: SInt => gen.asInstanceOf[SInt].maxValue.toBigInt
@@ -120,7 +121,7 @@ object Until{
     clipNum.asInstanceOf[T]
   }
 
-  def mac[T <: Data with Num[T]](gen: T, m1: T, m2: T, acc: T) = {
+  def mac[T <: Data with Num[T]](gen: T, m1: T, m2: T, acc: T): T = {
     // require(getType(gen) == getType(m1) == getType(m2) == getType(acc),"mac dataType not match !!!")
     val macValue = (gen, m1, m2, acc) match {
       // case (gen: SFix, x: SFix, y: SFix, z: SFix) => println("") Todo with the fixed float mac operation
@@ -129,7 +130,7 @@ object Until{
     macValue
   }
 
-  def upDown[T <: Data with Num[T]](value: T, gen: T) = {
+  def upDown[T <: Data with Num[T]](value: T, gen: T): T = {
     val maxValue = max(gen)
     val minValue = min(gen)
     val upDownValue = clip(value, maxValue, minValue)

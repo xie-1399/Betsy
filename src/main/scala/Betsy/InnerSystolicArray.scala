@@ -63,9 +63,3 @@ class InnerSystolicArray[T <: Data with Num[T]](gen:HardType[T],height:Int,width
     io.output(i) := Delay(mac(i)(width - 1).io.macOut,height - (i + 1),init = zero(gen()))
   }
 }
-
-
-object InnerSystolicArray extends App{
-  /* the test is about the weight * matrix and matrix * matrix */
-  SpinalSystemVerilog(new InnerSystolicArray(UInt(16 bits),16,16))
-}

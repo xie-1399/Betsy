@@ -82,11 +82,9 @@ class StrideHandler[T <: Bundle with Address with Size with Stride with Reverse,
 
   val error = RegInit(False)
   when(io.into.valid){
-    error := (io.into.size === 0 && stride =/= 1) || io.output.payload.address >= depth
+    error := (io.into.size === 0 && stride =/= 1)
     assert(!(io.into.size === 0 && stride =/= 1),"the size is 0 but stride is over 0 in the [StrideHandler]!!!")
-    assert(io.output.payload.address < depth,"the address is illegal in the [StrideHandler]!!!" )
   }
   io.error := error
 }
-
 

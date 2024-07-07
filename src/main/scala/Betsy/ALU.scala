@@ -11,6 +11,10 @@ package Betsy
 import spinal.core._
 import Until._
 
+/* support with the sign signals with the alu operation
+
+* Todo with the SFix Datatype */
+
 class ALU[T <: Data with Num[T]](gen:HardType[T],numOps:Int, numRegisters:Int,
                                  inputPipe:Boolean = false,outputPipe:Boolean = false) extends BetsyModule {
   val io = new Bundle{
@@ -42,10 +46,8 @@ class ALU[T <: Data with Num[T]](gen:HardType[T],numOps:Int, numRegisters:Int,
   when(destInput =/= 0 && op =/= ALUOp.NoOp){
     registers((sourceLeftInput - U(1)).resized) := result
   }
-  // val dest = Demux(destInput === 0 || op === ALUOp.NoOp,io.output,registers((sourceLeftInput - U(1)).resized))
-  // dest := result /* write the result into the register or io.out */
 
-  /* alu operations(overflow is cut down ) Todo with the SFix and UInt */
+  /* alu operations(some clip is about the Up Down and abs) */
   result := input /* default op is NoOp */
   switch(op){
     is(ALUOp.Zero){result := Zero}
@@ -54,19 +56,18 @@ class ALU[T <: Data with Num[T]](gen:HardType[T],numOps:Int, numRegisters:Int,
     is(ALUOp.And){ result := Mux(isTrue(sourceLeft) && isTrue(sourceRight),One,Zero) }
     is(ALUOp.Or){ result := Mux(isTrue(sourceLeft) || isTrue(sourceRight),One,Zero) }
     is(ALUOp.Increment){result := upDown(sourceLeft +^ One,gen.craft()).resized}
-    is(ALUOp.Decrement){result := upDown(sourceLeft -^ One,gen.craft()).resized} // Todo
+    is(ALUOp.Decrement){result := upDown(sourceLeft -^ One,gen.craft()).resized}
     is(ALUOp.Add){result := upDown(sourceLeft +^ sourceRight,gen.craft()).resized}
-    is(ALUOp.Sub){result := upDown(sourceLeft -^ sourceRight,gen.craft()).resized} // Todo with UInt sub
+    is(ALUOp.Sub){result := upDown(sourceLeft -^ sourceRight,gen.craft()).resized}
     is(ALUOp.Mul){result := upDown(sourceLeft * sourceRight,gen.craft()).resized}
-    is(ALUOp.Abs){ //Todo set architecture dataType
-      val sign = sourceLeft.isInstanceOf[SInt] || sourceLeft.isInstanceOf[SFix]
-      if(sign){
+    is(ALUOp.Abs){
+      val value = sourceLeft.asInstanceOf[SInt]
+      when(value === S(min(gen()))){  /* let the absolute -128 -> 127 */
+        result.assignFromBits(S(value.maxValue, result.getBitsWidth bits).asBits)
+      }.otherwise{
         val abs = sourceLeft.asInstanceOf[SInt].abs
-        result.assignFromBits(abs.asBits)
-      }else{
-        result := sourceLeft
+        result.assignFromBits(abs.asBits)}
       }
-    }
     is(ALUOp.GreaterThan){result := Mux(sourceLeft > sourceRight,One,Zero)}
     is(ALUOp.GreaterThanEqual){result := Mux(sourceLeft >= sourceRight,One,Zero)}
     is(ALUOp.Min){result := Mux(sourceLeft > sourceRight,sourceRight,sourceLeft)}

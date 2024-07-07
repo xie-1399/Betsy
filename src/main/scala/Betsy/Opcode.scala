@@ -18,7 +18,6 @@ object Opcode {
   def LoadWeights: Bits = B(0x3, 4 bits)
   def SIMD: Bits = B(0x4, 4 bits)
   def Configure: Bits = B(0xF, 4 bits)
-  def all: Array[Bits] = Array(NoOp, MatMul, DataMove, LoadWeights, SIMD, Configure)
   def Operror(op: Bits): Bool = {
     !(op === NoOp || op === MatMul || op === DataMove || op === LoadWeights || op === SIMD || op === Configure)
   }
