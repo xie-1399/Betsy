@@ -1,4 +1,8 @@
-# the file is used to convert the instruction binary
+# Betsy follow the MiT Licence.(c) xxl, All rights reserved
+# run all the unit test in the Betsy
+# Author xxl  Time:2024.6.5  Version:1.0
+# the file is used to convert the instruction binary to the txt format
+
 
 # read the binary file
 def read_binary_file(input_file):
@@ -29,7 +33,7 @@ def process_binary_file(input_file_path, output_file_path, width):
     print(f"Process {input_file_path} File to {output_file_path} Successfully !")
 
 
-
+# here is a useful example for convert file...
 if __name__ == '__main__':
      input_file = './resnet20v2_cifar_onnx_arch.tprog'
      output_file = './instruction.txt'

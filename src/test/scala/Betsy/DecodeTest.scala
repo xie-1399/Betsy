@@ -236,7 +236,7 @@ class DecodeTest extends AnyFunSuite{
 
         }
 
-        //todo with the axi bus simulation 
+        //todo with the axi bus simulation
         init(dut)
         val value = dram_to_local(0,4,2,0,2,16) // dram0 -> local
         value.foreach{
