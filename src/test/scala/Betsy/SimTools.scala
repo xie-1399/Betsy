@@ -12,9 +12,9 @@ import scala.math
 object SimTools {
 
   /* with clip */
-  def clipValue(width: Int, sign: Boolean, value: Int) = {
+  def clipValue(width: Int, sign: Boolean, value: Int): Int = {
     val max = if (sign) Math.pow(2, width - 1) - 1 else Math.pow(2, width) - 1
-    val min = if (sign) - Math.pow(2, width - 1) else 0
+    val min = if (sign) -Math.pow(2, width - 1) else 0
     val clip = if (value > max) {
       max.toInt
     }
@@ -27,17 +27,17 @@ object SimTools {
     clip
   }
 
-  def reorderMatrix(array: Array[Array[Int]],orderChange:Boolean = true) = {
+  def reorderMatrix(array: Array[Array[Int]], orderChange: Boolean = true): Array[Int] = {
     val rows = array.length
     val cols = array(0).length
     val buffer = new ArrayBuffer[Int]()
-    if(orderChange){
+    if (orderChange) {
       for (j <- cols - 1 to 0 by -1) {
         for (i <- 0 until rows) {
           buffer += array(i)(j)
         }
       }
-    }else{
+    } else {
       for (j <- 0 to cols - 1) {
         for (i <- 0 until rows) {
           buffer += array(i)(j)
@@ -87,7 +87,7 @@ object SimTools {
     result
   }
 
-  def StreamInit[T <: Data](stream: Stream[T]) = {
+  def StreamInit[T <: Data](stream: Stream[T]): Unit = {
     stream.valid #= false
     stream.payload.randomize()
   }
@@ -141,17 +141,25 @@ class StreamQueue() {
   def pop() = queue.dequeue()
   def clear() = queue.clear()
   def length() = queue.size
-  def fill(size:Int,init:BigInt = 0,random:Boolean = false) = {
-    require(size > 0,"queue fill size should > 0 !!!")
-    for(idx <- 0 until size){
-     if(random){
-       {push(Random.nextInt(1024 * 1024))}
-     }else{
-       {push(init)}
-     }
+
+  def fill(size: Int, init: BigInt = 0, random: Boolean = false): Unit = {
+    require(size > 0, "queue fill size should > 0 !!!")
+    for (idx <- 0 until size) {
+      if (random) {
+        {
+          push(Random.nextInt(1024 * 1024))
+        }
+      } else {
+        {
+          push(init)
+        }
+      }
     }
   }
-  def toArray() = {queue.toArray}
+
+  def toArray(): Array[BigInt] = {
+    queue.toArray
+  }
 }
 
 object InstructionGen{
@@ -213,6 +221,77 @@ object InstructionGen{
     (BigInt(matMulBinary,2),matMulBinary)
   }
 
+  def dataMoveGen(arch: Architecture, behaviour: String, localAddress: Int, localStride: Int,
+                  accumulatorAddress: Int, accumulatorStride: Int, size: Int): (BigInt, String) = {
+    /* the acc address shows DRAM address or accumulator address */
+    val layOut = InstructionLayOut(arch)
+    def sizeWidth = layOut.operand2SizeBits
+    def localStrideWidth = layOut.stride0SizeBits
+    def localAddressWidth = layOut.operand0AddressSizeBits
+    def accStrideWidth = layOut.stride1SizeBits
+    def accAddressWidth = layOut.operand1AddressSizeBits
+
+    val opcode = 2
+    var flags = 0
+    val opBinary = bigintToBinaryStringWithWidth(BigInt(opcode), width = 4)
+    val localAddressBinary = bigintToBinaryStringWithWidth(BigInt(localAddress), width = localAddressWidth)
+    val localStrideBinary = bigintToBinaryStringWithWidth(BigInt(localStride), width = localStrideWidth)
+    val accAddressBinary = bigintToBinaryStringWithWidth(BigInt(accumulatorAddress), width = accAddressWidth)
+    val accStrideBinary = bigintToBinaryStringWithWidth(BigInt(accumulatorStride), width = accStrideWidth)
+    val op0Binary = binaryStringWithWidth(localStrideBinary + localAddressBinary, width = layOut.operand0SizeBits)
+    val op1Binary = binaryStringWithWidth(accStrideBinary + accAddressBinary, width = layOut.operand1SizeBits)
+    val op2Binary = bigintToBinaryStringWithWidth(BigInt(size), width = sizeWidth)
+    val dataMoveBinary = behaviour match {
+      case "dram0->memory" => {
+        println(s"generate dram0 -> memory instruction (from dram0 A:$accumulatorAddress S: $accumulatorStride to local memory A:$localAddress S:$localStride) with size $size")
+        flags = 0
+        val flagsBinary = bigintToBinaryStringWithWidth(BigInt(flags), width = 4)
+        opBinary + flagsBinary + op2Binary + op1Binary + op0Binary
+      }
+      case "dram1->memory" => {
+        println(s"generate dram1 -> memory instruction (from dram1 A:$accumulatorAddress S: $accumulatorStride to local memory A:$localAddress S:$localStride) with size $size")
+        flags = 2
+        val flagsBinary = bigintToBinaryStringWithWidth(BigInt(flags), width = 4)
+        opBinary + flagsBinary + op2Binary + op1Binary + op0Binary
+      }
+      case "memory->dram0" => {
+        println(s"generate memory -> dram0 instruction (from local memory A:$localAddress S:$localStride to dram0 A:$accumulatorAddress S: $accumulatorStride) with size $size")
+        flags = 1
+        val flagsBinary = bigintToBinaryStringWithWidth(BigInt(flags), width = 4)
+        opBinary + flagsBinary + op2Binary + op1Binary + op0Binary
+      }
+      case "memory->dram1" => {
+        println(s"generate memory -> dram1 instruction (from local memory A:$localAddress S:$localStride to dram1 A:$accumulatorAddress S: $accumulatorStride) with size $size")
+        flags = 3
+        val flagsBinary = bigintToBinaryStringWithWidth(BigInt(flags), width = 4)
+        opBinary + flagsBinary + op2Binary + op1Binary + op0Binary
+      }
+      case "accumulator->memory" => {
+        println(s"generate accumulator -> memory instruction (from accumulator A:$accumulatorAddress S: $accumulatorStride to local memory A:$localAddress S:$localStride) with size $size")
+        flags = 12
+        val flagsBinary = bigintToBinaryStringWithWidth(BigInt(flags), width = 4)
+        opBinary + flagsBinary + op2Binary + op1Binary + op0Binary
+      }
+      case "memory->accumulator" => {
+        println(s"generate memory -> accumulator instruction (from local memory A:$localAddress S:$localStride to accumulator A:$accumulatorAddress S: $accumulatorStride) with size $size")
+        flags = 13
+        val flagsBinary = bigintToBinaryStringWithWidth(BigInt(flags), width = 4)
+        opBinary + flagsBinary + op2Binary + op1Binary + op0Binary
+      }
+      case "memory->accumulator(accumulate)" => {
+        println(s"generate memory -> accumulator(accumulate) instruction (from local memory A:$localAddress S:$localStride to accumulator A:$accumulatorAddress S: $accumulatorStride) with size $size")
+        flags = 15
+        val flagsBinary = bigintToBinaryStringWithWidth(BigInt(flags), width = 4)
+        opBinary + flagsBinary + op2Binary + op1Binary + op0Binary
+      }
+      case _ => {
+        throw new Exception("no define local dataflow exception!!!")
+      }
+    }
+    (BigInt(dataMoveBinary, 2), dataMoveBinary)
+
+  }
+
   def configureGen(register:Int,value:BigInt,arch: Architecture):BigInt = {
     // pc = 10 / run cycles = 9
     val layOut = InstructionLayOut(arch)
@@ -232,6 +311,7 @@ object InstructionGen{
 }
 
 object test extends App{
+  //println(InstructionGen.dataMoveGen(Architecture.tiny(),"dram0->memory",8,2,4,0,size = 16)._2)
   // println(InstructionGen.loadWeightGen(true,16,4,128,Architecture.tiny()))
   // println(InstructionGen.configureGen(9,0,Architecture.tiny()))
   // println(SimTools.reshapeMemoryMatrix("00010010011001000011001000100110")(0)(0))

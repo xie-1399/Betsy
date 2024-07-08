@@ -15,7 +15,8 @@ package Betsy.Instruction
  ** OP0 Local Memory stride/address（with padding unused to arrive time * 8）
  ** OP1 Accumulator or DRAM stride/address (with Padding)
  ** OP2 Accumulator Size
- ** for example :  Todo add instruction example
+ ** for example : generate dram0 -> memory instruction (from dram0 A:4 S: 0 to local memory A:8 S:2) with size 16
+ ** 0010 0000 000000000001000 0000000000000000000000100 0001000000001000
  **/
 
 import spinal.core._

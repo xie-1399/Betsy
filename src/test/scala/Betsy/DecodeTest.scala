@@ -10,13 +10,15 @@ import spinal.lib._
 import scala.util.Random
 import scala.collection.mutable.ArrayBuffer
 import SimTools._
-import spinal.core
+import BetsyLibs.sim._
 
-/* Todo Reformat the test */
+/* Reformat the test */
 
 class DecodeTest extends AnyFunSuite{
 
-  def init(dut:Top[SInt]) = {
+  def init(dut: Top[SInt]): Unit = {
+    AxiInit(dut.io.activationBus)
+    AxiInit(dut.io.weightBus)
     dut.io.instruction.valid #= false
     dut.io.instruction.payload.randomize()
     dut.clockDomain.waitSampling()
@@ -134,7 +136,6 @@ class DecodeTest extends AnyFunSuite{
               if (dut.accumulatorWithALUArray.io.inputs.valid.toBoolean && dut.accumulatorWithALUArray.io.inputs.ready.toBoolean
                 && dut.accumulatorWithALUArray.io.control.write.toBoolean) {
                 accwriteMatrix += dut.accumulatorWithALUArray.io.inputs.payload.map(_.toInt).toArray
-                // println(dut.accumulatorWithALUArray.io.control.writeAddress.toBigInt)
               }
             }
             val bitWidth = 8
@@ -189,6 +190,62 @@ class DecodeTest extends AnyFunSuite{
         MatmulTest(256)
         simSuccess()
     }
+  }
+
+  test("data move"){
+    // the data move instruction
+    SIMCFG().compile {
+      val arch = Architecture.tiny()
+      val dut = new Top(SInt(8 bits), arch)
+      dut.scratchPad.io.simPublic()
+      dut
+    }.doSimUntilVoid {
+      dut =>
+        dut.clockDomain.forkStimulus(10)
+        val arch = Architecture.tiny()
+        val dram0 = Axi4MemorySimV2(dut.io.weightBus,dut.clockDomain,SimConfig.axiconfig)
+        val dram1 = Axi4MemorySimV2(dut.io.activationBus,dut.clockDomain,SimConfig.axiconfig)
+        for(idx <- 0 until 255){
+          dram0.memory.writeBigInt(idx.toLong,BigInt(idx),8)
+          dram1.memory.writeBigInt(idx.toLong,BigInt(idx),8)
+        }
+        println("the dram0 and dram1 load finish!")
+
+        dram0.start()
+        dram1.start()
+
+        def dram_to_local(num: Int, localAddress: Int, localStride: Int,
+                        accumulatorAddress: Int, accumulatorStride: Int, size: Int): ArrayBuffer[Array[Int]] = {
+          require(num == 0 || num == 1, "dram number should be 0 or 1")
+          val behavior = if (num == 0) "dram0->memory" else "dram1->memory"
+          val instruction = InstructionGen.dataMoveGen(arch, behavior, localAddress, localStride, accumulatorAddress, accumulatorStride, size)
+          val buffer = new ArrayBuffer[Array[Int]]()
+          dut.io.instruction.valid #= true
+          dut.io.instruction.payload #= instruction._1
+          dut.clockDomain.waitSamplingWhere {
+            if (dut.scratchPad.io.portA.dataIn.valid.toBoolean && dut.scratchPad.io.portA.dataIn.ready.toBoolean
+              && dut.scratchPad.io.portA.control.write.toBoolean) {
+              buffer += dut.scratchPad.io.portA.dataIn.payload.map(_.toInt).toArray
+            }
+            dut.io.instruction.ready.toBoolean
+          }
+          buffer
+        }
+
+        def localtodram(num:Int) = {
+
+        }
+
+        //todo with the axi bus simulation 
+        init(dut)
+        val value = dram_to_local(0,4,2,0,2,16) // dram0 -> local
+        value.foreach{
+          v =>
+            println(v.mkString(","))
+        }
+    }
+
+
   }
 
   test("configure"){

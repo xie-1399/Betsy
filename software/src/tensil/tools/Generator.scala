@@ -6,7 +6,26 @@ import tensil.common.TablePrinter
 import java.io.File
 import java.nio.file.{Paths, Files}
 
-object generator extends App{
+case class Args(
+                 archFile: File = new File("."),
+                 modelFile: File = new File("."),
+                 outputNodes: Seq[String] = Seq("Identity"),
+                 inputShapes: String = "[1]",
+                 verbose: Boolean = false,
+                 summary: Boolean = false,
+                 layersSummary: Boolean = false,
+                 schedulerSummary: Boolean = false,
+                 partitionsSummary: Boolean = false,
+                 stridesSummary: Boolean = false,
+                 instructionsSummary: Boolean = false,
+                 writeGraph: Boolean = false,
+                 writeProgramAssembly: Boolean = false,
+                 targetDir: File = new File("."),
+                 strategy: CompilerStrategy.Kind = CompilerStrategy.LocalIsolated,
+               )
+
+
+object Generator extends App{
   // Todo update the file path (can generate)
   val genArg = Args(
     archFile = new File("/media/xxl/Betsy/software/src/tensil/tools/arch.tarch"),

@@ -16,7 +16,6 @@ import spinal.lib.bus.amba4.axi.Axi4
  ** Some ML operations, such as padding, are achieved by changing the memory layout. **
  */
 
-
 class Top[T <: Data with Num[T]](gen:HardType[T],arch: Architecture,log:Boolean = false,initContent:Array[BigInt] = null) extends BetsyModule{
 
   val instructionLayOut = InstructionLayOut(arch,gen = log)
@@ -120,8 +119,4 @@ class Top[T <: Data with Num[T]](gen:HardType[T],arch: Architecture,log:Boolean 
     hostRouter.io.mem.dataOut << scratchPad.io.portB.dataOut
   }
 
-}
-
-object Top extends App{
-  SpinalSystemVerilog(new Top(SInt(8 bits),Architecture.large()))
 }
