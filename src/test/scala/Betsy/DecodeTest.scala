@@ -206,9 +206,13 @@ class DecodeTest extends AnyFunSuite{
         val arch = Architecture.tiny()
         val dram0 = Axi4MemorySimV2(dut.io.weightBus,dut.clockDomain,SimConfig.axiconfig)
         // val dram1 = Axi4MemorySimV2(dut.io.activationBus,dut.clockDomain,SimConfig.axiconfig)
-        for(idx <- 0 until 255){
-          dram0.memory.writeBigInt(idx.toLong,BigInt(idx),8)
-          // dram1.memory.writeBigInt(idx.toLong,BigInt(idx),8)
+        for(idx <- 0 until 2048){
+          if(idx <= 255){
+            dram0.memory.writeBigInt(idx.toLong,BigInt(idx),8)
+          }else{
+            val random = Random.nextInt(255)
+            dram0.memory.writeBigInt(idx.toLong,BigInt(random),8)
+          }
         }
         println("the dram0 and dram1 load finish!")
 
@@ -224,9 +228,10 @@ class DecodeTest extends AnyFunSuite{
           dut.io.instruction.valid #= true
           dut.io.instruction.payload #= instruction._1
           dut.clockDomain.waitSamplingWhere {
-            if (dut.scratchPad.io.portA.dataIn.valid.toBoolean && dut.scratchPad.io.portA.dataIn.ready.toBoolean
-              && dut.scratchPad.io.portA.control.write.toBoolean) {
-              buffer += dut.scratchPad.io.portA.dataIn.payload.map(_.toInt).toArray
+            if (dut.scratchPad.io.portB.dataIn.valid.toBoolean && dut.scratchPad.io.portB.dataIn.ready.toBoolean
+              && dut.scratchPad.io.portB.control.valid.toBoolean && dut.scratchPad.io.portB.control.ready.toBoolean
+              && dut.scratchPad.io.portB.control.write.toBoolean) {
+              buffer += dut.scratchPad.io.portB.dataIn.payload.map(_.toInt).toArray
             }
             dut.io.instruction.ready.toBoolean
           }
