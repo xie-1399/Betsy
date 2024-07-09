@@ -17,7 +17,7 @@ import BetsyLibs.sim._
 class DecodeTest extends AnyFunSuite{
 
   def init(dut: Top[SInt]): Unit = {
-    AxiInit(dut.io.activationBus)
+    // AxiInit(dut.io.activationBus)
     AxiInit(dut.io.weightBus)
     dut.io.instruction.valid #= false
     dut.io.instruction.payload.randomize()
@@ -201,18 +201,19 @@ class DecodeTest extends AnyFunSuite{
       dut
     }.doSimUntilVoid {
       dut =>
+        SimTimeout(1 us)
         dut.clockDomain.forkStimulus(10)
         val arch = Architecture.tiny()
         val dram0 = Axi4MemorySimV2(dut.io.weightBus,dut.clockDomain,SimConfig.axiconfig)
-        val dram1 = Axi4MemorySimV2(dut.io.activationBus,dut.clockDomain,SimConfig.axiconfig)
+        // val dram1 = Axi4MemorySimV2(dut.io.activationBus,dut.clockDomain,SimConfig.axiconfig)
         for(idx <- 0 until 255){
           dram0.memory.writeBigInt(idx.toLong,BigInt(idx),8)
-          dram1.memory.writeBigInt(idx.toLong,BigInt(idx),8)
+          // dram1.memory.writeBigInt(idx.toLong,BigInt(idx),8)
         }
         println("the dram0 and dram1 load finish!")
 
         dram0.start()
-        dram1.start()
+        // dram1.start()
 
         def dram_to_local(num: Int, localAddress: Int, localStride: Int,
                         accumulatorAddress: Int, accumulatorStride: Int, size: Int): ArrayBuffer[Array[Int]] = {
@@ -243,6 +244,8 @@ class DecodeTest extends AnyFunSuite{
           v =>
             println(v.mkString(","))
         }
+
+        simSuccess()
     }
 
 

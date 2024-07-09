@@ -18,7 +18,7 @@ import spinal.core.sim._
 import Architecture._
 /** Decode test order : NoOp -> DataMove -> LoadWeight -> MatMul -> Configure -> SIMD
  * this version instruction only enqueue when fire (so the instruction is blocked when before instruction not done !!!)
- * */
+ * notice the IO Bandwidth for the request value */
 
 case class dramAddressOffset(addressWith:Int) extends Bundle {
   val offset = UInt(addressWith bits)
@@ -162,11 +162,12 @@ class Decode(arch: Architecture)(implicit layOut: InstructionLayOut) extends Bet
 
     val calculate = new Area{
       when(DramOperation){
-        val baseAddress = dataMoveArgs.accAddress
-        val shifterNum = U(log2Up(arch.arraySize))
-        val offset = baseAddress << shifterNum
-        io.dram0offset.offset := offset.resized
-        io.dram1offset.offset := offset.resized
+        val shifterNum = U(log2Up(arch.arraySize * arch.dataWidth / 8))
+        val offset0 = dram0Handler.io.output.address << shifterNum
+        val offset1 = dram0Handler.io.output.address << shifterNum
+
+        io.dram0offset.offset := offset0
+        io.dram1offset.offset := offset1
       }
     }
 

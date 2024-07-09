@@ -24,7 +24,7 @@ class Top[T <: Data with Num[T]](gen:HardType[T],arch: Architecture,log:Boolean 
 
   val io = new Bundle{
      val weightBus = master(Axi4(getWeightBusConfig(arch)))
-     val activationBus = master(Axi4(getActivationBusConfig(arch)))
+     // val activationBus = master(Axi4(getActivationBusConfig(arch)))
      val instruction = slave Stream Bits(instructionLayOut.instructionSizeBytes * 8 bits)
   }
   val decode = new Decode(arch)(instructionLayOut)
@@ -34,8 +34,11 @@ class Top[T <: Data with Num[T]](gen:HardType[T],arch: Architecture,log:Boolean 
   val localRouter = new LocalRouter(Vec(gen,arch.arraySize),arch)
   val hostRouter = new HostRouter(Vec(gen,arch.arraySize))
 
+  /* external bus trans like : (data width) * (array size) as one burst trans for the Band width restrict */
+  /* for example trans 8 * 64 with bandwidth 256  -> len = 2 for one dram data exchange into the local*/
+
   val Dram = new Composite(this,"Dram"){
-    // weight bus for the dram0 and activation bus for dram1\
+    // weight bus for the dram0 and activation bus for dram1
     val dram0In = Vec(Reg(gen).init(zero(gen())),arch.arraySize)
     val dram0Out = Vec(Reg(gen).init(zero(gen())),arch.arraySize)
     val dram0Counter = Counter(256).init(0)
@@ -44,7 +47,8 @@ class Top[T <: Data with Num[T]](gen:HardType[T],arch: Architecture,log:Boolean 
       arValid = decode.io.dram0.valid && (!decode.io.dram0.write),
       awValid = decode.io.dram0.valid && decode.io.dram0.write,
       address = decode.io.dram0offset.offset,
-      size = arch.dataWidth / 8 - 1,
+      size = U(log2Up(arch.bandWidth / 8), 3 bits),
+      len = U((arch.arraySize * arch.dataWidth) / arch.bandWidth, 8 bits),
       data = hostRouter.io.dram0.dataOut.payload(dram0Counter(log2Up(arch.arraySize) - 1 downto 0)).asBits
     )
     when(dram0.r.fire){
@@ -60,37 +64,41 @@ class Top[T <: Data with Num[T]](gen:HardType[T],arch: Architecture,log:Boolean 
     }
     dram0 >> io.weightBus
     decode.io.dram0.ready := dram0.r.last
-    hostRouter.io.dram0.dataIn.valid := dram0.r.fire
+    hostRouter.io.dram0.dataIn.valid := dram0.r.valid
     hostRouter.io.dram0.dataIn.payload := dram0In
     hostRouter.io.dram0.dataOut.ready := dram0.w.last
 
-    val dram1In = Vec(Reg(gen).init(zero(gen())), arch.arraySize)
-    val dram1Out = Vec(Reg(gen).init(zero(gen())),arch.arraySize)
-    val dram1Counter = Counter(256).init(0)
-    val dram1 = decode.io.dram1.toAxi4(
-      axi4Config = getActivationBusConfig(arch),
-      arValid = decode.io.dram1.valid && (!decode.io.dram1.write),
-      awValid = decode.io.dram1.valid && decode.io.dram1.write,
-      address = decode.io.dram1offset.offset,
-      size = arch.dataWidth / 8 - 1,
-      data = hostRouter.io.dram1.dataOut.payload(dram1Counter(log2Up(arch.arraySize) - 1 downto 0)).asBits
-    )
-    when(dram1.r.fire) {
-      dram1Counter.increment()
-      dram1In(dram1Counter(log2Up(arch.arraySize) - 1 downto 0)).assignFromBits(dram1.r.payload.data)
-    }
-    when(dram1.w.fire) {
-      dram1Counter.increment()
-      dram1Out(dram1Counter(log2Up(arch.arraySize) - 1 downto 0)).assignFromBits(dram1.w.payload.data)
-    }
-    when(dram1.r.last || dram1.w.last) {
-      dram1Counter.clear()
-    }
-    decode.io.dram1.ready := dram1.r.last
-    hostRouter.io.dram1.dataIn.valid := dram1.r.fire
-    hostRouter.io.dram1.dataIn.payload := dram1In
-    hostRouter.io.dram1.dataOut.ready := dram1.w.last
-    dram1 >> io.activationBus
+//    val dram1In = Vec(Reg(gen).init(zero(gen())), arch.arraySize)
+//    val dram1Out = Vec(Reg(gen).init(zero(gen())),arch.arraySize)
+//    val dram1Counter = Counter(256).init(0)
+//    val dram1 = decode.io.dram1.toAxi4(
+//      axi4Config = getActivationBusConfig(arch),
+//      arValid = decode.io.dram1.valid && (!decode.io.dram1.write),
+//      awValid = decode.io.dram1.valid && decode.io.dram1.write,
+//      address = decode.io.dram1offset.offset,
+//      size = U(log2Up(arch.bandWidth / 8), 3 bits),
+//      len = U((arch.arraySize * arch.dataWidth) / arch.bandWidth, 8 bits),
+//      data = hostRouter.io.dram1.dataOut.payload(dram1Counter(log2Up(arch.arraySize) - 1 downto 0)).asBits
+//    )
+//    when(dram1.r.fire) {
+//      dram1Counter.increment()
+//      dram1In(dram1Counter(log2Up(arch.arraySize) - 1 downto 0)).assignFromBits(dram1.r.payload.data)
+//    }
+//    when(dram1.w.fire) {
+//      dram1Counter.increment()
+//      dram1Out(dram1Counter(log2Up(arch.arraySize) - 1 downto 0)).assignFromBits(dram1.w.payload.data)
+//    }
+//    when(dram1.r.last || dram1.w.last) {
+//      dram1Counter.clear()
+//    }
+//    decode.io.dram1.ready := dram1.r.last
+//    hostRouter.io.dram1.dataIn.valid := dram1.r.fire
+//    hostRouter.io.dram1.dataIn.payload := dram1In
+//    hostRouter.io.dram1.dataOut.ready := dram1.w.last
+//    dram1 >> io.activationBus
+
+
+
   }
 
   /* Betsy connection */
