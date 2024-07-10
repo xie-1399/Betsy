@@ -8,7 +8,7 @@ object SimConfig {
   /* the axi4 memory sim */
   val axiconfig = AxiMemorySimConfig(maxOutstandingReads = 8,
     maxOutstandingWrites = 8,
-    readResponseDelay = 0,
+    readResponseDelay = 16,
     writeResponseDelay = 0,
     interruptProbability = 0,
     interruptMaxDelay = 0,

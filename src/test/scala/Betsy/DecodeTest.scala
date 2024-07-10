@@ -281,11 +281,11 @@ class DecodeTest extends AnyFunSuite{
         }
 
         init(dut)
-        def testCase = 32
+        def testCase = 128
         // dram_to_local(0,0,0,0,0,12)
         for(idx <- 0 until testCase){
-          // dram_to_local(0,Random.nextInt(16),Random.nextInt(4),Random.nextInt(16),Random.nextInt(4),Random.nextInt(16) + 1) // dram0 -> local
-          local_to_dram(0,Random.nextInt(16),Random.nextInt(4),4096 + Random.nextInt(16),Random.nextInt(4),Random.nextInt(16) + 1)
+          dram_to_local(0,Random.nextInt(16),Random.nextInt(4),Random.nextInt(16),Random.nextInt(4),Random.nextInt(16) + 1) // dram0 -> local
+          // local_to_dram(0,Random.nextInt(16),Random.nextInt(4),4096 + Random.nextInt(16),Random.nextInt(4),Random.nextInt(16) + 1)
         }
 
 

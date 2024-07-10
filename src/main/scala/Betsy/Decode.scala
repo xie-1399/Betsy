@@ -209,14 +209,14 @@ class Decode(arch: Architecture)(implicit layOut: InstructionLayOut) extends Bet
         }
 
         is(memoryToDram0) { // from memory to dram0
-          hostDataFlowHandler.io.into.valid.set()
+          hostDataFlowHandler.io.into.valid := !hostcontroldown
           val hostDataFlowControlWithSize = HostDataFlowControlWithSize(arch.localDepth,
             size = dataMoveArgs.size.resized,
             kind = HostDataFlowControl.Out0
           )
           hostDataFlowControlWithSize <> hostDataFlowHandler.io.into.payload
 
-          PortBstrideHandler.io.into.valid := isDataMove
+          PortBstrideHandler.io.into.valid := !portBdown
           val portBMemControlWithStride = MemControlWithStride(arch.localDepth,
             arch.stride1Depth,
             write = False,
@@ -226,7 +226,7 @@ class Decode(arch: Architecture)(implicit layOut: InstructionLayOut) extends Bet
             stride = dataMoveArgs.memStride)
           PortBstrideHandler.io.into.payload <> portBMemControlWithStride
 
-          dram0Handler.io.into.valid := isDataMove
+          dram0Handler.io.into.valid := !dram0down
           val dram0MemControlWithStride = MemControlWithStride(arch.dram0Depth,
             arch.stride0Depth,
             write = True,
@@ -243,14 +243,14 @@ class Decode(arch: Architecture)(implicit layOut: InstructionLayOut) extends Bet
         }
 
         is(dram1ToMemory) { // from dram1 to the memory
-          hostDataFlowHandler.io.into.valid.set()
+          hostDataFlowHandler.io.into.valid := !hostcontroldown
           val hostDataFlowControlWithSize = HostDataFlowControlWithSize(arch.localDepth,
             size = dataMoveArgs.size.resized,
             kind = HostDataFlowControl.In1
           )
           hostDataFlowControlWithSize <> hostDataFlowHandler.io.into.payload
 
-          PortBstrideHandler.io.into.valid := isDataMove
+          PortBstrideHandler.io.into.valid := !portBdown
           val portBMemControlWithStride = MemControlWithStride(arch.localDepth,
             arch.stride1Depth,
             write = True,
@@ -260,7 +260,7 @@ class Decode(arch: Architecture)(implicit layOut: InstructionLayOut) extends Bet
             stride = dataMoveArgs.memStride)
           PortBstrideHandler.io.into.payload <> portBMemControlWithStride
 
-          dram1Handler.io.into.valid := isDataMove
+          dram1Handler.io.into.valid := !dram1down
           val dram1MemControlWithStride = MemControlWithStride(arch.dram1Depth,
             arch.stride1Depth,
             write = False,
@@ -277,14 +277,14 @@ class Decode(arch: Architecture)(implicit layOut: InstructionLayOut) extends Bet
         }
 
         is(memoryToDram1) { // from memory to dram1
-          hostDataFlowHandler.io.into.valid.set()
+          hostDataFlowHandler.io.into.valid := !hostcontroldown
           val hostDataFlowControlWithSize = HostDataFlowControlWithSize(arch.localDepth,
             size = dataMoveArgs.size.resized,
             kind = HostDataFlowControl.Out1
           )
           hostDataFlowControlWithSize <> hostDataFlowHandler.io.into.payload
 
-          PortBstrideHandler.io.into.valid := isDataMove
+          PortBstrideHandler.io.into.valid := !portBdown
           val portBMemControlWithStride = MemControlWithStride(arch.localDepth,
             arch.stride1Depth,
             write = False,
@@ -294,7 +294,7 @@ class Decode(arch: Architecture)(implicit layOut: InstructionLayOut) extends Bet
             stride = dataMoveArgs.memStride)
           PortBstrideHandler.io.into.payload <> portBMemControlWithStride
 
-          dram1Handler.io.into.valid := isDataMove
+          dram1Handler.io.into.valid := !dram1down
           val dram1MemControlWithStride = MemControlWithStride(arch.dram1Depth,
             arch.stride1Depth,
             write = True,
