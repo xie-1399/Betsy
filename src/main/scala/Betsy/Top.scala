@@ -61,9 +61,10 @@ class Top[T <: Data with Num[T]](gen:HardType[T],arch: Architecture,log:Boolean 
       rspCounter.clear()
     }
     dram0 >> io.weightBus
-    decode.io.dram0.ready := dram0.r.last
+    decode.io.dram0.ready := dram0.ar.fire || dram0.aw.fire
     hostRouter.io.dram0.dataIn.valid := dram0.r.valid
     hostRouter.io.dram0.dataIn.payload.assignFromBits(payload.asBits)
+
     hostRouter.io.dram0.dataOut.ready := dram0.w.last
 
 //    val dram1In = Vec(Reg(gen).init(zero(gen())), arch.arraySize)

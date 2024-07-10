@@ -39,19 +39,18 @@ case class MemControl(depth:Long,maskWidth:Int = -1) extends Bundle with Size wi
     axi4.aw.size := size.resized
     axi4.aw.addr := address
 
-    axi4.w.valid := RegNext(axi4.aw.fire).init(False)
+    val wValid = RegInit(False).setWhen(axi4.aw.fire).clearWhen(axi4.b.fire)
+    axi4.w.valid := wValid
     axi4.w.data := data
     axi4.w.setStrb()
-
     val wCounter = Counter(256).init(0)
     when(axi4.w.fire){
       wCounter.increment()
     }
-    val wlast = RegInit(False).setWhen(wCounter === this.size - 1).clearWhen(wCounter === this.size)
-    when(wCounter === this.size){
+    when(wCounter === len){
       wCounter.clear()
     }
-    axi4.w.last := wlast
+    axi4.w.last := (axi4.w.fire && wCounter === len)
     axi4.b.ready := True
     axi4
   }

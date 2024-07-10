@@ -26,7 +26,7 @@ class DecodeTest extends AnyFunSuite{
 
   val memoryContent = genMemoryValue(8,8,2048) /* for the tiny memory content */
 
-  test("Load_Weight"){
+  test("load"){
     SIMCFG().compile{
       val arch = Architecture.tiny()
       val dut = new Top(SInt(8 bits),arch,initContent = (0 until arch.localDepth.toInt).toArray.map(_.toBigInt))
@@ -207,7 +207,7 @@ class DecodeTest extends AnyFunSuite{
         val dram0 = Axi4MemorySimV2(dut.io.weightBus,dut.clockDomain,SimConfig.axiconfig)
         // val dram1 = Axi4MemorySimV2(dut.io.activationBus,dut.clockDomain,SimConfig.axiconfig)
         for(idx <- 0 until 2048){
-          if(idx <= 255){
+          if(idx <= 255){ // the initial part is used to debug
             dram0.memory.writeBigInt(idx.toLong,BigInt(idx),8)
           }else{
             val random = Random.nextInt(255)
@@ -218,10 +218,10 @@ class DecodeTest extends AnyFunSuite{
 
         dram0.start()
         // dram1.start()
-
         def dram_to_local(num: Int, localAddress: Int, localStride: Int,
-                        accumulatorAddress: Int, accumulatorStride: Int, size: Int): ArrayBuffer[Array[Int]] = {
+                        accumulatorAddress: Int, accumulatorStride: Int, size: Int) = {
           require(num == 0 || num == 1, "dram number should be 0 or 1")
+          val step = 1 << accumulatorStride
           val behavior = if (num == 0) "dram0->memory" else "dram1->memory"
           val instruction = InstructionGen.dataMoveGen(arch, behavior, localAddress, localStride, accumulatorAddress, accumulatorStride, size)
           val buffer = new ArrayBuffer[Array[Int]]()
@@ -235,20 +235,59 @@ class DecodeTest extends AnyFunSuite{
             }
             dut.io.instruction.ready.toBoolean
           }
-          buffer
+          val refBuffer = ArrayBuffer[Array[Int]]()
+          for(address <- accumulatorAddress until accumulatorAddress + step * (size + 1) by step){
+            if(num == 0){
+              refBuffer += dram0.memory.readArray(address * arch.arraySize * arch.dataWidth / 8,arch.arraySize).map(_.toInt)
+            }else{
+              // ref += dram1.memory.readArray(address * arch.arraySize * arch.dataWidth / 8,arch.arraySize)
+            }
+          }
+          assert(refBuffer.flatten == buffer.flatten,"dram to local error!!!")
+          (buffer,refBuffer)
         }
 
-        def localtodram(num:Int) = {
+        def local_to_dram(num: Int, localAddress: Int, localStride: Int,
+                          accumulatorAddress: Int, accumulatorStride: Int, size: Int): ArrayBuffer[Array[Int]] = {
+          require(num == 0 || num == 1, "dram number should be 0 or 1")
+          val buffer = dram_to_local(0, 0, 0, 0, 0, 128)._2
 
+          val accStep = 1 << accumulatorStride
+          val localStep = 1 << localStride
+          val behavior = if (num == 0) "memory->dram0" else "memory->dram1"
+          val instruction = InstructionGen.dataMoveGen(arch, behavior, localAddress, localStride, accumulatorAddress, accumulatorStride, size)
+
+          dut.io.instruction.valid #= true
+          dut.io.instruction.payload #= instruction._1
+          dut.clockDomain.waitSamplingWhere(dut.io.instruction.ready.toBoolean)
+
+          val refBuffer = ArrayBuffer[Array[Int]]()
+          for (address <- localAddress until localAddress + localStep * (size + 1) by localStep) {
+            refBuffer += buffer(address)
+          }
+          dut.io.instruction.valid #= false
+          dut.clockDomain.waitSampling()
+          val testBuffer = ArrayBuffer[Array[Int]]()
+          for (address <- accumulatorAddress until accumulatorAddress + accStep * (size + 1) by accStep) {
+            if (num == 0) {
+              testBuffer += dram0.memory.readArray(address * arch.arraySize * arch.dataWidth / 8, arch.arraySize).map(_.toInt)
+            } else {
+              // ref += dram1.memory.readArray(address * arch.arraySize * arch.dataWidth / 8,arch.arraySize)
+            }
+          }
+          println(testBuffer.flatten.mkString(","))
+          assert(refBuffer.flatten == testBuffer.flatten, " local to dram error!!!")
+          testBuffer
         }
 
-        //todo with the axi bus simulation
         init(dut)
-        val value = dram_to_local(0,4,2,0,2,16) // dram0 -> local
-        value.foreach{
-          v =>
-            println(v.mkString(","))
+        def testCase = 32
+        // dram_to_local(0,0,0,0,0,12)
+        for(idx <- 0 until testCase){
+          // dram_to_local(0,Random.nextInt(16),Random.nextInt(4),Random.nextInt(16),Random.nextInt(4),Random.nextInt(16) + 1) // dram0 -> local
+          local_to_dram(0,Random.nextInt(16),Random.nextInt(4),4096 + Random.nextInt(16),Random.nextInt(4),Random.nextInt(16) + 1)
         }
+
 
         simSuccess()
     }
