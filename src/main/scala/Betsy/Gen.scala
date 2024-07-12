@@ -9,15 +9,19 @@ package Betsy
 
 import spinal.core._
 
+// generate verilog demo ( can use define works )
 
 object Gen extends App{
-  // tiny arch
-  SpinalVerilog(new Top(SInt(8 bits),Architecture.tiny()))
 
+  //embedding arch
+  SpinalVerilog(SpinalConfig().withoutEnumString())(new Top(SInt(4 bits),Architecture.embeddings())).printPruned()
+
+  // tiny arch
+  SpinalVerilog(SpinalConfig().withoutEnumString())(new Top(SInt(8 bits),Architecture.tiny())).printPruned()
 
   // normal arch
-
+  SpinalVerilog(SpinalConfig().withoutEnumString())(new Top(SInt(16 bits),Architecture.normal())).printPruned()
 
   // large arch
-
+  // SpinalVerilog(SpinalConfig().withoutEnumString())(new Top(SInt(16 bits),Architecture.large())) printPruned()
 }

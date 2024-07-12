@@ -11,8 +11,6 @@ import Betsy.Until.{BetsyModule, zero}
 import spinal.core._
 import spinal.lib._
 
-//Todo SRAM lib Support later...
-
 trait MemoryKind
 object RegistersBank extends MemoryKind
 object SpinalMem extends MemoryKind

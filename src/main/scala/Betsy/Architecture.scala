@@ -50,11 +50,11 @@ object Architecture{
       arraySize = 4,
       dram0Depth = 1024 * 1024, // 20 bits dram address
       dram1Depth = 1024 * 1024,
-      localDepth = 2048, // 13 bits
+      localDepth = 1024, // 13 bits
       accumulatorDepth = 1024,
-      simdRegistersDepth = 1,
       stride0Depth = 8,
       stride1Depth = 8,
+      bandWidth = 16
     )
     arch
   }
@@ -68,7 +68,6 @@ object Architecture{
       dram1Depth = 1024 * 1024,
       localDepth = 2048, // max 13 bits
       accumulatorDepth = 2048,
-      simdRegistersDepth = 1,
       stride0Depth = 8,
       stride1Depth= 8,
       bandWidth = 64
@@ -85,7 +84,6 @@ object Architecture{
       dram1Depth = 1024 * 1024,
       localDepth = 4096,
       accumulatorDepth = 4096,
-      simdRegistersDepth = 1,
       stride0Depth = 8,
       stride1Depth = 8,
       bandWidth = 512   // 64 * 16 / 512 = 2
@@ -95,27 +93,27 @@ object Architecture{
 
   def large():Architecture = {
     val arch = Architecture(
-      dataType = "SInt_8",
-      arraySize = 64,
-      dram0Depth = 1024 * 1024 * 2, // 20 bits dram address
+      dataType = "SInt_16",
+      arraySize = 128,
+      dram0Depth = 1024 * 1024 * 2, // 21 bits dram address
       dram1Depth = 1024 * 1024 * 2,
       localDepth = 8192, // 13 bits
       accumulatorDepth = 8192,
-      simdRegistersDepth = 1,
       stride0Depth = 8,
       stride1Depth = 8,
+      bandWidth = 1024
     )
     arch
   }
 
-  def getWeightBusConfig(arch:Architecture) = Axi4Config(addressWidth = log2Up(arch.dram0Depth) + log2Up(arch.arraySize),
+  def getWeightBusConfig(arch:Architecture) = Axi4Config(addressWidth = log2Up(arch.dram0Depth) + log2Up(arch.arraySize * arch.dataWidth / 8),
     dataWidth = arch.bandWidth,
     idWidth = -1, useId = false, /* no need for the id*/
     useRegion = false, useBurst = true, useLock = false,
     useCache = false, useSize = true, useQos = false, useLen = true,
     useLast = true, useProt = false)
 
-  def getActivationBusConfig(arch: Architecture) = Axi4Config(addressWidth = log2Up(arch.dram1Depth) + log2Up(arch.arraySize),
+  def getActivationBusConfig(arch: Architecture) = Axi4Config(addressWidth = log2Up(arch.dram1Depth) + log2Up(arch.arraySize * arch.dataWidth / 8),
     dataWidth = arch.bandWidth,
     idWidth = -1, useId = false, /* no need for the id*/
     useRegion = false, useBurst = true, useLock = false,

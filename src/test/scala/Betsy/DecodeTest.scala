@@ -302,11 +302,7 @@ class DecodeTest extends AnyFunSuite{
           }
 
           /* the test ref is accumulator write in */
-          
-
         }
-
-
         def accumulator_to_memory(localAddress: Int, localStride: Int,
                                   accumulatorAddress: Int, accumulatorStride: Int, size: Int) = {
           val accStep = 1 << accumulatorStride
@@ -317,8 +313,6 @@ class DecodeTest extends AnyFunSuite{
           dut.io.instruction.payload #= instruction._1
           dut.clockDomain.waitSamplingWhere(dut.io.instruction.ready.toBoolean)
         }
-
-
 
         init(dut)
         def testCase = 32
