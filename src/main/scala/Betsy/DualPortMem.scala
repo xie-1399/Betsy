@@ -7,6 +7,7 @@ package Betsy
  ** Test Status : PASS :)         Version:0.1 **
  */
 
+import Betsy.Architecture.maxTransLen
 import Betsy.Until._
 import spinal.core._
 import spinal.lib._
@@ -26,30 +27,37 @@ case class MemControl(depth:Long,maskWidth:Int = -1) extends Bundle with Size wi
   def toAxi4(axi4Config: Axi4Config,arValid:Bool,awValid:Bool,address:UInt,
              len:UInt, size:UInt, data:Bits):Axi4 = {
     val axi4 = Axi4(axi4Config)
-    axi4.ar.valid := arValid
+
+    val holdRead = RegInit(False).setWhen(axi4.ar.fire).clearWhen(axi4.r.last)
+    val sendRead = RegInit(False).setWhen(arValid && !holdRead).clearWhen(axi4.ar.fire)
+    axi4.ar.valid := sendRead
     axi4.ar.setBurstINCR()
     axi4.ar.len := len
     axi4.ar.size := size.resized
     axi4.ar.addr := address
     axi4.r.ready := True
 
-    axi4.aw.valid := awValid
+    val holdWrite = RegInit(False).setWhen(axi4.aw.fire).clearWhen(axi4.b.fire)
+    val sendWrite = RegInit(False).setWhen(awValid && !holdWrite).clearWhen(axi4.aw.fire)
+    axi4.aw.valid := sendWrite
     axi4.aw.setBurstINCR()
     axi4.aw.len := len
     axi4.aw.size := size.resized
     axi4.aw.addr := address
 
     val wValid = RegInit(False).setWhen(axi4.aw.fire).clearWhen(axi4.b.fire)
-    axi4.w.valid := wValid
-    axi4.w.data := data
-    axi4.w.setStrb()
-    val wCounter = Counter(256).init(0)
+    val writePayload = Bits(axi4Config.dataWidth bits)
+    val wCounter = Counter(maxTransLen).init(0)
+    writePayload := data.subdivideIn(axi4Config.dataWidth bits)(wCounter.resized)
     when(axi4.w.fire){
       wCounter.increment()
     }
     when(wCounter === len){
       wCounter.clear()
     }
+    axi4.w.valid := wValid
+    axi4.w.data := writePayload
+    axi4.w.setStrb()
     axi4.w.last := (axi4.w.fire && wCounter === len)
     axi4.b.ready := True
     axi4

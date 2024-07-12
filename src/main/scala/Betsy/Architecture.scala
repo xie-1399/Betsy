@@ -116,7 +116,7 @@ object Architecture{
     useLast = true, useProt = false)
 
   def getActivationBusConfig(arch: Architecture) = Axi4Config(addressWidth = log2Up(arch.dram1Depth) + log2Up(arch.arraySize),
-    dataWidth = arch.dataWidth,
+    dataWidth = arch.bandWidth,
     idWidth = -1, useId = false, /* no need for the id*/
     useRegion = false, useBurst = true, useLock = false,
     useCache = false, useSize = true, useQos = false, useLen = true,

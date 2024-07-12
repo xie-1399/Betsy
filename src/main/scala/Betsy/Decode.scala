@@ -164,7 +164,7 @@ class Decode(arch: Architecture)(implicit layOut: InstructionLayOut) extends Bet
       when(DramOperation){
         val shifterNum = U(log2Up(arch.arraySize * arch.dataWidth / 8))
         val offset0 = dram0Handler.io.output.address << shifterNum
-        val offset1 = dram0Handler.io.output.address << shifterNum
+        val offset1 = dram1Handler.io.output.address << shifterNum
 
         io.dram0offset.offset := offset0
         io.dram1offset.offset := offset1

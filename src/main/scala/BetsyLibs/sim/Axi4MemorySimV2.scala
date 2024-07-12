@@ -222,7 +222,7 @@ case class Axi4MemorySimV2(axi : Axi4, clockDomain : ClockDomain, config : AxiMe
           if(Aligned){
             memory.writeBigInt(job.alignedBurstAddress(i, maxBurstSize), w.payload.data.toBigInt, busWordWidth, getStrb(w.payload))
           }else{
-            memory.writeBigInt(job.address, w.payload.data.toBigInt,busWordWidth, getStrb(w.payload))
+            memory.writeBigInt(job.burstAddress(i), w.payload.data.toBigInt,busWordWidth, getStrb(w.payload))
           }
         }
 
@@ -287,7 +287,7 @@ case class Axi4MemorySimV2(axi : Axi4, clockDomain : ClockDomain, config : AxiMe
         else {
           clockDomain.waitSamplingWhere(w.valid.toBoolean)
           if(Aligned){memory.writeBigInt(job.alignedBurstAddress(i, maxBurstSize), w.payload.data.toBigInt, busWordWidth, getStrb(w.payload))}
-          else{memory.writeBigInt(job.address, w.payload.data.toBigInt, busWordWidth, getStrb(w.payload))}
+          else{memory.writeBigInt(job.burstAddress(i), w.payload.data.toBigInt, busWordWidth, getStrb(w.payload))}
           i = i + 1
         }
       }

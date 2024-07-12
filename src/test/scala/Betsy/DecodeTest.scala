@@ -17,14 +17,14 @@ import BetsyLibs.sim._
 class DecodeTest extends AnyFunSuite{
 
   def init(dut: Top[SInt]): Unit = {
-    // AxiInit(dut.io.activationBus)
+    AxiInit(dut.io.activationBus)
     AxiInit(dut.io.weightBus)
     dut.io.instruction.valid #= false
     dut.io.instruction.payload.randomize()
     dut.clockDomain.waitSampling()
   }
 
-  val memoryContent = genMemoryValue(8,8,2048) /* for the tiny memory content */
+  val memoryContent: Array[BigInt] = genMemoryValue(8, 8, 2048) /* for the tiny memory content */
 
   test("load"){
     SIMCFG().compile{
@@ -193,31 +193,33 @@ class DecodeTest extends AnyFunSuite{
   }
 
   test("data move"){
-    // the data move instruction
+    // the data move instruction (test with the axi memory)
     SIMCFG().compile {
       val arch = Architecture.tiny()
-      val dut = new Top(SInt(8 bits), arch)
+      val dut = new Top(SInt(8 bits), arch, initContent = memoryContent)
       dut.scratchPad.io.simPublic()
       dut
     }.doSimUntilVoid {
       dut =>
-        SimTimeout(1 us)
+        SimTimeout(10 us)
         dut.clockDomain.forkStimulus(10)
         val arch = Architecture.tiny()
         val dram0 = Axi4MemorySimV2(dut.io.weightBus,dut.clockDomain,SimConfig.axiconfig)
-        // val dram1 = Axi4MemorySimV2(dut.io.activationBus,dut.clockDomain,SimConfig.axiconfig)
+        val dram1 = Axi4MemorySimV2(dut.io.activationBus,dut.clockDomain,SimConfig.axiconfig)
         for(idx <- 0 until 2048){
           if(idx <= 255){ // the initial part is used to debug
             dram0.memory.writeBigInt(idx.toLong,BigInt(idx),8)
+            dram1.memory.writeBigInt(idx.toLong,BigInt(idx),8)
           }else{
             val random = Random.nextInt(255)
             dram0.memory.writeBigInt(idx.toLong,BigInt(random),8)
+            dram1.memory.writeBigInt(idx.toLong,BigInt(random),8)
           }
         }
         println("the dram0 and dram1 load finish!")
 
         dram0.start()
-        // dram1.start()
+        dram1.start()
         def dram_to_local(num: Int, localAddress: Int, localStride: Int,
                         accumulatorAddress: Int, accumulatorStride: Int, size: Int) = {
           require(num == 0 || num == 1, "dram number should be 0 or 1")
@@ -240,7 +242,7 @@ class DecodeTest extends AnyFunSuite{
             if(num == 0){
               refBuffer += dram0.memory.readArray(address * arch.arraySize * arch.dataWidth / 8,arch.arraySize).map(_.toInt)
             }else{
-              // ref += dram1.memory.readArray(address * arch.arraySize * arch.dataWidth / 8,arch.arraySize)
+              refBuffer += dram1.memory.readArray(address * arch.arraySize * arch.dataWidth / 8,arch.arraySize).map(_.toInt)
             }
           }
           assert(refBuffer.flatten == buffer.flatten,"dram to local error!!!")
@@ -250,7 +252,7 @@ class DecodeTest extends AnyFunSuite{
         def local_to_dram(num: Int, localAddress: Int, localStride: Int,
                           accumulatorAddress: Int, accumulatorStride: Int, size: Int): ArrayBuffer[Array[Int]] = {
           require(num == 0 || num == 1, "dram number should be 0 or 1")
-          val buffer = dram_to_local(0, 0, 0, 0, 0, 128)._2
+          val buffer = dram_to_local(0, 0, 0, 0, 0, 256)._2
 
           val accStep = 1 << accumulatorStride
           val localStep = 1 << localStride
@@ -272,23 +274,58 @@ class DecodeTest extends AnyFunSuite{
             if (num == 0) {
               testBuffer += dram0.memory.readArray(address * arch.arraySize * arch.dataWidth / 8, arch.arraySize).map(_.toInt)
             } else {
-              // ref += dram1.memory.readArray(address * arch.arraySize * arch.dataWidth / 8,arch.arraySize)
+              testBuffer += dram1.memory.readArray(address * arch.arraySize * arch.dataWidth / 8, arch.arraySize).map(_.toInt)
             }
           }
-          println(testBuffer.flatten.mkString(","))
           assert(refBuffer.flatten == testBuffer.flatten, " local to dram error!!!")
           testBuffer
         }
 
-        init(dut)
-        def testCase = 128
-        // dram_to_local(0,0,0,0,0,12)
-        for(idx <- 0 until testCase){
-          dram_to_local(0,Random.nextInt(16),Random.nextInt(4),Random.nextInt(16),Random.nextInt(4),Random.nextInt(16) + 1) // dram0 -> local
-          // local_to_dram(0,Random.nextInt(16),Random.nextInt(4),4096 + Random.nextInt(16),Random.nextInt(4),Random.nextInt(16) + 1)
+        def memory_to_accumulator(localAddress: Int, localStride: Int,
+                                  accumulatorAddress: Int, accumulatorStride: Int, size: Int, accumulate:Boolean) = {
+          val accStep = 1 << accumulatorStride
+          val localStep = 1 << localStride
+          val behavior = if(accumulate) "memory->accumulator(accumulate)" else "memory->accumulator"
+          val instruction = InstructionGen.dataMoveGen(arch, behavior, localAddress, localStride, accumulatorAddress, accumulatorStride, size)
+          dut.io.instruction.valid #= true
+          dut.io.instruction.payload #= instruction._1
+          dut.clockDomain.waitSamplingWhere(dut.io.instruction.ready.toBoolean)
+
+          /* the ref memory with init content */
+          val refBuffer = ArrayBuffer[ArrayBuffer[Int]]()
+          val buffer = ArrayBuffer[Int]()
+          for (address <- localAddress until localAddress + localStep * (size + 1) by localStep) {
+            for(idx <- 0 until arch.arraySize){
+              buffer += memoryContent(localAddress * (arch.arraySize * arch.dataWidth) / 8 + idx).toInt
+            }
+            buffer.clear()
+          }
+
+          /* the test ref is accumulator write in */
+          
+
         }
 
 
+        def accumulator_to_memory(localAddress: Int, localStride: Int,
+                                  accumulatorAddress: Int, accumulatorStride: Int, size: Int) = {
+          val accStep = 1 << accumulatorStride
+          val localStep = 1 << localStride
+          val behavior = "accumulator->memory"
+          val instruction = InstructionGen.dataMoveGen(arch, behavior, localAddress, localStride, accumulatorAddress, accumulatorStride, size)
+          dut.io.instruction.valid #= true
+          dut.io.instruction.payload #= instruction._1
+          dut.clockDomain.waitSamplingWhere(dut.io.instruction.ready.toBoolean)
+        }
+
+
+
+        init(dut)
+        def testCase = 32
+        for(idx <- 0 until testCase){
+          dram_to_local(Random.nextInt(2),Random.nextInt(16),Random.nextInt(4),Random.nextInt(16),Random.nextInt(4),Random.nextInt(16) + 1) // dram0 -> local
+          local_to_dram(Random.nextInt(2),Random.nextInt(16),Random.nextInt(4),4096 + Random.nextInt(16),Random.nextInt(4),Random.nextInt(16) + 1)
+        }
         simSuccess()
     }
 
