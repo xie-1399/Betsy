@@ -198,10 +198,11 @@ class DecodeTest extends AnyFunSuite{
       val arch = Architecture.tiny()
       val dut = new Top(SInt(8 bits), arch, initContent = memoryContent)
       dut.scratchPad.io.simPublic()
+      dut.accumulatorWithALUArray.io.simPublic()
       dut
     }.doSimUntilVoid {
       dut =>
-        SimTimeout(10 us)
+        SimTimeout(1 us)
         dut.clockDomain.forkStimulus(10)
         val arch = Architecture.tiny()
         val dram0 = Axi4MemorySimV2(dut.io.weightBus,dut.clockDomain,SimConfig.axiconfig)
@@ -282,44 +283,84 @@ class DecodeTest extends AnyFunSuite{
         }
 
         def memory_to_accumulator(localAddress: Int, localStride: Int,
-                                  accumulatorAddress: Int, accumulatorStride: Int, size: Int, accumulate:Boolean) = {
-          val accStep = 1 << accumulatorStride
+                                  accumulatorAddress: Int, accumulatorStride: Int, size: Int, accumulate: Boolean): ArrayBuffer[Array[Int]] = {
+          val buffer = dram_to_local(0, 0, 0, 0, 0, 256)._2
           val localStep = 1 << localStride
-          val behavior = if(accumulate) "memory->accumulator(accumulate)" else "memory->accumulator"
+          val behavior = if (accumulate) "memory->accumulator(accumulate)" else "memory->accumulator"
           val instruction = InstructionGen.dataMoveGen(arch, behavior, localAddress, localStride, accumulatorAddress, accumulatorStride, size)
-          dut.io.instruction.valid #= true
-          dut.io.instruction.payload #= instruction._1
-          dut.clockDomain.waitSamplingWhere(dut.io.instruction.ready.toBoolean)
-
-          /* the ref memory with init content */
-          val refBuffer = ArrayBuffer[ArrayBuffer[Int]]()
-          val buffer = ArrayBuffer[Int]()
-          for (address <- localAddress until localAddress + localStep * (size + 1) by localStep) {
-            for(idx <- 0 until arch.arraySize){
-              buffer += memoryContent(localAddress * (arch.arraySize * arch.dataWidth) / 8 + idx).toInt
+          val testBuffer = ArrayBuffer[Array[Int]]()
+          /* the test ref is accumulator write in */
+          dut.clockDomain.onSamplings {
+            if (dut.accumulatorWithALUArray.io.inputs.valid.toBoolean && dut.accumulatorWithALUArray.io.inputs.ready.toBoolean
+              && dut.accumulatorWithALUArray.io.control.valid.toBoolean && dut.accumulatorWithALUArray.io.control.ready.toBoolean
+              && dut.accumulatorWithALUArray.io.control.write.toBoolean
+            ) {
+              testBuffer += dut.accumulatorWithALUArray.io.inputs.payload.map(_.toInt).toArray
             }
-            buffer.clear()
           }
 
-          /* the test ref is accumulator write in */
-        }
-        def accumulator_to_memory(localAddress: Int, localStride: Int,
-                                  accumulatorAddress: Int, accumulatorStride: Int, size: Int) = {
-          val accStep = 1 << accumulatorStride
-          val localStep = 1 << localStride
-          val behavior = "accumulator->memory"
-          val instruction = InstructionGen.dataMoveGen(arch, behavior, localAddress, localStride, accumulatorAddress, accumulatorStride, size)
           dut.io.instruction.valid #= true
           dut.io.instruction.payload #= instruction._1
           dut.clockDomain.waitSamplingWhere(dut.io.instruction.ready.toBoolean)
+
+          if(!accumulate){
+            /* the ref memory with init content */
+            val refBuffer = ArrayBuffer[Array[Int]]()
+            for (address <- localAddress until localAddress + localStep * (size + 1) by localStep) {
+              refBuffer += buffer(address)
+            }
+            assert(refBuffer.flatten == testBuffer.flatten, " local to accumulator error!!!")
+          } else{
+            // accumulate and save into the memory
+            println(testBuffer.flatten.mkString(","))
+          }
+          testBuffer
+        }
+
+        def accumulator_to_memory(localAddress: Int, localStride: Int,
+                                  accumulatorAddress: Int, accumulatorStride: Int, size: Int) = {
+          val refBuffer = memory_to_accumulator(0, 0, 0, 0, 256, false) // move data to the accumulator
+          val accStep = 1 << accumulatorStride
+          val behavior = "accumulator->memory"
+          val instruction = InstructionGen.dataMoveGen(arch, behavior, localAddress, localStride, accumulatorAddress, accumulatorStride, size)
+          val testBuffer = ArrayBuffer[Array[Int]]()
+          dut.clockDomain.onSamplings {
+            if (dut.scratchPad.io.portA.dataIn.valid.toBoolean && dut.scratchPad.io.portA.dataIn.ready.toBoolean
+              && dut.scratchPad.io.portA.control.write.toBoolean && dut.scratchPad.io.portA.control.valid.toBoolean &&
+              dut.scratchPad.io.portA.control.ready.toBoolean
+            ) {
+              testBuffer += dut.scratchPad.io.portA.dataIn.payload.map(_.toInt).toArray
+            }
+          }
+          dut.io.instruction.valid #= true
+          dut.io.instruction.payload #= instruction._1
+          dut.clockDomain.waitSamplingWhere(dut.io.instruction.ready.toBoolean)
+          val newrefBuffer = ArrayBuffer[Array[Int]]()
+          for (address <- accumulatorAddress until accumulatorAddress + accStep * (size + 1) by accStep) {
+            newrefBuffer += refBuffer(address)
+          }
+          assert(newrefBuffer.flatten == testBuffer.flatten,"accumulator to local error")
+        }
+
+        def dram_test(testCase:Int) = {
+          dram_to_local(Random.nextInt(2), Random.nextInt(16), Random.nextInt(4), Random.nextInt(16), Random.nextInt(4), Random.nextInt(16) + 1) // dram0 -> local
+          local_to_dram(Random.nextInt(2), Random.nextInt(16), Random.nextInt(4), 4096 + Random.nextInt(16), Random.nextInt(4), Random.nextInt(16) + 1)
+          println("PASS DRAM Test...")
+        }
+
+        def acc_test(testCase:Int) = {
+          /* first remove some data to the local */
+          for(idx <- 0 until testCase){
+            memory_to_accumulator(Random.nextInt(16),Random.nextInt(4),Random.nextInt(16),Random.nextInt(4),Random.nextInt(16) + 1,false)
+            accumulator_to_memory(Random.nextInt(16),Random.nextInt(4),Random.nextInt(16),Random.nextInt(4),Random.nextInt(16) + 1)
+          }
         }
 
         init(dut)
         def testCase = 32
-        for(idx <- 0 until testCase){
-          dram_to_local(Random.nextInt(2),Random.nextInt(16),Random.nextInt(4),Random.nextInt(16),Random.nextInt(4),Random.nextInt(16) + 1) // dram0 -> local
-          local_to_dram(Random.nextInt(2),Random.nextInt(16),Random.nextInt(4),4096 + Random.nextInt(16),Random.nextInt(4),Random.nextInt(16) + 1)
-        }
+        memory_to_accumulator(0,0,0,0,4,true)
+        // acc_test(testCase)
+
         simSuccess()
     }
 

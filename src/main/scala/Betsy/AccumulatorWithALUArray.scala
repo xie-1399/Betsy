@@ -12,6 +12,8 @@ import spinal.lib._
  ** combine the alu array and teh accumulator with control    **
  */
 
+// Todo rebuild it
+
 class AccumulatorWithALUArray[T <: Data with Num[T]](gen:HardType[T],arch: Architecture) extends BetsyModule {
   def simdHeight = arch.arraySize
   val layOut =  InstructionLayOut(arch)
@@ -55,6 +57,7 @@ class AccumulatorWithALUArray[T <: Data with Num[T]](gen:HardType[T],arch: Archi
   val aluOutDemux = BetsyStreamDemux(aluOutPut, aluOutputSink.io.into, aluOutputForAccInput)
   val accInMux = BetsyStreamMux(inputs, aluOutputForAccInput, accumulator.io.dataIn)
   val accOutDemux = BetsyStreamDemux(accumulator.io.dataOut, io.outputs, aluArray.io.inputs)
+
   tieOff(aluOutDemux)
   tieOff(accInMux)
   tieOff(accOutDemux)
@@ -73,8 +76,8 @@ class AccumulatorWithALUArray[T <: Data with Num[T]](gen:HardType[T],arch: Archi
   val simdEnqueuer = MultiEnqControl(2)
 
   val isNoOp = io.control.payload.SIMDInstruction.op === ALUOp.NoOp
+  val dataPathReady = False
   when(isNoOp) {
-    val dataPathReady = False
     when(control.payload.read) {
       when(control.payload.write) {
         when(readEnqueued) {

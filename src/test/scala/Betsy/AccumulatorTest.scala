@@ -43,15 +43,14 @@ class AccumulatorTest extends AnyFunSuite{
         }
         //just read from portA
         def read(address: Int): Array[Int] = {
-          while (!(dut.io.control.ready.toBoolean && !dut.io.control.payload.write.toBoolean)) {
-            StreamInit(dut.io.dataIn)
-            dut.io.control.valid.randomize()
-            dut.io.control.payload.accumulate #= false
-            dut.io.control.payload.write #= false
-            dut.io.control.payload.address #= address
-            dut.clockDomain.waitSampling()
-          }
-          assert(dut.io.dataOut.valid.toBoolean && dut.io.dataOut.ready.toBoolean, "read ready signal error !!!")
+          StreamInit(dut.io.dataIn)
+          dut.io.control.valid #= false
+          dut.clockDomain.waitSampling()
+          dut.io.control.valid #= true
+          dut.io.control.payload.accumulate #= false
+          dut.io.control.payload.write #= false
+          dut.io.control.payload.address #= address
+          dut.clockDomain.waitSamplingWhere(dut.io.dataOut.ready.toBoolean && dut.io.dataOut.valid.toBoolean)
           dut.io.dataOut.payload.map(_.toInt).toArray
         }
 

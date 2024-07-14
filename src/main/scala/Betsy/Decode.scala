@@ -311,13 +311,13 @@ class Decode(arch: Architecture)(implicit layOut: InstructionLayOut) extends Bet
         }
 
         is(accumulatorToMemory) { // form the accumulator -> memory
-          io.localDataFlow.valid := isDataMove
+          io.localDataFlow.valid := !localcontroldown
           val localDataFlowControlWithSize = LocalDataFlowControlWithSize(arch.localDepth,
             sel = LocalDataFlowControl.accumulatorToMemory,
             size = dataMoveArgs.size.resized)
           io.localDataFlow.payload <> localDataFlowControlWithSize
 
-          PortAstrideHandler.io.into.valid := isDataMove
+          PortAstrideHandler.io.into.valid := !portAdown
           val portAMemControlWithStride = MemControlWithStride(arch.localDepth,
             arch.stride0Depth,
             write = True,
@@ -327,7 +327,7 @@ class Decode(arch: Architecture)(implicit layOut: InstructionLayOut) extends Bet
             stride = dataMoveArgs.memStride)
           PortAstrideHandler.io.into.payload <> portAMemControlWithStride
 
-          accumulatorHandler.io.into.valid := isDataMove
+          accumulatorHandler.io.into.valid := !accumulatordown
           val accumulatorMemControlWithSizeWithStride = AccumulatorMemControlWithSizeWithStride(layOut,
             size = dataMoveArgs.size.resized,
             stride = dataMoveArgs.accStride.resized,
@@ -348,13 +348,13 @@ class Decode(arch: Architecture)(implicit layOut: InstructionLayOut) extends Bet
         }
 
         is(memoryToAccumulator) { // memory -> accumulator
-          io.localDataFlow.valid := isDataMove
+          io.localDataFlow.valid := !localcontroldown
           val localDataFlowControlWithSize = LocalDataFlowControlWithSize(arch.localDepth,
             sel = LocalDataFlowControl.memoryToAccumulator,
             size = dataMoveArgs.size.resized)
           io.localDataFlow.payload <> localDataFlowControlWithSize
 
-          PortAstrideHandler.io.into.valid := isDataMove
+          PortAstrideHandler.io.into.valid := !portAdown
           val portAMemControlWithStride = MemControlWithStride(arch.localDepth,
             arch.stride0Depth,
             write = False,
@@ -364,7 +364,7 @@ class Decode(arch: Architecture)(implicit layOut: InstructionLayOut) extends Bet
             stride = dataMoveArgs.memStride)
           PortAstrideHandler.io.into.payload <> portAMemControlWithStride
 
-          accumulatorHandler.io.into.valid := isDataMove
+          accumulatorHandler.io.into.valid := !accumulatordown
           val accumulatorMemControlWithSizeWithStride = AccumulatorMemControlWithSizeWithStride(layOut,
             size = dataMoveArgs.size.resized,
             stride = dataMoveArgs.accStride.resized,
@@ -384,15 +384,14 @@ class Decode(arch: Architecture)(implicit layOut: InstructionLayOut) extends Bet
             accumulatorHandler.io.into.ready)
         }
 
-        /* what happens to the accumulate */
         is(memoryToAccumulatorAccumulate) {
-          io.localDataFlow.valid := isDataMove
+          io.localDataFlow.valid := !localcontroldown
           val localDataFlowControlWithSize = LocalDataFlowControlWithSize(arch.localDepth,
             sel = LocalDataFlowControl.memoryToAccumulator,
             size = dataMoveArgs.size.resized)
           io.localDataFlow.payload <> localDataFlowControlWithSize
 
-          PortAstrideHandler.io.into.valid := isDataMove
+          PortAstrideHandler.io.into.valid := !portAdown
           val portAMemControlWithStride = MemControlWithStride(arch.localDepth,
             arch.stride0Depth,
             write = False,
@@ -402,7 +401,7 @@ class Decode(arch: Architecture)(implicit layOut: InstructionLayOut) extends Bet
             stride = dataMoveArgs.memStride)
           PortAstrideHandler.io.into.payload <> portAMemControlWithStride
 
-          accumulatorHandler.io.into.valid := isDataMove
+          accumulatorHandler.io.into.valid := !accumulatordown
           val accumulatorMemControlWithSizeWithStride = AccumulatorMemControlWithSizeWithStride(layOut,
             size = dataMoveArgs.size.resized,
             stride = dataMoveArgs.accStride.resized,

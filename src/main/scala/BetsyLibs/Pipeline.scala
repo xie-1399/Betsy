@@ -27,7 +27,8 @@ class Pipeline[T<:Data](gen:HardType[T],latency:Int) extends BetsyModule {
   else{
     /* latency goes and delay */
     val initStream = Stream(gen())
-    initStream.setIdle()
+    initStream.valid := False
+    initStream.payload.clearAll()
     val stages = History(io.input,latency,init = initStream,when = io.output.ready)
     val valids = stages.map(_.valid)
 

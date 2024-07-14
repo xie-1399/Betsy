@@ -75,7 +75,7 @@ class Accumulator[T<:Data with Num[T]](gen:HardType[T],SimdHeight:Int,depth:Long
     portA.control.valid := io.control.valid
     portA.control.payload.address := io.control.payload.address
     portA.control.payload.write := io.control.payload.write
-    io.control.ready := portA.dataOut.fire
+    io.control.ready := True // only read fot the controller
   }
   io.dataOut <> portA.dataOut
 }
