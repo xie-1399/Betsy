@@ -141,7 +141,9 @@ class LocalRouter[T <: Data](gen: HardType[T], arch: Architecture) extends Betsy
     }.elsewhen(io.control.sel === LocalDataFlowControl.memoryToAccumulator) {
       memReadStream.io.sel.payload := U(2, 2 bits)
       writeAccStream.io.sel.payload := U(1, 1 bits)
-      io.control.ready := enqueue2.Readyenqueue2(io.control.valid, memReadSizeHandler.io.into.ready, writeAccSizeHandler.io.into.ready)
+      io.control.ready := enqueue2.Readyenqueue2(io.control.valid,
+        memReadSizeHandler.io.into.ready,
+        writeAccSizeHandler.io.into.ready)
     }.otherwise {
       io.control.ready := True
     }

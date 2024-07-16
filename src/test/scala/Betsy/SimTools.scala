@@ -292,6 +292,32 @@ object InstructionGen{
 
   }
 
+  def simdGen(arch: Architecture,
+              readAddress: Int,
+              read:Boolean,
+              writeAddress: Int,
+              write:Boolean,
+              accumulate:Boolean): (BigInt, String) = {
+
+    val layOut = InstructionLayOut(arch)
+    val opcode = 4
+    val flags_0 = accumulate
+    val flags_1 = write
+    val flags_2 = read
+    val simd = Random.nextInt(16)
+    val flag = flags_0.toInt + (flags_1.toInt * 2) + (flags_2.toInt * 4)
+    val opBinary = bigintToBinaryStringWithWidth(BigInt(opcode), width = 4)
+    val flagsBinary = bigintToBinaryStringWithWidth(BigInt(flag), width = 4)
+    val op0Binary = bigintToBinaryStringWithWidth(BigInt(writeAddress), width = layOut.operand0SizeBits)
+    val op1Binary = bigintToBinaryStringWithWidth(BigInt(readAddress), width = layOut.operand1SizeBits)
+    val op2Binary = bigintToBinaryStringWithWidth(BigInt(simd), width = layOut.operand2SizeBits)
+    val simdBinary = opBinary + flagsBinary + op2Binary + op1Binary + op0Binary
+
+    println(s"simd op is $simd (read:$flags_2, write:$flags_1, accumulate:$flags_0)")
+
+    (BigInt(simdBinary, 2), simdBinary)
+  }
+
   def configureGen(register:Int,value:BigInt,arch: Architecture):BigInt = {
     // pc = 10 / run cycles = 9
     val layOut = InstructionLayOut(arch)

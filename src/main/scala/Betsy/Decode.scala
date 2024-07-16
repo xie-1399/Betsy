@@ -128,6 +128,7 @@ class Decode(arch: Architecture)(implicit layOut: InstructionLayOut) extends Bet
   val hostcontroldown = RegInit(False).setWhen(hostDataFlowHandler.io.into.fire).clearWhen(instruction.ready)
   val accumulatordown = RegInit(False).setWhen(accumulatorHandler.io.into.fire).clearWhen(instruction.ready)
   val inputDone = RegInit(False).setWhen(systolicArrayControlHandler.io.into.fire).clearWhen(instruction.ready)
+  val accumulatorHeld = RegInit(False).setWhen(!portAdown).clearWhen(portAdown || (!accumulatorHandler.io.output.ready))
 
   val NoOp = new Composite(this, "NoOp") {
     io.localDataFlow.valid.clear()
@@ -385,13 +386,14 @@ class Decode(arch: Architecture)(implicit layOut: InstructionLayOut) extends Bet
         }
 
         is(memoryToAccumulatorAccumulate) {
+          // notice the logic about the alu question
           io.localDataFlow.valid := !localcontroldown
           val localDataFlowControlWithSize = LocalDataFlowControlWithSize(arch.localDepth,
             sel = LocalDataFlowControl.memoryToAccumulator,
             size = dataMoveArgs.size.resized)
           io.localDataFlow.payload <> localDataFlowControlWithSize
 
-          PortAstrideHandler.io.into.valid := !portAdown
+          PortAstrideHandler.io.into.valid := accumulatorHeld
           val portAMemControlWithStride = MemControlWithStride(arch.localDepth,
             arch.stride0Depth,
             write = False,

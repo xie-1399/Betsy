@@ -28,7 +28,7 @@ class Accumulator[T<:Data with Num[T]](gen:HardType[T],SimdHeight:Int,depth:Long
   portA.blockPort()
   /* Port B （just read）*/
   portB.blockPort()
-  // val accMultiQueue = MultiEnqControl(2) /* for the accumulate control (read + accumulate + write into) */
+  val accMultiQueue = MultiEnqControl(2) /* for the accumulate control (read + accumulate + write into) */
 
   val inputDemux = new BetsyStreamDemux(cloneOf(io.dataIn.payload),2)
   inputDemux.io.InStream <> io.dataIn
@@ -61,21 +61,21 @@ class Accumulator[T<:Data with Num[T]](gen:HardType[T],SimdHeight:Int,depth:Long
       portB.control.valid := io.control.valid
       portB.control.payload.address := io.control.payload.address
       portB.control.payload.write := False
-      io.control.ready := portA.dataIn.fire
+      io.control.ready := accMultiQueue.Readyenqueue2(io.control.payload.accumulate,portA.control.ready,portB.control.ready)
     }.otherwise{
       /* just write into the accumulator from PortA */
       portA.control.payload.address := io.control.payload.address
       portA.control.payload.write := io.control.payload.write
       portA.control.valid := io.control.valid
       portA.dataIn << inputMux.io.OutStream
-      io.control.ready := portA.dataIn.fire
+      io.control.ready := portA.control.ready
     }
   }.otherwise{
     /* just read from the port A */
     portA.control.valid := io.control.valid
     portA.control.payload.address := io.control.payload.address
     portA.control.payload.write := io.control.payload.write
-    io.control.ready := True // only read fot the controller
+    io.control.ready := portA.control.ready // only read fot the controller
   }
   io.dataOut <> portA.dataOut
 }

@@ -199,10 +199,11 @@ class DecodeTest extends AnyFunSuite{
       val dut = new Top(SInt(8 bits), arch, initContent = memoryContent)
       dut.scratchPad.io.simPublic()
       dut.accumulatorWithALUArray.io.simPublic()
+      dut.accumulatorWithALUArray.accumulator.portA.simPublic()
       dut
     }.doSimUntilVoid {
       dut =>
-        SimTimeout(1 us)
+        SimTimeout(10 us)
         dut.clockDomain.forkStimulus(10)
         val arch = Architecture.tiny()
         val dram0 = Axi4MemorySimV2(dut.io.weightBus,dut.clockDomain,SimConfig.axiconfig)
@@ -291,11 +292,11 @@ class DecodeTest extends AnyFunSuite{
           val testBuffer = ArrayBuffer[Array[Int]]()
           /* the test ref is accumulator write in */
           dut.clockDomain.onSamplings {
-            if (dut.accumulatorWithALUArray.io.inputs.valid.toBoolean && dut.accumulatorWithALUArray.io.inputs.ready.toBoolean
-              && dut.accumulatorWithALUArray.io.control.valid.toBoolean && dut.accumulatorWithALUArray.io.control.ready.toBoolean
-              && dut.accumulatorWithALUArray.io.control.write.toBoolean
+            if (dut.accumulatorWithALUArray.accumulator.portA.dataIn.valid.toBoolean &&
+              dut.accumulatorWithALUArray.accumulator.portA.dataIn.ready.toBoolean && dut.accumulatorWithALUArray.accumulator.portA.control.valid.toBoolean &&
+              dut.accumulatorWithALUArray.accumulator.portA.control.ready.toBoolean && dut.accumulatorWithALUArray.accumulator.portA.control.write.toBoolean
             ) {
-              testBuffer += dut.accumulatorWithALUArray.io.inputs.payload.map(_.toInt).toArray
+              testBuffer += dut.accumulatorWithALUArray.accumulator.portA.dataIn.payload.map(_.toInt).toArray
             }
           }
 
@@ -355,16 +356,47 @@ class DecodeTest extends AnyFunSuite{
             accumulator_to_memory(Random.nextInt(16),Random.nextInt(4),Random.nextInt(16),Random.nextInt(4),Random.nextInt(16) + 1)
           }
         }
-
+        def acc_accumulate_test(testCase:Int) = {
+          for(idx <- 0 until testCase){
+            memory_to_accumulator(0, 0, 0, 0, 256, false)
+            memory_to_accumulator(0,0,0,0,Random.nextInt(16),true)
+          }
+        }
         init(dut)
         def testCase = 32
-        memory_to_accumulator(0,0,0,0,4,true)
-        // acc_test(testCase)
-
+        // a simple test about the accumulator(with accumulate)
+        acc_test(testCase)
+        dram_test(testCase)
+        // acc_accumulate_test(testCase)
         simSuccess()
     }
+  }
 
+  test("simd"){
+    SIMCFG().compile {
+      val arch = Architecture.tiny()
+      val dut = new Top(SInt(8 bits), arch)
+      dut
+    }.doSimUntilVoid{
+      dut =>
+        SimTimeout(1 us)
+        println("random simd instruction ================>  ")
+        dut.clockDomain.forkStimulus(10)
+        val arch = Architecture.tiny()
+        init(dut)
+        def testCase = 32
+        for(idx <- 0 until testCase){
+          val simd = InstructionGen.simdGen(arch = arch, Random.nextInt(128),
+            Random.nextInt(10) > 5,
+            Random.nextInt(128),
+            false,
+            false)
+          dut.io.instruction.valid #= true
+          dut.io.instruction.payload #= simd._1
+          dut.clockDomain.waitSamplingWhere(dut.io.instruction.ready.toBoolean)
+        }
 
+    }
   }
 
   test("configure"){
