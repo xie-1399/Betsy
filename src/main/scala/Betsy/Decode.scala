@@ -18,7 +18,7 @@ import spinal.core.sim._
 import Architecture._
 /** Decode test order : NoOp -> DataMove -> LoadWeight -> MatMul -> Configure -> SIMD
  * this version instruction only enqueue when fire (so the instruction is blocked when before instruction not done !!!)
- * */
+ * notice the IO Bandwidth for the request value */
 
 case class dramAddressOffset(addressWith:Int) extends Bundle {
   val offset = UInt(addressWith bits)
@@ -128,6 +128,7 @@ class Decode(arch: Architecture)(implicit layOut: InstructionLayOut) extends Bet
   val hostcontroldown = RegInit(False).setWhen(hostDataFlowHandler.io.into.fire).clearWhen(instruction.ready)
   val accumulatordown = RegInit(False).setWhen(accumulatorHandler.io.into.fire).clearWhen(instruction.ready)
   val inputDone = RegInit(False).setWhen(systolicArrayControlHandler.io.into.fire).clearWhen(instruction.ready)
+  val accumulatorHeld = RegInit(False).setWhen(!portAdown).clearWhen(portAdown || (!accumulatorHandler.io.output.ready))
 
   val NoOp = new Composite(this, "NoOp") {
     io.localDataFlow.valid.clear()
@@ -162,11 +163,12 @@ class Decode(arch: Architecture)(implicit layOut: InstructionLayOut) extends Bet
 
     val calculate = new Area{
       when(DramOperation){
-        val baseAddress = dataMoveArgs.accAddress
-        val shifterNum = U(log2Up(arch.arraySize))
-        val offset = baseAddress << shifterNum
-        io.dram0offset.offset := offset.resized
-        io.dram1offset.offset := offset.resized
+        val shifterNum = U(log2Up(arch.arraySize * arch.dataWidth / 8))
+        val offset0 = dram0Handler.io.output.address << shifterNum
+        val offset1 = dram1Handler.io.output.address << shifterNum
+
+        io.dram0offset.offset := offset0.resized
+        io.dram1offset.offset := offset1.resized
       }
     }
 
@@ -208,14 +210,14 @@ class Decode(arch: Architecture)(implicit layOut: InstructionLayOut) extends Bet
         }
 
         is(memoryToDram0) { // from memory to dram0
-          hostDataFlowHandler.io.into.valid.set()
+          hostDataFlowHandler.io.into.valid := !hostcontroldown
           val hostDataFlowControlWithSize = HostDataFlowControlWithSize(arch.localDepth,
             size = dataMoveArgs.size.resized,
             kind = HostDataFlowControl.Out0
           )
           hostDataFlowControlWithSize <> hostDataFlowHandler.io.into.payload
 
-          PortBstrideHandler.io.into.valid := isDataMove
+          PortBstrideHandler.io.into.valid := !portBdown
           val portBMemControlWithStride = MemControlWithStride(arch.localDepth,
             arch.stride1Depth,
             write = False,
@@ -225,7 +227,7 @@ class Decode(arch: Architecture)(implicit layOut: InstructionLayOut) extends Bet
             stride = dataMoveArgs.memStride)
           PortBstrideHandler.io.into.payload <> portBMemControlWithStride
 
-          dram0Handler.io.into.valid := isDataMove
+          dram0Handler.io.into.valid := !dram0down
           val dram0MemControlWithStride = MemControlWithStride(arch.dram0Depth,
             arch.stride0Depth,
             write = True,
@@ -242,14 +244,14 @@ class Decode(arch: Architecture)(implicit layOut: InstructionLayOut) extends Bet
         }
 
         is(dram1ToMemory) { // from dram1 to the memory
-          hostDataFlowHandler.io.into.valid.set()
+          hostDataFlowHandler.io.into.valid := !hostcontroldown
           val hostDataFlowControlWithSize = HostDataFlowControlWithSize(arch.localDepth,
             size = dataMoveArgs.size.resized,
             kind = HostDataFlowControl.In1
           )
           hostDataFlowControlWithSize <> hostDataFlowHandler.io.into.payload
 
-          PortBstrideHandler.io.into.valid := isDataMove
+          PortBstrideHandler.io.into.valid := !portBdown
           val portBMemControlWithStride = MemControlWithStride(arch.localDepth,
             arch.stride1Depth,
             write = True,
@@ -259,7 +261,7 @@ class Decode(arch: Architecture)(implicit layOut: InstructionLayOut) extends Bet
             stride = dataMoveArgs.memStride)
           PortBstrideHandler.io.into.payload <> portBMemControlWithStride
 
-          dram1Handler.io.into.valid := isDataMove
+          dram1Handler.io.into.valid := !dram1down
           val dram1MemControlWithStride = MemControlWithStride(arch.dram1Depth,
             arch.stride1Depth,
             write = False,
@@ -276,14 +278,14 @@ class Decode(arch: Architecture)(implicit layOut: InstructionLayOut) extends Bet
         }
 
         is(memoryToDram1) { // from memory to dram1
-          hostDataFlowHandler.io.into.valid.set()
+          hostDataFlowHandler.io.into.valid := !hostcontroldown
           val hostDataFlowControlWithSize = HostDataFlowControlWithSize(arch.localDepth,
             size = dataMoveArgs.size.resized,
             kind = HostDataFlowControl.Out1
           )
           hostDataFlowControlWithSize <> hostDataFlowHandler.io.into.payload
 
-          PortBstrideHandler.io.into.valid := isDataMove
+          PortBstrideHandler.io.into.valid := !portBdown
           val portBMemControlWithStride = MemControlWithStride(arch.localDepth,
             arch.stride1Depth,
             write = False,
@@ -293,7 +295,7 @@ class Decode(arch: Architecture)(implicit layOut: InstructionLayOut) extends Bet
             stride = dataMoveArgs.memStride)
           PortBstrideHandler.io.into.payload <> portBMemControlWithStride
 
-          dram1Handler.io.into.valid := isDataMove
+          dram1Handler.io.into.valid := !dram1down
           val dram1MemControlWithStride = MemControlWithStride(arch.dram1Depth,
             arch.stride1Depth,
             write = True,
@@ -310,13 +312,13 @@ class Decode(arch: Architecture)(implicit layOut: InstructionLayOut) extends Bet
         }
 
         is(accumulatorToMemory) { // form the accumulator -> memory
-          io.localDataFlow.valid := isDataMove
+          io.localDataFlow.valid := !localcontroldown
           val localDataFlowControlWithSize = LocalDataFlowControlWithSize(arch.localDepth,
             sel = LocalDataFlowControl.accumulatorToMemory,
             size = dataMoveArgs.size.resized)
           io.localDataFlow.payload <> localDataFlowControlWithSize
 
-          PortAstrideHandler.io.into.valid := isDataMove
+          PortAstrideHandler.io.into.valid := !portAdown
           val portAMemControlWithStride = MemControlWithStride(arch.localDepth,
             arch.stride0Depth,
             write = True,
@@ -326,7 +328,7 @@ class Decode(arch: Architecture)(implicit layOut: InstructionLayOut) extends Bet
             stride = dataMoveArgs.memStride)
           PortAstrideHandler.io.into.payload <> portAMemControlWithStride
 
-          accumulatorHandler.io.into.valid := isDataMove
+          accumulatorHandler.io.into.valid := !accumulatordown
           val accumulatorMemControlWithSizeWithStride = AccumulatorMemControlWithSizeWithStride(layOut,
             size = dataMoveArgs.size.resized,
             stride = dataMoveArgs.accStride.resized,
@@ -347,13 +349,13 @@ class Decode(arch: Architecture)(implicit layOut: InstructionLayOut) extends Bet
         }
 
         is(memoryToAccumulator) { // memory -> accumulator
-          io.localDataFlow.valid := isDataMove
+          io.localDataFlow.valid := !localcontroldown
           val localDataFlowControlWithSize = LocalDataFlowControlWithSize(arch.localDepth,
             sel = LocalDataFlowControl.memoryToAccumulator,
             size = dataMoveArgs.size.resized)
           io.localDataFlow.payload <> localDataFlowControlWithSize
 
-          PortAstrideHandler.io.into.valid := isDataMove
+          PortAstrideHandler.io.into.valid := !portAdown
           val portAMemControlWithStride = MemControlWithStride(arch.localDepth,
             arch.stride0Depth,
             write = False,
@@ -363,7 +365,7 @@ class Decode(arch: Architecture)(implicit layOut: InstructionLayOut) extends Bet
             stride = dataMoveArgs.memStride)
           PortAstrideHandler.io.into.payload <> portAMemControlWithStride
 
-          accumulatorHandler.io.into.valid := isDataMove
+          accumulatorHandler.io.into.valid := !accumulatordown
           val accumulatorMemControlWithSizeWithStride = AccumulatorMemControlWithSizeWithStride(layOut,
             size = dataMoveArgs.size.resized,
             stride = dataMoveArgs.accStride.resized,
@@ -383,15 +385,15 @@ class Decode(arch: Architecture)(implicit layOut: InstructionLayOut) extends Bet
             accumulatorHandler.io.into.ready)
         }
 
-        /* what happens to the accumulate */
         is(memoryToAccumulatorAccumulate) {
-          io.localDataFlow.valid := isDataMove
+          // notice the logic about the alu question
+          io.localDataFlow.valid := !localcontroldown
           val localDataFlowControlWithSize = LocalDataFlowControlWithSize(arch.localDepth,
             sel = LocalDataFlowControl.memoryToAccumulator,
             size = dataMoveArgs.size.resized)
           io.localDataFlow.payload <> localDataFlowControlWithSize
 
-          PortAstrideHandler.io.into.valid := isDataMove
+          PortAstrideHandler.io.into.valid := accumulatorHeld
           val portAMemControlWithStride = MemControlWithStride(arch.localDepth,
             arch.stride0Depth,
             write = False,
@@ -401,7 +403,7 @@ class Decode(arch: Architecture)(implicit layOut: InstructionLayOut) extends Bet
             stride = dataMoveArgs.memStride)
           PortAstrideHandler.io.into.payload <> portAMemControlWithStride
 
-          accumulatorHandler.io.into.valid := isDataMove
+          accumulatorHandler.io.into.valid := !accumulatordown
           val accumulatorMemControlWithSizeWithStride = AccumulatorMemControlWithSizeWithStride(layOut,
             size = dataMoveArgs.size.resized,
             stride = dataMoveArgs.accStride.resized,

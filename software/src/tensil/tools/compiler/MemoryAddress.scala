@@ -13,13 +13,13 @@ object MemoryRef {
 
 object MemoryTag {
   val Invalid: MemoryTag = Byte.MaxValue
-  val Zeroes: MemoryTag  = Byte.MaxValue - 1
+  val Zeroes: MemoryTag  = (Byte.MaxValue - 1).toByte
 
-  val Temp: MemoryTag         = 0
-  val Accumulators: MemoryTag = 1
-  val Local: MemoryTag        = 2
-  val DRAM0: MemoryTag        = 3
-  val DRAM1: MemoryTag        = 4
+  val Temp: MemoryTag         = 0.toByte
+  val Accumulators: MemoryTag = 1.toByte
+  val Local: MemoryTag        = 2.toByte
+  val DRAM0: MemoryTag        = 3.toByte
+  val DRAM1: MemoryTag        = 4.toByte
 
   def toString(tag: MemoryTag) =
     tag match {

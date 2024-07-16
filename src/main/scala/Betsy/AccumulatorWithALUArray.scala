@@ -12,6 +12,11 @@ import spinal.lib._
  ** combine the alu array and teh accumulator with control    **
  */
 
+ /* here will be some operations like
+  * (1) just read from the accumulator
+  * (2) just write into the accumulator
+  * (3) write and accumulate into the accumulator*/
+
 class AccumulatorWithALUArray[T <: Data with Num[T]](gen:HardType[T],arch: Architecture) extends BetsyModule {
   def simdHeight = arch.arraySize
   val layOut =  InstructionLayOut(arch)
@@ -55,12 +60,15 @@ class AccumulatorWithALUArray[T <: Data with Num[T]](gen:HardType[T],arch: Archi
   val aluOutDemux = BetsyStreamDemux(aluOutPut, aluOutputSink.io.into, aluOutputForAccInput)
   val accInMux = BetsyStreamMux(inputs, aluOutputForAccInput, accumulator.io.dataIn)
   val accOutDemux = BetsyStreamDemux(accumulator.io.dataOut, io.outputs, aluArray.io.inputs)
+
   tieOff(aluOutDemux)
   tieOff(accInMux)
   tieOff(accOutDemux)
   tieOff(accumulator.io.control)
   tieOff(aluArray.io.instruction)
 
+  val isNoOp = io.control.payload.SIMDInstruction.op === ALUOp.NoOp
+  val dataPathReady = False
   val readEnqueued = RegInit(False)
   readEnqueued := False
 
@@ -72,12 +80,11 @@ class AccumulatorWithALUArray[T <: Data with Num[T]](gen:HardType[T],arch: Archi
   val simdReadEnqueuer = MultiEnqControl(4)
   val simdEnqueuer = MultiEnqControl(2)
 
-  val isNoOp = io.control.payload.SIMDInstruction.op === ALUOp.NoOp
   when(isNoOp) {
-    val dataPathReady = False
+    // the noop is about the acc read and acc write operation
     when(control.payload.read) {
       when(control.payload.write) {
-        when(readEnqueued) {
+        when(readEnqueued) { // when read and write - must wait the read operation finish
           dataPathReady := accWriteEnqueuer.enqueue2(
             control.valid,
             accumulator.io.control,
@@ -101,7 +108,7 @@ class AccumulatorWithALUArray[T <: Data with Num[T]](gen:HardType[T],arch: Archi
           )
         }
       }.otherwise {
-        dataPathReady := accReadEnqueuer.enqueue2( // read only need control and accout read
+        dataPathReady := accReadEnqueuer.enqueue2( // just read operation
           control.valid,
           accumulator.io.control,
           readControl(),
@@ -110,7 +117,7 @@ class AccumulatorWithALUArray[T <: Data with Num[T]](gen:HardType[T],arch: Archi
         )
       }
     }.otherwise {
-      when(control.payload.write) { // write only need control and acc in ready
+      when(control.payload.write) { // just write operation
         dataPathReady := accWriteEnqueuer.enqueue2(
           control.valid,
           accumulator.io.control,

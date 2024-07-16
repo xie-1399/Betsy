@@ -28,13 +28,15 @@ case class Architecture( dataType:String = "UInt_16",
                          stride1Depth: Int = 1,
                          pcWidth:Int = 32,   /* the program counter width */
                          numberOfThreads:Int = 1,
-                         withSampler:Boolean = true
+                         withSampler:Boolean = true,
+                         bandWidth:Int = 256   /* the external bus band width */
                        ) extends ArchitectureDataType(dataType) {
   val dataWidth = dataType.split("_")(1).toInt
   require(dataWidth > 0, "the data width must > 0 !!!")
   val dataKind = dataType.split("_")(0)
   require(dataKind == "SInt" || dataKind == "UInt", "Only Support (SInt,UInt) datatype, Please check the name!!!")
   require(isPow2(arraySize),"the array size should be pow of 2!!!")
+  require(arraySize * dataWidth % bandWidth == 0, "external band width error !!!")
   override def sizeBytes: Double = dataWidth / 8
 }
 
@@ -48,11 +50,11 @@ object Architecture{
       arraySize = 4,
       dram0Depth = 1024 * 1024, // 20 bits dram address
       dram1Depth = 1024 * 1024,
-      localDepth = 2048, // 13 bits
+      localDepth = 1024, // 13 bits
       accumulatorDepth = 1024,
-      simdRegistersDepth = 1,
       stride0Depth = 8,
       stride1Depth = 8,
+      bandWidth = 16
     )
     arch
   }
@@ -66,41 +68,61 @@ object Architecture{
       dram1Depth = 1024 * 1024,
       localDepth = 2048, // max 13 bits
       accumulatorDepth = 2048,
-      simdRegistersDepth = 1,
       stride0Depth = 8,
       stride1Depth= 8,
+      bandWidth = 64
+    )
+    arch
+  }
+
+  // default config (overflow check)
+  def normal():Architecture = {
+    val arch = Architecture(
+      dataType = "SInt_16",
+      arraySize = 64,
+      dram0Depth = 1024 * 1024,
+      dram1Depth = 1024 * 1024,
+      localDepth = 4096,
+      accumulatorDepth = 4096,
+      stride0Depth = 8,
+      stride1Depth = 8,
+      bandWidth = 512   // 64 * 16 / 512 = 2
     )
     arch
   }
 
   def large():Architecture = {
     val arch = Architecture(
-      dataType = "SInt_8",
-      arraySize = 64,
-      dram0Depth = 1024 * 1024 * 2, // 20 bits dram address
+      dataType = "SInt_16",
+      arraySize = 128,
+      dram0Depth = 1024 * 1024 * 2, // 21 bits dram address
       dram1Depth = 1024 * 1024 * 2,
       localDepth = 8192, // 13 bits
       accumulatorDepth = 8192,
-      simdRegistersDepth = 1,
       stride0Depth = 8,
       stride1Depth = 8,
+      bandWidth = 1024
     )
     arch
   }
 
-  def getWeightBusConfig(arch:Architecture) = Axi4Config(addressWidth = log2Up(arch.dram0Depth) + log2Up(arch.arraySize),
-    dataWidth = arch.dataWidth,
+  def getWeightBusConfig(arch:Architecture) = Axi4Config(addressWidth = log2Up(arch.dram0Depth) + log2Up(arch.arraySize * arch.dataWidth / 8),
+    dataWidth = arch.bandWidth,
     idWidth = -1, useId = false, /* no need for the id*/
     useRegion = false, useBurst = true, useLock = false,
     useCache = false, useSize = true, useQos = false, useLen = true,
     useLast = true, useProt = false)
 
-  def getActivationBusConfig(arch: Architecture) = Axi4Config(addressWidth = log2Up(arch.dram1Depth) + log2Up(arch.arraySize),
-    dataWidth = arch.dataWidth,
+  def getActivationBusConfig(arch: Architecture) = Axi4Config(addressWidth = log2Up(arch.dram1Depth) + log2Up(arch.arraySize * arch.dataWidth / 8),
+    dataWidth = arch.bandWidth,
     idWidth = -1, useId = false, /* no need for the id*/
     useRegion = false, useBurst = true, useLock = false,
     useCache = false, useSize = true, useQos = false, useLen = true,
     useLast = true, useProt = false)
+
+  def maxTransLen: Int = log2Up(256)  /* axi4 bus max trans length */
+
+
 }
 
 

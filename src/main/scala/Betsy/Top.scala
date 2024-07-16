@@ -1,11 +1,11 @@
 package Betsy
 
-import Betsy.Architecture.{getActivationBusConfig, getWeightBusConfig}
+import Betsy.Architecture.{getActivationBusConfig, getWeightBusConfig, maxTransLen}
 import spinal.core._
 import spinal.lib._
 import BetsyLibs._
 import Betsy.Until._
-import spinal.lib.bus.amba4.axi.Axi4
+import spinal.lib.bus.amba4.axi.{Axi4, Axi4Config}
 
 /**
  ** Betsy follow the MiT Licence.(c) xxl, All rights reserved **
@@ -15,7 +15,6 @@ import spinal.lib.bus.amba4.axi.Axi4
  ** The ML activations, average and maximum pooling, normalization, and image resizing use SIMD instruction.
  ** Some ML operations, such as padding, are achieved by changing the memory layout. **
  */
-
 
 class Top[T <: Data with Num[T]](gen:HardType[T],arch: Architecture,log:Boolean = false,initContent:Array[BigInt] = null) extends BetsyModule{
 
@@ -35,63 +34,58 @@ class Top[T <: Data with Num[T]](gen:HardType[T],arch: Architecture,log:Boolean 
   val localRouter = new LocalRouter(Vec(gen,arch.arraySize),arch)
   val hostRouter = new HostRouter(Vec(gen,arch.arraySize))
 
+  /* external bus trans like : (data width) * (array size) as one burst trans for the Band width restrict */
+  /* for example trans 8 * 64 with bandwidth 256  -> len = 2 for one dram data exchange into the local
+  *  and then don't use the axi outstanding buffer to translate */
+
   val Dram = new Composite(this,"Dram"){
-    // weight bus for the dram0 and activation bus for dram1\
-    val dram0In = Vec(Reg(gen).init(zero(gen())),arch.arraySize)
-    val dram0Out = Vec(Reg(gen).init(zero(gen())),arch.arraySize)
-    val dram0Counter = Counter(256).init(0)
+    val len = U((arch.arraySize * arch.dataWidth) / arch.bandWidth, 8 bits)
+    val size = U(log2Up(arch.bandWidth / 8), 3 bits)
+    val rspCounter = Counter(maxTransLen).init(0)
+    val rspPayload = Reg(Bits(arch.arraySize * arch.dataWidth bits)).init(0)
+
     val dram0 = decode.io.dram0.toAxi4(
       axi4Config = getWeightBusConfig(arch),
       arValid = decode.io.dram0.valid && (!decode.io.dram0.write),
       awValid = decode.io.dram0.valid && decode.io.dram0.write,
       address = decode.io.dram0offset.offset,
-      size = arch.dataWidth / 8 - 1,
-      data = hostRouter.io.dram0.dataOut.payload(dram0Counter(log2Up(arch.arraySize) - 1 downto 0)).asBits
+      size = size,
+      len = len - 1,
+      data = hostRouter.io.dram0.dataOut.payload.asBits
     )
-    when(dram0.r.fire){
-      dram0Counter.increment()
-      dram0In(dram0Counter(log2Up(arch.arraySize) - 1 downto 0)).assignFromBits(dram0.r.payload.data)
-    }
-    when(dram0.w.fire){
-      dram0Counter.increment()
-      dram0Out(dram0Counter(log2Up(arch.arraySize) - 1 downto 0)).assignFromBits(dram0.w.payload.data)
-    }
-    when(dram0.r.last || dram0.w.last){
-      dram0Counter.clear()
-    }
-    dram0 >> io.weightBus
-    decode.io.dram0.ready := dram0.r.last
-    hostRouter.io.dram0.dataIn.valid := dram0.r.fire
-    hostRouter.io.dram0.dataIn.payload := dram0In
-    hostRouter.io.dram0.dataOut.ready := dram0.w.last
-
-    val dram1In = Vec(Reg(gen).init(zero(gen())), arch.arraySize)
-    val dram1Out = Vec(Reg(gen).init(zero(gen())),arch.arraySize)
-    val dram1Counter = Counter(256).init(0)
     val dram1 = decode.io.dram1.toAxi4(
-      axi4Config = getActivationBusConfig(arch),
+      axi4Config = getWeightBusConfig(arch),
       arValid = decode.io.dram1.valid && (!decode.io.dram1.write),
       awValid = decode.io.dram1.valid && decode.io.dram1.write,
       address = decode.io.dram1offset.offset,
-      size = arch.dataWidth / 8 - 1,
-      data = hostRouter.io.dram1.dataOut.payload(dram1Counter(log2Up(arch.arraySize) - 1 downto 0)).asBits
+      size = size,
+      len = len - 1,
+      data = hostRouter.io.dram1.dataOut.payload.asBits
     )
-    when(dram1.r.fire) {
-      dram1Counter.increment()
-      dram1In(dram1Counter(log2Up(arch.arraySize) - 1 downto 0)).assignFromBits(dram1.r.payload.data)
+
+    when(dram0.r.fire){
+      rspCounter.increment()
+      rspPayload.subdivideIn(arch.bandWidth bits)(rspCounter.resized) := dram0.r.payload.data
     }
-    when(dram1.w.fire) {
-      dram1Counter.increment()
-      dram1Out(dram1Counter(log2Up(arch.arraySize) - 1 downto 0)).assignFromBits(dram1.w.payload.data)
+    when(dram1.r.fire){
+      rspCounter.increment()
+      rspPayload.subdivideIn(arch.bandWidth bits)(rspCounter.resized) := dram1.r.payload.data
     }
-    when(dram1.r.last || dram1.w.last) {
-      dram1Counter.clear()
+    when(dram0.r.last || dram1.r.last){
+      rspCounter.clear()
     }
-    decode.io.dram1.ready := dram1.r.last
-    hostRouter.io.dram1.dataIn.valid := dram1.r.fire
-    hostRouter.io.dram1.dataIn.payload := dram1In
-    hostRouter.io.dram1.dataOut.ready := dram1.w.last
+    dram0 >> io.weightBus
     dram1 >> io.activationBus
+    decode.io.dram0.ready := dram0.r.last || dram0.b.fire
+    decode.io.dram1.ready := dram1.r.last || dram1.b.fire
+
+    hostRouter.io.dram0.dataIn.valid := RegNext(dram0.r.last).init(False)
+    hostRouter.io.dram0.dataIn.payload.assignFromBits(rspPayload.asBits)
+    hostRouter.io.dram0.dataOut.ready := dram0.b.fire
+
+    hostRouter.io.dram1.dataIn.valid := RegNext(dram1.r.last).init(False)
+    hostRouter.io.dram1.dataIn.payload.assignFromBits(rspPayload.asBits)
+    hostRouter.io.dram1.dataOut.ready := dram1.b.fire
   }
 
   /* Betsy connection */
@@ -120,8 +114,4 @@ class Top[T <: Data with Num[T]](gen:HardType[T],arch: Architecture,log:Boolean 
     hostRouter.io.mem.dataOut << scratchPad.io.portB.dataOut
   }
 
-}
-
-object Top extends App{
-  SpinalSystemVerilog(new Top(SInt(8 bits),Architecture.large()))
 }
