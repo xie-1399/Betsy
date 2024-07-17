@@ -15,7 +15,7 @@ import spinal.lib._
  /* here will be some operations like
   * (1) just read from the accumulator
   * (2) just write into the accumulator
-  * (3) write and accumulate into the accumulator*/
+  * (3) write and accumulate into the accumulator */
 
 class AccumulatorWithALUArray[T <: Data with Num[T]](gen:HardType[T],arch: Architecture) extends BetsyModule {
   def simdHeight = arch.arraySize
@@ -131,12 +131,19 @@ class AccumulatorWithALUArray[T <: Data with Num[T]](gen:HardType[T],arch: Archi
     }
     control.ready := dataPathReady
   }.otherwise {
+    /* the alu operations with simd operations
+    * no read and no write -> just with alu output (sink)
+    * no read and write -> the alu out and write into the accumulator
+    * read and no write -> read from the accumulator and into the alu array (finally alu will out)
+    * read and write -> first read the accumulator value and then write the accumulator (may be with accumulate operation )
+    * and when write behaviour happens -> also support accumulate in the accumulator */
+
     val dataPathReady = False
     when(control.payload.read) {
       when(control.payload.write) {
         // first read, then write
         when(readEnqueued) {
-          dataPathReady := simdRWWriteEnqueuer.enqueue3(
+          dataPathReady := simdRWWriteEnqueuer.enqueue3( // from the alu out and write into the accumulator
             control.valid,
             accumulator.io.control,
             writeControl(),
@@ -155,7 +162,7 @@ class AccumulatorWithALUArray[T <: Data with Num[T]](gen:HardType[T],arch: Archi
           when(
             control.payload.SIMDInstruction.sourceLeft === 0 || control.payload.SIMDInstruction.sourceRight === 0
           ) {
-            readEnqueued := simdRWReadEnqueuer.enqueue3(
+            readEnqueued := simdRWReadEnqueuer.enqueue3( // read the accumulator value
               control.valid,
               accumulator.io.control,
               readControl(),
@@ -169,7 +176,7 @@ class AccumulatorWithALUArray[T <: Data with Num[T]](gen:HardType[T],arch: Archi
           }
         }
       }.otherwise {
-        dataPathReady := simdReadEnqueuer.enqueue4(
+        dataPathReady := simdReadEnqueuer.enqueue4( // read from the accumulator and into the alu array (finally alu will out)
           control.valid,
           accumulator.io.control,
           readControl(),
@@ -195,7 +202,7 @@ class AccumulatorWithALUArray[T <: Data with Num[T]](gen:HardType[T],arch: Archi
           control.payload.SIMDInstruction
         )
       }.otherwise {
-        dataPathReady := simdEnqueuer.enqueue2(
+        dataPathReady := simdEnqueuer.enqueue2( // just alu output(sink)
           control.valid,
           aluOutDemux,
           U(0,1 bits),

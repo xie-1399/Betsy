@@ -9,7 +9,7 @@ import spinal.lib.sim.StreamReadyRandomizer
 
 class AccumulateWithALUArrayTest extends AnyFunSuite{
 
-  test("accumulate it"){
+  test("accumulate and alu array"){
 
     /* read about it and simple check about it */
     SIMCFG().compile{
@@ -74,14 +74,31 @@ class AccumulateWithALUArrayTest extends AnyFunSuite{
           dut.io.control.valid #= false
           dut.clockDomain.waitSampling()
         }
+
+        def aluOp(read:Boolean,
+                  write:Boolean,
+                  accumulate:Boolean,
+                  readAddress:Int,
+                  writeAddress:Int,
+                  opcode:Int) = {
+
+
+
+        }
+
         init()
         write(0,Array(0,1,2,3,4,5,6,7))
         println(read(0).mkString(","))
 
         accumulate(0,Array(0,1,2,3,4,5,6,7))
         println(read(0).mkString(","))
+
+
+
         simSuccess()
     }
   }
+
+
 
 }

@@ -295,26 +295,50 @@ object InstructionGen{
   def simdGen(arch: Architecture,
               readAddress: Int,
               read:Boolean,
+              left:Boolean,
+              right:Boolean,
+              dest:Boolean,
+              op:Int,
               writeAddress: Int,
               write:Boolean,
               accumulate:Boolean): (BigInt, String) = {
-
+    require(op >= 0 & op <= 15, "opcode error...")
     val layOut = InstructionLayOut(arch)
     val opcode = 4
-    val flags_0 = accumulate
+    val flags_0 = read
     val flags_1 = write
-    val flags_2 = read
-    val simd = Random.nextInt(16)
+    val flags_2 = accumulate
+    val simdFlags = bigintToBinaryStringWithWidth(BigInt(op), width = 4) +
+      bigintToBinaryStringWithWidth(BigInt(left.toInt), width = 1) + bigintToBinaryStringWithWidth(BigInt(right.toInt), width = 1) +
+      bigintToBinaryStringWithWidth(BigInt(dest.toInt), width = 1)
+
     val flag = flags_0.toInt + (flags_1.toInt * 2) + (flags_2.toInt * 4)
     val opBinary = bigintToBinaryStringWithWidth(BigInt(opcode), width = 4)
     val flagsBinary = bigintToBinaryStringWithWidth(BigInt(flag), width = 4)
     val op0Binary = bigintToBinaryStringWithWidth(BigInt(writeAddress), width = layOut.operand0SizeBits)
     val op1Binary = bigintToBinaryStringWithWidth(BigInt(readAddress), width = layOut.operand1SizeBits)
-    val op2Binary = bigintToBinaryStringWithWidth(BigInt(simd), width = layOut.operand2SizeBits)
+    val op2Binary = binaryStringWithWidth(simdFlags, width = layOut.operand2SizeBits)
     val simdBinary = opBinary + flagsBinary + op2Binary + op1Binary + op0Binary
 
-    println(s"simd op is $simd (read:$flags_2, write:$flags_1, accumulate:$flags_0)")
-
+    op match {
+      case 0 => println(s"Noop (read:$flags_0, write:$flags_1, accumulate:$flags_2), readAddress:$readAddress, writeAddress:$writeAddress, left:$left, right:$right, dest:$dest ")
+      case 1 => println(s"Zero (read:$flags_0, write:$flags_1, accumulate:$flags_2), readAddress:$readAddress, writeAddress:$writeAddress, left:$left, right:$right, dest:$dest ")
+      case 2 => println(s"Move (read:$flags_0, write:$flags_1, accumulate:$flags_2), readAddress:$readAddress, writeAddress:$writeAddress, left:$left, right:$right, dest:$dest ")
+      case 3 => println(s"Not (read:$flags_0, write:$flags_1, accumulate:$flags_2), readAddress:$readAddress, writeAddress:$writeAddress, left:$left, right:$right, dest:$dest ")
+      case 4 => println(s"And (read:$flags_0, write:$flags_1, accumulate:$flags_2), readAddress:$readAddress, writeAddress:$writeAddress, left:$left, right:$right, dest:$dest ")
+      case 5 => println(s"Or (read:$flags_0, write:$flags_1, accumulate:$flags_2), readAddress:$readAddress, writeAddress:$writeAddress, left:$left, right:$right, dest:$dest ")
+      case 6 => println(s"Increment (read:$flags_0, write:$flags_1, accumulate:$flags_2), readAddress:$readAddress, writeAddress:$writeAddress, left:$left, right:$right, dest:$dest ")
+      case 7 => println(s"Decrement (read:$flags_0, write:$flags_1, accumulate:$flags_2), readAddress:$readAddress, writeAddress:$writeAddress, left:$left, right:$right, dest:$dest ")
+      case 8 => println(s"Add (read:$flags_0, write:$flags_1, accumulate:$flags_2), readAddress:$readAddress, writeAddress:$writeAddress, left:$left, right:$right, dest:$dest ")
+      case 9 => println(s"Sub (read:$flags_0, write:$flags_1, accumulate:$flags_2), readAddress:$readAddress, writeAddress:$writeAddress, left:$left, right:$right, dest:$dest ")
+      case 10 => println(s"Mul (read:$flags_0, write:$flags_1, accumulate:$flags_2), readAddress:$readAddress, writeAddress:$writeAddress, left:$left, right:$right, dest:$dest ")
+      case 11 => println(s"Abs (read:$flags_0, write:$flags_1, accumulate:$flags_2), readAddress:$readAddress, writeAddress:$writeAddress, left:$left, right:$right, dest:$dest ")
+      case 12 => println(s"GreaterThan (read:$flags_0, write:$flags_1, accumulate:$flags_2), readAddress:$readAddress, writeAddress:$writeAddress, left:$left, right:$right, dest:$dest ")
+      case 13 => println(s"GreaterThanEqual (read:$flags_0, write:$flags_1, accumulate:$flags_2), readAddress:$readAddress, writeAddress:$writeAddress, left:$left, right:$right, dest:$dest ")
+      case 14 => println(s"Min (read:$flags_0, write:$flags_1, accumulate:$flags_2), readAddress:$readAddress, writeAddress:$writeAddress, left:$left, right:$right, dest:$dest ")
+      case 15 => println(s"Max (read:$flags_0, write:$flags_1, accumulate:$flags_2), readAddress:$readAddress, writeAddress:$writeAddress, left:$left, right:$right, dest:$dest ")
+      case _ => throw new Exception("opcode error!!!")
+    }
     (BigInt(simdBinary, 2), simdBinary)
   }
 

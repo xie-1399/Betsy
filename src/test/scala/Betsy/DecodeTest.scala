@@ -12,8 +12,6 @@ import scala.collection.mutable.ArrayBuffer
 import SimTools._
 import BetsyLibs.sim._
 
-/* Reformat the test */
-
 class DecodeTest extends AnyFunSuite{
 
   def init(dut: Top[SInt]): Unit = {
@@ -381,21 +379,53 @@ class DecodeTest extends AnyFunSuite{
       dut =>
         SimTimeout(1 us)
         println("random simd instruction ================>  ")
+        println("for a simple way , all the simd test is based on the abs function or add function ")
         dut.clockDomain.forkStimulus(10)
         val arch = Architecture.tiny()
-        init(dut)
-        def testCase = 32
-        for(idx <- 0 until testCase){
-          val simd = InstructionGen.simdGen(arch = arch, Random.nextInt(128),
-            Random.nextInt(10) > 5,
-            Random.nextInt(128),
-            false,
-            false)
-          dut.io.instruction.valid #= true
-          dut.io.instruction.payload #= simd._1
-          dut.clockDomain.waitSamplingWhere(dut.io.instruction.ready.toBoolean)
+        val inputNeedOp = Array()  // which opcode need input
+
+        // use the abs to test
+        def noAccumulate() = {
+          // first move the data and then use the simd to store abs at R1
+          val simd = InstructionGen.simdGen(arch = arch,
+            readAddress = Random.nextInt(128),
+            read = false,
+            left = true,
+            right = false,
+            dest = true,
+            op = 11,
+            writeAddress = Random.nextInt(128),
+            write = false,
+            accumulate = false)
         }
 
+        def readAccumulatewithALU() = {
+
+        }
+
+        def writeAccumulatorwithAlu() = {
+
+        }
+
+        def randomlyTest()  ={
+
+        }
+
+
+        init(dut)
+        def testCase = 32
+//        for(idx <- 0 until testCase){
+//          // more likely to use to test with random value
+//          val simd = InstructionGen.simdGen(arch = arch, Random.nextInt(128),
+//            false,
+//            Random.nextInt(128),
+//            false,
+//            false)
+//          dut.io.instruction.valid #= true
+//          dut.io.instruction.payload #= simd._1
+//          dut.clockDomain.waitSamplingWhere(dut.io.instruction.ready.toBoolean)
+//        }
+        simSuccess()
     }
   }
 

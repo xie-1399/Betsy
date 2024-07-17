@@ -15,7 +15,8 @@ package Betsy.Instruction
  ** OP0 Accumulator write address
  ** OP1 Accumulator read address
  ** Op2 SIMD sub-instruction
- ** for example :  Todo add instruction example
+ ** for example :  01000011 0000000001111010 000000000000000000000001 0000010000000001
+ ** is (SIMD(RW) O=Max(I,R1) WAcc(1025) RAcc(1))
  **/
 
 
@@ -48,7 +49,7 @@ object SIMDArgs {
     arguments
   }
 
-  // Todo check the instruction format
+
   def fromBits(op0:Bits, op1:Bits, op2:Bits)(implicit layOut:InstructionLayOut) = {
     val accWriteAddress = op0.asUInt
     val accReadAddress = op1.asUInt

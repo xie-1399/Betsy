@@ -21,7 +21,6 @@ class ALUArray[T <: Data with Num[T]](gen:HardType[T],arch: Architecture) extend
     val inputs = slave(Stream(Vec(gen,arch.arraySize)))
     val outputs = master(Stream(Vec(gen,arch.arraySize)))
   }
-  // val outputsFifo = StreamFifo(cloneOf(io.outputs.payload),2)  /* pipeline control with a stream fifo (2 stages)*/
   val outputsFifo = new BetsyFIFO(cloneOf(io.outputs.payload),2)  /* using the BetsyFIFO */
 
   /* connect the Alu array with io */
