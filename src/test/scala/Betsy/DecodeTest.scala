@@ -370,6 +370,7 @@ class DecodeTest extends AnyFunSuite{
     }
   }
 
+  // Todo check with the assert
   test("simd"){
     SIMCFG().compile {
       val arch = Architecture.tiny()
@@ -384,47 +385,84 @@ class DecodeTest extends AnyFunSuite{
         val arch = Architecture.tiny()
         val inputNeedOp = Array()  // which opcode need input
 
-        // use the abs to test
-        def noAccumulate() = {
+        // use the abs/add to test the value
+        def simpleCheck() = {
           // first move the data and then use the simd to store abs at R1
-          val simd = InstructionGen.simdGen(arch = arch,
+          dut.io.instruction.valid #= true
+
+          // move from the accumulator to the alu
+          val move_alu = InstructionGen.simdGen(arch = arch,
+            readAddress= Random.nextInt(128),
+            read = true,
+            left = false,
+            right = false,
+            dest = true,
+            op = 2, // move func
+            writeAddress = Random.nextInt(128),
+            write = false,
+            accumulate = false)
+          dut.io.instruction.payload #= move_alu._1
+          dut.clockDomain.waitSamplingWhere(dut.io.instruction.ready.toBoolean)
+
+          // write the move value to the accumulator (seems work )
+          val move_acc = InstructionGen.simdGen(arch = arch,
             readAddress = Random.nextInt(128),
             read = false,
             left = true,
             right = false,
-            dest = true,
-            op = 11,
+            dest = false,
+            op = 2, // move func
             writeAddress = Random.nextInt(128),
-            write = false,
+            write = true,
             accumulate = false)
+          dut.io.instruction.payload #= move_acc._1
+          dut.clockDomain.waitSamplingWhere(dut.io.instruction.ready.toBoolean)
+
+//          val abs_alu = InstructionGen.simdGen(arch = arch,
+//            readAddress = Random.nextInt(128),
+//            read = true,
+//            left = true,
+//            right = false,
+//            dest = true,
+//            op = 11, // move func
+//            writeAddress = Random.nextInt(128),
+//            write = false,
+//            accumulate = false)
+//            dut.io.instruction.payload #= abs_alu._1
+//            dut.clockDomain.waitSamplingWhere(dut.io.instruction.ready.toBoolean)
+
+
+          // move from the accumulator to the alu and write accumulator in
+//          val move_alu_acc = InstructionGen.simdGen(arch = arch,
+//            readAddress = Random.nextInt(128),
+//            read = true,
+//            left = false,
+//            right = false,
+//            dest = true,
+//            op = 2, // move func
+//            writeAddress = Random.nextInt(128),
+//            write = true,
+//            accumulate = false)
+//          dut.io.instruction.payload #= move_alu_acc._1
+//          dut.clockDomain.waitSamplingWhere(dut.io.instruction.ready.toBoolean)
+
+//          dut.io.instruction.valid #= true
+//          val simd = InstructionGen.simdGen(arch = arch,
+//            readAddress = Random.nextInt(128),
+//            read = false,
+//            left = true,
+//            right = false,
+//            dest = true,
+//            op = 11, // abs func
+//            writeAddress = Random.nextInt(128),
+//            write = false,
+//            accumulate = false)
+//          dut.io.instruction.payload #= simd
+
         }
-
-        def readAccumulatewithALU() = {
-
-        }
-
-        def writeAccumulatorwithAlu() = {
-
-        }
-
-        def randomlyTest()  ={
-
-        }
-
 
         init(dut)
-        def testCase = 32
-//        for(idx <- 0 until testCase){
-//          // more likely to use to test with random value
-//          val simd = InstructionGen.simdGen(arch = arch, Random.nextInt(128),
-//            false,
-//            Random.nextInt(128),
-//            false,
-//            false)
-//          dut.io.instruction.valid #= true
-//          dut.io.instruction.payload #= simd._1
-//          dut.clockDomain.waitSamplingWhere(dut.io.instruction.ready.toBoolean)
-//        }
+        simpleCheck()
         simSuccess()
     }
   }

@@ -81,9 +81,6 @@ class AccumulateWithALUArrayTest extends AnyFunSuite{
                   readAddress:Int,
                   writeAddress:Int,
                   opcode:Int) = {
-
-
-
         }
 
         init()
