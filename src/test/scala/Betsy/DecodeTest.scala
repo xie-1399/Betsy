@@ -370,7 +370,6 @@ class DecodeTest extends AnyFunSuite{
     }
   }
 
-  // Todo check with the assert
   test("simd"){
     SIMCFG().compile {
       val arch = Architecture.tiny()
@@ -383,28 +382,26 @@ class DecodeTest extends AnyFunSuite{
         println("for a simple way , all the simd test is based on the abs function or add function ")
         dut.clockDomain.forkStimulus(10)
         val arch = Architecture.tiny()
-        val inputNeedOp = Array()  // which opcode need input
 
         // use the abs/add to test the value
-        def simpleCheck() = {
+        def simpleCheck(address:Int) = {
           // first move the data and then use the simd to store abs at R1
           dut.io.instruction.valid #= true
-
-          // move from the accumulator to the alu
           val move_alu = InstructionGen.simdGen(arch = arch,
-            readAddress= Random.nextInt(128),
+            readAddress= address,
             read = true,
             left = false,
             right = false,
             dest = true,
             op = 2, // move func
-            writeAddress = Random.nextInt(128),
+            writeAddress = address,
             write = false,
             accumulate = false)
-          dut.io.instruction.payload #= move_alu._1
+          dut.io.instruction.payload #= move_alu._1 // move from the accumulator to the alu
           dut.clockDomain.waitSamplingWhere(dut.io.instruction.ready.toBoolean)
+          println(s"move the accumulator data from address $address to the alu ")
 
-          // write the move value to the accumulator (seems work )
+          // write the move value to the accumulator (work for)
           val move_acc = InstructionGen.simdGen(arch = arch,
             readAddress = Random.nextInt(128),
             read = false,
@@ -417,52 +414,82 @@ class DecodeTest extends AnyFunSuite{
             accumulate = false)
           dut.io.instruction.payload #= move_acc._1
           dut.clockDomain.waitSamplingWhere(dut.io.instruction.ready.toBoolean)
+          println(s"write the dest data at accumulator $address")
 
-//          val abs_alu = InstructionGen.simdGen(arch = arch,
-//            readAddress = Random.nextInt(128),
-//            read = true,
-//            left = true,
-//            right = false,
-//            dest = true,
-//            op = 11, // move func
-//            writeAddress = Random.nextInt(128),
-//            write = false,
-//            accumulate = false)
-//            dut.io.instruction.payload #= abs_alu._1
-//            dut.clockDomain.waitSamplingWhere(dut.io.instruction.ready.toBoolean)
+          val abs_alu = InstructionGen.simdGen(arch = arch,
+            readAddress = address,
+            read = true,
+            left = false,
+            right = false,
+            dest = true,
+            op = 11, // abs func
+            writeAddress = address,
+            write = false,
+            accumulate = false)
+            dut.io.instruction.payload #= abs_alu._1
+            dut.clockDomain.waitSamplingWhere(dut.io.instruction.ready.toBoolean)
+          println(s"move the accumulator data from address $address to the alu with Abs function")
 
+          val add_alu = InstructionGen.simdGen(arch = arch,
+            readAddress = address,
+            read = true,
+            left = true,
+            right = false,
+            dest = true,
+            op = 8, // add it
+            writeAddress = address,
+            write = false,
+            accumulate = false)
+          dut.io.instruction.payload #= add_alu._1
+          dut.clockDomain.waitSamplingWhere(dut.io.instruction.ready.toBoolean)
+          println(s"move the accumulator data from address $address to the alu with Add function")
 
           // move from the accumulator to the alu and write accumulator in
-//          val move_alu_acc = InstructionGen.simdGen(arch = arch,
-//            readAddress = Random.nextInt(128),
-//            read = true,
-//            left = false,
-//            right = false,
-//            dest = true,
-//            op = 2, // move func
-//            writeAddress = Random.nextInt(128),
-//            write = true,
-//            accumulate = false)
-//          dut.io.instruction.payload #= move_alu_acc._1
-//          dut.clockDomain.waitSamplingWhere(dut.io.instruction.ready.toBoolean)
+          val move_alu_acc_noInput = InstructionGen.simdGen(arch = arch,
+            readAddress = address,
+            read = false,
+            left = true,
+            right = true,
+            dest = true,
+            op = 2, // move func
+            writeAddress = address,
+            write = true,
+            accumulate = false)
+          dut.io.instruction.payload #= move_alu_acc_noInput._1
+          dut.clockDomain.waitSamplingWhere(dut.io.instruction.ready.toBoolean)
+          println("move the alu to the acc without input")
 
-//          dut.io.instruction.valid #= true
-//          val simd = InstructionGen.simdGen(arch = arch,
-//            readAddress = Random.nextInt(128),
-//            read = false,
-//            left = true,
-//            right = false,
-//            dest = true,
-//            op = 11, // abs func
-//            writeAddress = Random.nextInt(128),
-//            write = false,
-//            accumulate = false)
-//          dut.io.instruction.payload #= simd
+          val move_alu_acc_Input = InstructionGen.simdGen(arch = arch,
+            readAddress = address,
+            read = true,
+            left = false,
+            right = false,
+            dest = true,
+            op = 2, // move func
+            writeAddress = address,
+            write = true,
+            accumulate = false)
+          dut.io.instruction.payload #= move_alu_acc_Input._1
+          dut.clockDomain.waitSamplingWhere(dut.io.instruction.ready.toBoolean)
+          println("move the alu to the acc with the input")
 
+          // wait the accumulate in the accumulator
+          val move_alu_acc_plus = InstructionGen.simdGen(arch = arch,
+            readAddress = address,
+            read = true,
+            left = false,
+            right = false,
+            dest = true,
+            op = 2, // move func
+            writeAddress = address,
+            write = true,
+            accumulate = true)
+          dut.io.instruction.payload #= move_alu_acc_plus._1
+          dut.clockDomain.waitSamplingWhere(dut.io.instruction.ready.toBoolean)
         }
 
         init(dut)
-        simpleCheck()
+        for(idx <- 0 until 128){simpleCheck(Random.nextInt(128))}
         simSuccess()
     }
   }

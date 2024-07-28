@@ -137,8 +137,6 @@ class AccumulatorWithALUArray[T <: Data with Num[T]](gen:HardType[T],arch: Archi
     * read and no write -> read from the accumulator and into the alu array (finally alu will out)
     * read and write -> first read the accumulator value and then write the accumulator (may be with accumulate operation )
     * and when write behaviour happens -> also support accumulate in the accumulator */
-
-    val dataPathReady = False
     when(control.payload.read) {
       when(control.payload.write) {
         // first read, then write
@@ -167,10 +165,12 @@ class AccumulatorWithALUArray[T <: Data with Num[T]](gen:HardType[T],arch: Archi
               accumulator.io.control,
               readControl(),
               accOutDemux,
-              U(1,1 bits),
+              U(1, 1 bits),
               aluArray.io.instruction,
               control.payload.SIMDInstruction
             )
+            aluOutDemux.payload := U(0, 1 bits)
+            aluOutDemux.valid := True
           }.otherwise {
             readEnqueued := True
           }

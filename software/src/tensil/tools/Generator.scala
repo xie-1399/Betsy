@@ -28,8 +28,8 @@ case class Args(
 object Generator extends App{
   // Todo update the file path (can generate)
   val genArg = Args(
-    archFile = new File("/media/xxl/Betsy/software/src/tensil/tools/arch.tarch"),
-    modelFile = new File("/media/xxl/Betsy/model/onnx/resnet20v2_cifar.onnx"),
+    archFile = new File("/media/xxl/Betsy/software/src/tensil/tools/arch/normal.tarch"),
+    modelFile = new File("/media/xxl/Betsy/software/tensil-models-main/resnet20v2_cifar.onnx"),
     outputNodes = Seq("Identity:0"),
     targetDir = new File("/media/xxl/Betsy/software/src/tensil/tools/gen"),
     summary = true,
