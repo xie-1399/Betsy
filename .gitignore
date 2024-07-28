@@ -6,8 +6,6 @@
 ./simWorkspace
 
 ./tmp
-
+./software/tensil-models-main/*
 ./log
-
-./model/onnx
 

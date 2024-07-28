@@ -55,7 +55,7 @@ object ALUOp{
   // one op plays role
   def isUnary(op:UInt):Bool = {
     val unaryOps = Array(Move, Not, Increment, Decrement, Abs)
-    unaryOps.map(op === _).reduce(_ && _)
+    unaryOps.map(op === _).reduce(_ || _)
   }
   def allAlus = 16
 

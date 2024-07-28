@@ -122,7 +122,6 @@ object Architecture{
 
   def maxTransLen: Int = log2Up(256)  /* axi4 bus max trans length */
 
-
 }
 
 

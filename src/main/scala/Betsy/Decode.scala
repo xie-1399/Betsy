@@ -20,6 +20,8 @@ import Architecture._
  * this version instruction only enqueue when fire (so the instruction is blocked when before instruction not done !!!)
  * notice the IO Bandwidth for the request value */
 
+// Todo with all instructions format check in the asm
+
 case class dramAddressOffset(addressWith:Int) extends Bundle {
   val offset = UInt(addressWith bits)
 }
@@ -537,13 +539,13 @@ class Decode(arch: Architecture)(implicit layOut: InstructionLayOut) extends Bet
   val SIMD = new Composite(this, "SIMD") {
     val isSimd = instruction.valid && instruction.payload.opcode === Opcode.SIMD
     val simdArgs = SIMDArgs.fromBits(op0, op1, op2)
-    val simdRead = flags(2)
+    val simdRead = flags(0)
     val simdWrite = flags(1)
-    val simdAcc = flags(0)
+    val simdAcc = flags(2)
     val simdError = isSimd && !SIMDFlags.isValid(flags.asUInt)
 
     when(isSimd) {
-      accumulatorHandler.io.into.valid := isSimd
+      accumulatorHandler.io.into.valid := !accumulatordown
       val simdInstruction = SIMDInstruction(simdArgs.instruction.op,
         simdArgs.instruction.sourceLeft,
         simdArgs.instruction.sourceRight,
