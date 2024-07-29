@@ -28,6 +28,12 @@ case class Axi4MemorySimV2(axi : Axi4, clockDomain : ClockDomain, config : AxiMe
   val busWordWidth = axi.config.dataWidth / 8
   val maxBurstSize = log2Up(busWordWidth)
 
+  def randomAlloc(address:Long) = {
+    val value = Array.fill(1024 * 1024 * 16){Random.nextInt(127) - 127}.map(_.toByte)
+    memory.writeArray(address, value)
+    println(s"axi memory random fill values from $address !")
+  }
+
   def newAxiJob(address: Long, burstLength: Int, burstSize: Int, burstType: Int, id: Long): AxiJob = {
     AxiJob(address, burstLength, burstSize, burstType, id)
   }
