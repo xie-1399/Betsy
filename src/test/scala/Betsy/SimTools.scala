@@ -359,11 +359,3 @@ object InstructionGen{
   }
 
 }
-
-object test extends App{
-  //println(InstructionGen.dataMoveGen(Architecture.tiny(),"dram0->memory",8,2,4,0,size = 16)._2)
-  // println(InstructionGen.loadWeightGen(true,16,4,128,Architecture.tiny()))
-  // println(InstructionGen.configureGen(9,0,Architecture.tiny()))
-  // println(SimTools.reshapeMemoryMatrix("00010010011001000011001000100110")(0)(0))
-  // println(InstructionGen.matMulGen(Architecture.tiny(),zero = false,localAddress = 16,localStride = 2,accumulatorAddress = 32,accumulatorStride = 2,size = 4)._2)
-}

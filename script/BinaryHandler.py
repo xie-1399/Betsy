@@ -1,7 +1,9 @@
 # Betsy follow the MiT Licence.(c) xxl, All rights reserved
 # run all the unit test in the Betsy
 # Author xxl  Time:2024.6.5  Version:1.0
-# the file is used to convert the instruction binary to the txt format
+# the file is used to convert the instruction binary to the txt format -> test for the simulation
+
+import argparse
 
 
 # read the binary file
@@ -34,7 +36,13 @@ def process_binary_file(input_file_path, output_file_path, width):
 
 
 # here is a useful example for convert file...
+
+
 if __name__ == '__main__':
-     input_file = './resnet20v2_cifar_onnx_arch.tprog'
-     output_file = './instruction.txt'
-     process_binary_file(input_file, output_file, 64)
+    # demo : python3 BinaryHandler.py --input XXX --output XXX --len XXX
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--input', type=str,help='Llama model to load')
+    parser.add_argument('--output', type=str,help='evaluation dataset')
+    parser.add_argument('--len', type=int,help='model sequence length')  #instruction length bits(default is 64)
+    args = parser.parse_args()
+    process_binary_file(args.input, args.output, args.len)
