@@ -9,3 +9,5 @@
 ./software/tensil-models-main/*
 ./log
 
+./model/checkpoint/*
+
