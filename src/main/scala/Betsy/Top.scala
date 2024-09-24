@@ -16,7 +16,7 @@ import spinal.lib.bus.amba4.axi.{Axi4, Axi4Config}
  ** Some ML operations, such as padding, are achieved by changing the memory layout. **
  */
 
-class Top[T <: Data with Num[T]](gen:HardType[T],arch: Architecture,log:Boolean = false,initContent:Array[BigInt] = null) extends BetsyModule{
+class Top[T <: Data](gen:HardType[T],arch: Architecture,log:Boolean = false,initContent:Array[BigInt] = null) extends BetsyModule{
 
   val instructionLayOut = InstructionLayOut(arch,gen = log)
   require(gen.getBitsWidth == arch.dataWidth,"the clare data width is not match in the arch !!! ")

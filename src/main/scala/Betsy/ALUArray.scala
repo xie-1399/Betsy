@@ -13,7 +13,7 @@ import BetsyLibs.BetsyFIFO
 import spinal.core._
 import spinal.lib._
 
-class ALUArray[T <: Data with Num[T]](gen:HardType[T],arch: Architecture) extends BetsyModule{
+class ALUArray[T <: Data](gen:HardType[T],arch: Architecture) extends BetsyModule{
   val layOut = InstructionLayOut(arch)
 
   val io = new Bundle{

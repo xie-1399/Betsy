@@ -14,7 +14,7 @@ import Betsy.Until._
 import spinal.core._
 import spinal.lib.Delay
 
-class InnerSystolicArray[T <: Data with Num[T]](gen:HardType[T],height:Int,width:Int) extends BetsyModule{
+class InnerSystolicArray[T <: Data](gen:HardType[T],height:Int,width:Int) extends BetsyModule{
   val io = new Bundle{
     val load = in Bool()
     val weight = in(Vec(gen,height))

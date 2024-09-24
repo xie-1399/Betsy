@@ -10,12 +10,12 @@ package Betsy
 
 import spinal.core._
 import Until._
-
+import Operations._
 /* support with the sign signals with the alu operation
 
 * Todo with the SFix Datatype */
 
-class ALU[T <: Data with Num[T]](gen:HardType[T],numOps:Int, numRegisters:Int,
+class ALU[T <: Data](gen:HardType[T],numOps:Int, numRegisters:Int,
                                  inputPipe:Boolean = false,outputPipe:Boolean = false) extends BetsyModule {
   val io = new Bundle{
     val op = in(UInt(log2Up(numOps) bits))
@@ -55,22 +55,28 @@ class ALU[T <: Data with Num[T]](gen:HardType[T],numOps:Int, numRegisters:Int,
     is(ALUOp.Not){ result := Mux(isTrue(sourceLeft),Zero,One) } /* source left is zero -> One not zero -> zero */
     is(ALUOp.And){ result := Mux(isTrue(sourceLeft) && isTrue(sourceRight),One,Zero) }
     is(ALUOp.Or){ result := Mux(isTrue(sourceLeft) || isTrue(sourceRight),One,Zero) }
-    is(ALUOp.Increment){result := upDown(sourceLeft +^ One,gen.craft()).resized}
-    is(ALUOp.Decrement){result := upDown(sourceLeft -^ One,gen.craft()).resized}
-    is(ALUOp.Add){result := upDown(sourceLeft +^ sourceRight,gen.craft()).resized}
-    is(ALUOp.Sub){result := upDown(sourceLeft -^ sourceRight,gen.craft()).resized}
-    is(ALUOp.Mul){result := upDown(sourceLeft * sourceRight,gen.craft()).resized}
-    is(ALUOp.Abs){
-      val value = sourceLeft.asInstanceOf[SInt]
-      when(value === S(min(gen()))){  /* let the absolute -128 -> 127 */
-        result.assignFromBits(S(value.maxValue, result.getBitsWidth bits).asBits)
-      }.otherwise{
-        val abs = sourceLeft.asInstanceOf[SInt].abs
-        result.assignFromBits(abs.asBits)}
-      }
-    is(ALUOp.GreaterThan){result := Mux(sourceLeft > sourceRight,One,Zero)}
-    is(ALUOp.GreaterThanEqual){result := Mux(sourceLeft >= sourceRight,One,Zero)}
-    is(ALUOp.Min){result := Mux(sourceLeft > sourceRight,sourceRight,sourceLeft)}
-    is(ALUOp.Max){result := Mux(sourceLeft > sourceRight,sourceLeft,sourceRight)}
+//    is(ALUOp.Increment){result := upDown(sourceLeft +^ One,gen.craft()).resized}
+//    is(ALUOp.Decrement){result := upDown(sourceLeft -^ One,gen.craft()).resized}
+    is(ALUOp.Add){
+      result := resizePoint(upDown(add(gen.craft(),sourceLeft,sourceRight),gen.craft()),gen.craft())
+    }
+//    is(ALUOp.Sub){result := upDown(sourceLeft -^ sourceRight,gen.craft()).resized}
+//    is(ALUOp.Mul){result := upDown(sourceLeft * sourceRight,gen.craft()).resized}
+//    is(ALUOp.Abs){
+//      val value = sourceLeft.asInstanceOf[SInt]
+//      when(value === S(min(gen()))){  /* let the absolute -128 -> 127 */
+//        result.assignFromBits(S(value.maxValue, result.getBitsWidth bits).asBits)
+//      }.otherwise{
+//        val abs = sourceLeft.asInstanceOf[SInt].abs
+//        result.assignFromBits(abs.asBits)}
+//      }
+//    is(ALUOp.GreaterThan){result := Mux(sourceLeft > sourceRight,One,Zero)}
+//    is(ALUOp.GreaterThanEqual){result := Mux(sourceLeft >= sourceRight,One,Zero)}
+//    is(ALUOp.Min){result := Mux(sourceLeft > sourceRight,sourceRight,sourceLeft)}
+//    is(ALUOp.Max){result := Mux(sourceLeft > sourceRight,sourceLeft,sourceRight)}
   }
+}
+
+object ALU extends App{
+  SpinalSystemVerilog(new ALU(SFix(16 exp, -2 exp),16,2))
 }

@@ -10,8 +10,9 @@ package Betsy
 
 import spinal.core._
 import Betsy.Until._
+import Operations._
 
-class MAC[T<: Data with Num[T]](gen:HardType[T],clip:Boolean = true,name:String = "") extends BetsyModule{
+class MAC[T<: Data](gen:HardType[T],clip:Boolean = true,name:String = "") extends BetsyModule{
 
   val io = new Bundle{
     val load =  in Bool()
@@ -32,11 +33,13 @@ class MAC[T<: Data with Num[T]](gen:HardType[T],clip:Boolean = true,name:String 
     io.macOut := weight
   }.otherwise{
     val macTemp = if(clip) {
-      upDown(mac(gen.craft(),io.mulInput,weight,io.addInput),gen()).resized /* clip the value */
+      upDown(mac(gen.craft(),io.mulInput,weight,io.addInput),gen())
     } else {
-      mac(gen.craft(),io.mulInput,weight,io.addInput).resized    /* just overflow resize */
+      mac(gen.craft(),io.mulInput,weight,io.addInput)
     }
-    macOut := macTemp
+
+    /* the mac out unit should be resized to adapt the bit width */
+    macOut := resizePoint(macTemp,gen())
     io.macOut := macOut
   }
 }

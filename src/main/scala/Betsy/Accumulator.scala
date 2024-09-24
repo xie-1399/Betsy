@@ -11,7 +11,7 @@ import BetsyLibs._
  ** Test Status : PASS :)         Version:0.1 **
  */
 
-class Accumulator[T<:Data with Num[T]](gen:HardType[T],SimdHeight:Int,depth:Long) extends BetsyModule{
+class Accumulator[T<:Data](gen:HardType[T],SimdHeight:Int,depth:Long) extends BetsyModule{
 
   val io = new Bundle{
     val dataIn = slave(Stream(Vec(gen(),SimdHeight)))

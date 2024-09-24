@@ -1,7 +1,7 @@
 package Betsy
 /**
  ** Betsy follow the MiT Licence.(c) xxl, All rights reserved **
- ** Update Time : 2024/4/6      SpinalHDL Version: 1.94       **
+ ** Update Time : 2024/9/24      SpinalHDL Version: 1.94       **
  ** You should have received a copy of the MIT License along with this library **
  */
 
@@ -74,9 +74,10 @@ object Until{
     val zero = gen match {
       case _: UInt => U(0, gen.getBitsWidth bits)
       case _: SInt => S(0, gen.getBitsWidth bits)
-      case _: SFix => SF(BigDecimal(0), ExpNumber(gen.asInstanceOf[SFix].maxExp), BitCount(gen.asInstanceOf[SFix].bitCount)) /* convert the fixed float */
+      case _: SFix => SF(BigDecimal(0), ExpNumber(gen.asInstanceOf[SFix].maxExp), BitCount(gen.asInstanceOf[SFix].bitCount))
+      case _: UFix => UF(BigDecimal(0), ExpNumber(gen.asInstanceOf[UFix].maxExp), BitCount(gen.asInstanceOf[UFix].bitCount))
       case _: Bits => B(0, gen.getBitsWidth bits)
-      case _ => B(0, gen.getBitsWidth bits)
+      case _ => throw new Exception("only support {UInt,SInt,SFix,UFix} 4 dataTypes")
     }
     zero.asInstanceOf[T]
   }
@@ -87,17 +88,19 @@ object Until{
       case _: UInt => U(1, gen.getBitsWidth bits)
       case _: SInt => S(1, gen.getBitsWidth bits)
       case _: SFix => SF(BigDecimal(1), ExpNumber(gen.asInstanceOf[SFix].maxExp), BitCount(gen.asInstanceOf[SFix].bitCount))
-      case _ => U(1, gen.getBitsWidth bits)
+      case _: UFix => UF(BigDecimal(1), ExpNumber(gen.asInstanceOf[UFix].maxExp), BitCount(gen.asInstanceOf[UFix].bitCount))
+      case _ => throw new Exception("only support {UInt,SInt,SFix,UFix} 4 dataTypes")
     }
     one.asInstanceOf[T]
   }
 
   def min[T <: Data](gen: T): BigInt = {
     val min = gen match {
-      case _: UInt => BigInt(0)
+      case _: UInt => gen.asInstanceOf[UInt].minValue.toBigInt
       case _: SInt => gen.asInstanceOf[SInt].minValue.toBigInt
       case _: SFix => gen.asInstanceOf[SFix].minValue.toBigInt
-      case _ => BigInt(0)
+      case _: UFix => gen.asInstanceOf[UFix].minValue.toBigInt
+      case _ => throw new Exception("only support {UInt,SInt,SFix,UFix} 4 dataTypes")
     }
     min
   }
@@ -107,35 +110,49 @@ object Until{
       case _: UInt => gen.asInstanceOf[UInt].maxValue.toBigInt
       case _: SInt => gen.asInstanceOf[SInt].maxValue.toBigInt
       case _: SFix => gen.asInstanceOf[SFix].maxValue.toBigInt
-      case _ => gen.asInstanceOf[UInt].maxValue.toBigInt
+      case _: UFix => gen.asInstanceOf[UFix].maxValue.toBigInt
+      case _ => throw new Exception("only support {UInt,SInt,SFix,UFix} 4 dataTypes")
     }
     max
   }
 
-  def clip[T <: Data with Num[T]](value: T, max: BigInt, min: BigInt): T = {
+  def clip[T <: Data](value: T, max: BigInt, min: BigInt): T = {
+
     val clipNum = value match {
-      case _: UInt => Mux(value.asInstanceOf[UInt] > U(max), U(max), Mux(value.asInstanceOf[UInt] < min, U(min), value))
-      case _: SInt => Mux(value.asInstanceOf[SInt] > S(max), S(max), Mux(value.asInstanceOf[SInt] < min, S(min), value))
+      case _: UInt => Mux(value.asInstanceOf[UInt] > U(max), U(max), Mux(value.asInstanceOf[UInt] < U(min), U(min), value))
+      case _: SInt => Mux(value.asInstanceOf[SInt] > S(max), S(max), Mux(value.asInstanceOf[SInt] < S(min), S(min), value))
+      case _: SFix => {
+        val SF_max = SF(BigDecimal(max), ExpNumber(value.asInstanceOf[SFix].maxExp), BitCount(value.asInstanceOf[SFix].bitCount))
+        val SF_min = SF(BigDecimal(min), ExpNumber(value.asInstanceOf[SFix].maxExp), BitCount(value.asInstanceOf[SFix].bitCount))
+        Mux(value.asInstanceOf[SFix] > SF_max, SF_max, Mux(value.asInstanceOf[SFix] < SF_min, SF_min, value))
+      }
+      case _: UFix => {
+        val UF_max = UF(BigDecimal(max), ExpNumber(value.asInstanceOf[UFix].maxExp), BitCount(value.asInstanceOf[UFix].bitCount))
+        val UF_min = UF(BigDecimal(min), ExpNumber(value.asInstanceOf[UFix].maxExp), BitCount(value.asInstanceOf[UFix].bitCount))
+        Mux(value.asInstanceOf[UFix] > UF_max, UF_max, Mux(value.asInstanceOf[UFix] < UF_min, UF_min, value))
+      }
       case _ => value
     }
     clipNum.asInstanceOf[T]
   }
 
-  def mac[T <: Data with Num[T]](gen: T, m1: T, m2: T, acc: T): T = {
-    // require(getType(gen) == getType(m1) == getType(m2) == getType(acc),"mac dataType not match !!!")
-    val macValue = (gen, m1, m2, acc) match {
-      // case (gen: SFix, x: SFix, y: SFix, z: SFix) => println("") Todo with the fixed float mac operation
-      case _ => m1 * m2 + acc
-    }
-    macValue
-  }
-
-  def upDown[T <: Data with Num[T]](value: T, gen: T): T = {
+  def upDown[T <: Data](value: T, gen: T): T = {
     val maxValue = max(gen)
     val minValue = min(gen)
     val upDownValue = clip(value, maxValue, minValue)
     upDownValue
   }
+
+  def resizePoint[T <: Data](value: T, gen:T):T = {
+    val resized = gen match {
+      case _:UInt => value.resized
+      case _:SInt => value.resized
+      case _:SFix => value.asInstanceOf[SFix].truncated
+      case _:UFix => value.asInstanceOf[UFix].truncated
+    }
+    resized.asInstanceOf[T]
+  }
+
   /***************** Arithmetic operations function ends *****************/
 
 }
