@@ -14,7 +14,7 @@ import spinal.lib._
 import spinal.lib.fsm._
 import BetsyLibs._
 
-class SystolicArray[T <: Data](gen:HardType[T],height:Int,width:Int) extends BetsyModule{
+class SystolicArray[T <: Data with Num[T]](gen:HardType[T],height:Int,width:Int) extends BetsyModule{
   val io = new Bundle{
     val control = slave Stream SystolicArrayControl()
     val weight = slave Stream Vec(gen, height)
@@ -45,8 +45,8 @@ class SystolicArray[T <: Data](gen:HardType[T],height:Int,width:Int) extends Bet
   }
   val inputDone = arrayCounter === 0
   when(io.control.zeroes){
-    array.io.input.foreach(_ := zero(gen()))
-    array.io.weight.foreach(_ := zero(gen()))
+    array.io.input.foreach(_ := constConvert(gen(),0))
+    array.io.weight.foreach(_ := constConvert(gen(),0))
   }.otherwise{
     array.io.input := io.input.payload
     array.io.weight := io.weight.payload

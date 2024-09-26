@@ -126,7 +126,7 @@ class BetsyStreamDelay[T<:Data](gen:HardType[T],cycles:Int) extends BetsyModule{
     val output = master(Stream(gen))
     val delayed = out(gen())
   }
-  val delays = Delay(io.input.payload,cycles,io.input.valid && io.output.ready,init = zero(gen()))
+  val delays = Delay(io.input.payload,cycles,io.input.valid && io.output.ready,init = constConvert(gen(),0))
   io.delayed := delays
   io.output <> io.input
 }

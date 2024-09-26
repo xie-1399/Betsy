@@ -31,32 +31,6 @@ object Until{
     val reverse:Bool
   }
 
-  case class BetsyFlow[T <: Data](flow:HardType[T]) extends Bundle{
-    val transFlow = Flow(flow)
-
-    def push(b: T): Unit = transFlow.push(b) /* set valid and push the data in the flow */
-    def pop():T = {
-      transFlow.valid := False
-      transFlow.payload
-    }
-  }
-
-  case class withLast[T <: Data](gen: HardType[T]) extends Bundle {
-    /* wrapper the bundle with last signal */
-    val last = out Bool()
-    val payload = out(gen())
-  }
-
-
-  def Demux[T <: Data](cond: Bool, con: T, alt: T): T = {
-    val input = cloneOf(con)
-    when(cond) {
-      con := input
-    }.otherwise {
-      alt := input
-    }
-    input
-  }
 
   /***************** Arithmetic operations function *****************/
   /* if overflow the add max , will from the start to calculate */
@@ -70,90 +44,29 @@ object Until{
   }
 
   /* all kinds type of zero value */
-  def zero[T <: Data](gen: T): T = {
-    val zero = gen match {
-      case _: UInt => U(0, gen.getBitsWidth bits)
-      case _: SInt => S(0, gen.getBitsWidth bits)
-      case _: SFix => SF(BigDecimal(0), ExpNumber(gen.asInstanceOf[SFix].maxExp), BitCount(gen.asInstanceOf[SFix].bitCount))
-      case _: UFix => UF(BigDecimal(0), ExpNumber(gen.asInstanceOf[UFix].maxExp), BitCount(gen.asInstanceOf[UFix].bitCount))
-      case _: Bits => B(0, gen.getBitsWidth bits)
-      case _ => throw new Exception("only support {UInt,SInt,SFix,UFix} 4 dataTypes")
+  def constConvert[T <: Data](gen:T, value:Int):T = {
+    val const = gen match {
+      case _: UInt => U(value, gen.getBitsWidth bits)
+      case _: SInt => S(value, gen.getBitsWidth bits)
+      case _: AFix => AF(BigDecimal(value), BitCount(gen.asInstanceOf[AFix].intWidth), BitCount(gen.asInstanceOf[AFix].fracWidth), gen.asInstanceOf[AFix].signed)
+      case _: Bits => B(value, gen.getBitsWidth bits)
+      case _ => throw new Exception("constConvert : not support the data type!!!")
     }
-    zero.asInstanceOf[T]
+    const.asInstanceOf[T]
   }
 
-  /* all kinds type of one value */
-  def one[T <: Data](gen: T): T = {
-    val one = gen match {
-      case _: UInt => U(1, gen.getBitsWidth bits)
-      case _: SInt => S(1, gen.getBitsWidth bits)
-      case _: SFix => SF(BigDecimal(1), ExpNumber(gen.asInstanceOf[SFix].maxExp), BitCount(gen.asInstanceOf[SFix].bitCount))
-      case _: UFix => UF(BigDecimal(1), ExpNumber(gen.asInstanceOf[UFix].maxExp), BitCount(gen.asInstanceOf[UFix].bitCount))
-      case _ => throw new Exception("only support {UInt,SInt,SFix,UFix} 4 dataTypes")
-    }
-    one.asInstanceOf[T]
-  }
-
-  def min[T <: Data](gen: T): BigInt = {
-    val min = gen match {
-      case _: UInt => gen.asInstanceOf[UInt].minValue.toBigInt
-      case _: SInt => gen.asInstanceOf[SInt].minValue.toBigInt
-      case _: SFix => gen.asInstanceOf[SFix].minValue.toBigInt
-      case _: UFix => gen.asInstanceOf[UFix].minValue.toBigInt
-      case _ => throw new Exception("only support {UInt,SInt,SFix,UFix} 4 dataTypes")
-    }
-    min
-  }
-
-  def max[T <: Data](gen: T): BigInt = {
-    val max = gen match {
-      case _: UInt => gen.asInstanceOf[UInt].maxValue.toBigInt
-      case _: SInt => gen.asInstanceOf[SInt].maxValue.toBigInt
-      case _: SFix => gen.asInstanceOf[SFix].maxValue.toBigInt
-      case _: UFix => gen.asInstanceOf[UFix].maxValue.toBigInt
-      case _ => throw new Exception("only support {UInt,SInt,SFix,UFix} 4 dataTypes")
-    }
-    max
-  }
-
-  def clip[T <: Data](value: T, max: BigInt, min: BigInt): T = {
-
-    val clipNum = value match {
-      case _: UInt => Mux(value.asInstanceOf[UInt] > U(max), U(max), Mux(value.asInstanceOf[UInt] < U(min), U(min), value))
-      case _: SInt => Mux(value.asInstanceOf[SInt] > S(max), S(max), Mux(value.asInstanceOf[SInt] < S(min), S(min), value))
-      case _: SFix => {
-        val SF_max = SF(BigDecimal(max), ExpNumber(value.asInstanceOf[SFix].maxExp), BitCount(value.asInstanceOf[SFix].bitCount))
-        val SF_min = SF(BigDecimal(min), ExpNumber(value.asInstanceOf[SFix].maxExp), BitCount(value.asInstanceOf[SFix].bitCount))
-        Mux(value.asInstanceOf[SFix] > SF_max, SF_max, Mux(value.asInstanceOf[SFix] < SF_min, SF_min, value))
-      }
-      case _: UFix => {
-        val UF_max = UF(BigDecimal(max), ExpNumber(value.asInstanceOf[UFix].maxExp), BitCount(value.asInstanceOf[UFix].bitCount))
-        val UF_min = UF(BigDecimal(min), ExpNumber(value.asInstanceOf[UFix].maxExp), BitCount(value.asInstanceOf[UFix].bitCount))
-        Mux(value.asInstanceOf[UFix] > UF_max, UF_max, Mux(value.asInstanceOf[UFix] < UF_min, UF_min, value))
-      }
-      case _ => value
-    }
-    clipNum.asInstanceOf[T]
-  }
-
-  def upDown[T <: Data](value: T, gen: T): T = {
-    val maxValue = max(gen)
-    val minValue = min(gen)
-    val upDownValue = clip(value, maxValue, minValue)
-    upDownValue
-  }
-
-  def resizePoint[T <: Data](value: T, gen:T):T = {
+  // abandon the clip and upDown
+  // make into the Operations
+  // Todo
+  def resizePoint[T <: Data](gen:T, value: T):T = {
+    val value_width = gen.getBitsWidth
     val resized = gen match {
-      case _:UInt => value.resized
-      case _:SInt => value.resized
-      case _:SFix => value.asInstanceOf[SFix].truncated
-      case _:UFix => value.asInstanceOf[UFix].truncated
+      case _:UInt => value.asInstanceOf[UInt].resized
+      case _:SInt => value.asInstanceOf[SInt].resized
+      case _:AFix => value.asInstanceOf[AFix].truncated
     }
     resized.asInstanceOf[T]
   }
-
   /***************** Arithmetic operations function ends *****************/
-
 }
 

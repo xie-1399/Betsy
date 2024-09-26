@@ -14,13 +14,13 @@ import spinal.core._
 object Gen extends App{
 
   //embedding arch
-  SpinalVerilog(SpinalConfig().withoutEnumString())(new Top(SInt(4 bits),Architecture.embeddings())).printPruned()
+  // SpinalVerilog(SpinalConfig().withoutEnumString())(new Top(SInt(4 bits),Architecture.embeddings())).printPruned()
 
   // tiny arch
   SpinalVerilog(SpinalConfig().withoutEnumString())(new Top(SInt(8 bits),Architecture.tiny())).printPruned()
 
   // normal arch
-  SpinalVerilog(SpinalConfig().withoutEnumString())(new Top(SInt(16 bits),Architecture.normal())).printPruned()
+  // SpinalVerilog(SpinalConfig().withoutEnumString())(new Top(SInt(16 bits),Architecture.normal())).printPruned()
 
   // large arch
   // SpinalVerilog(SpinalConfig().withoutEnumString())(new Top(SInt(16 bits),Architecture.large())) printPruned()

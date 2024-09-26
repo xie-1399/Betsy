@@ -17,7 +17,7 @@ import spinal.lib._
   * (2) just write into the accumulator
   * (3) write and accumulate into the accumulator */
 
-class AccumulatorWithALUArray[T <: Data](gen:HardType[T],arch: Architecture) extends BetsyModule {
+class AccumulatorWithALUArray[T <: Data with Num[T]](gen:HardType[T],arch: Architecture) extends BetsyModule {
   def simdHeight = arch.arraySize
   val layOut =  InstructionLayOut(arch)
 

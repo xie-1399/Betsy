@@ -14,7 +14,7 @@ import spinal.core._
 import spinal.lib._
 
 /* just two vectors add with stream control*/
-class VecAdder[T <: Data](gen:HardType[T],size:Int) extends BetsyModule{
+class VecAdder[T <: Data with Num[T]](gen:HardType[T],size:Int) extends BetsyModule{
 
   val io = new Bundle{
     val left = slave(Stream(Vec(gen(),size)))
@@ -25,7 +25,7 @@ class VecAdder[T <: Data](gen:HardType[T],size:Int) extends BetsyModule{
   /* with the clip down value */
   io.output.payload.zipWithIndex.foreach{
     p =>
-      p._1 := resizePoint(upDown(add(gen.craft(),io.left.payload(p._2),io.right.payload(p._2)),gen.craft()),gen.craft())
+      p._1 := add(io.left.payload(p._2),io.right.payload(p._2))
   }
 
   io.output.valid := io.left.valid && io.right.valid
