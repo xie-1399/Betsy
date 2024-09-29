@@ -26,7 +26,7 @@ class InnerSystolicArray[T <: Data with Num[T]](gen:HardType[T],height:Int,width
     new MAC(gen,name = s"_${i}_${j}_")
   }
 
-  val bias = Vec(Reg(gen).init(zero(gen.craft())),height)
+  val bias = Vec(Reg(gen).init(constConvert(gen(),0)),height)
   when(io.load){
     bias := io.weight
   }
@@ -34,7 +34,7 @@ class InnerSystolicArray[T <: Data with Num[T]](gen:HardType[T],height:Int,width
   /* connect the first row */
   for(j <- 0 until width){
     mac(0)(j).io.load := io.load
-    mac(0)(j).io.mulInput := Delay(io.input(j),j,init = zero(gen()))
+    mac(0)(j).io.mulInput := Delay(io.input(j),j,init = constConvert(gen(),0))
     if(j > 0){
       mac(0)(j).io.addInput := mac(0)(j - 1).io.macOut
     }
@@ -60,6 +60,6 @@ class InnerSystolicArray[T <: Data with Num[T]](gen:HardType[T],height:Int,width
 
   /* let all outputs can be calculate once */
   for(i <- 0 until height){
-    io.output(i) := Delay(mac(i)(width - 1).io.macOut,height - (i + 1),init = zero(gen()))
+    io.output(i) := Delay(mac(i)(width - 1).io.macOut,height - (i + 1),init = constConvert(gen(),0))
   }
 }

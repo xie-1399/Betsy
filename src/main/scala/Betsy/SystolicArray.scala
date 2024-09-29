@@ -45,8 +45,8 @@ class SystolicArray[T <: Data with Num[T]](gen:HardType[T],height:Int,width:Int)
   }
   val inputDone = arrayCounter === 0
   when(io.control.zeroes){
-    array.io.input.foreach(_ := zero(gen()))
-    array.io.weight.foreach(_ := zero(gen()))
+    array.io.input.foreach(_ := constConvert(gen(),0))
+    array.io.weight.foreach(_ := constConvert(gen(),0))
   }.otherwise{
     array.io.input := io.input.payload
     array.io.weight := io.weight.payload

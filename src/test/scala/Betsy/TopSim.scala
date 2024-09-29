@@ -8,7 +8,6 @@ import BetsyLibs.sim._
 // test all kinds of models like resnet/yolo in lots of systolic array config
 // first get the all instruction
 
-
 class TopSim extends AnyFunSuite{
   val arch = Architecture.normal()
   val instructionFile = "/media/xxl/Betsy/src/test/scala/Betsy/binary/resnet20v2_cifar_onnx_normal.txt"
@@ -29,9 +28,17 @@ class TopSim extends AnyFunSuite{
     dram1.start()
   }
 
-  
 
+  //Todo using the fix point
+  test("Linear"){
 
+  }
+
+  test("Conv with relu"){
+
+  }
+
+  // whole network
   test("resnet20_cifar") {
     SIMCFG().compile {
       val dut = new Top(SInt(16 bits), arch = arch) // 64 * 64 and 16 bits

@@ -9,6 +9,7 @@ package BetsyLibs
  */
 
 import Betsy.Until._
+import Betsy.Operations._
 import spinal.core._
 import spinal.lib._
 
@@ -24,7 +25,7 @@ class VecAdder[T <: Data with Num[T]](gen:HardType[T],size:Int) extends BetsyMod
   /* with the clip down value */
   io.output.payload.zipWithIndex.foreach{
     p =>
-      p._1 := upDown(io.left.payload(p._2) +^ io.right.payload(p._2),gen.craft()).resized
+      p._1 := add(io.left.payload(p._2),io.right.payload(p._2))
   }
 
   io.output.valid := io.left.valid && io.right.valid

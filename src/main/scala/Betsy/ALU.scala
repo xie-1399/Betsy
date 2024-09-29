@@ -10,10 +10,8 @@ package Betsy
 
 import spinal.core._
 import Until._
-
-/* support with the sign signals with the alu operation
-
-* Todo with the SFix Datatype */
+import Operations._
+/* support with the sign signals with the alu operation */
 
 class ALU[T <: Data with Num[T]](gen:HardType[T],numOps:Int, numRegisters:Int,
                                  inputPipe:Boolean = false,outputPipe:Boolean = false) extends BetsyModule {
@@ -26,9 +24,9 @@ class ALU[T <: Data with Num[T]](gen:HardType[T],numOps:Int, numRegisters:Int,
     val output = out(gen())
   }
 
-  def isTrue(signal: T): Bool = signal =/= zero(signal)
-  val Zero = zero(gen())
-  val One = one(gen())
+  def isTrue(signal: T): Bool = signal =/= constConvert(signal,0)
+  val Zero = constConvert(gen(),0)
+  val One = constConvert(gen(),1)
   val registers = Vec(Reg(gen).init(Zero),numRegisters)
 
   val op = if(inputPipe) RegNext(io.op).init(0) else io.op
@@ -55,22 +53,15 @@ class ALU[T <: Data with Num[T]](gen:HardType[T],numOps:Int, numRegisters:Int,
     is(ALUOp.Not){ result := Mux(isTrue(sourceLeft),Zero,One) } /* source left is zero -> One not zero -> zero */
     is(ALUOp.And){ result := Mux(isTrue(sourceLeft) && isTrue(sourceRight),One,Zero) }
     is(ALUOp.Or){ result := Mux(isTrue(sourceLeft) || isTrue(sourceRight),One,Zero) }
-    is(ALUOp.Increment){result := upDown(sourceLeft +^ One,gen.craft()).resized}
-    is(ALUOp.Decrement){result := upDown(sourceLeft -^ One,gen.craft()).resized}
-    is(ALUOp.Add){result := upDown(sourceLeft +^ sourceRight,gen.craft()).resized}
-    is(ALUOp.Sub){result := upDown(sourceLeft -^ sourceRight,gen.craft()).resized}
-    is(ALUOp.Mul){result := upDown(sourceLeft * sourceRight,gen.craft()).resized}
-    is(ALUOp.Abs){
-      val value = sourceLeft.asInstanceOf[SInt]
-      when(value === S(min(gen()))){  /* let the absolute -128 -> 127 */
-        result.assignFromBits(S(value.maxValue, result.getBitsWidth bits).asBits)
-      }.otherwise{
-        val abs = sourceLeft.asInstanceOf[SInt].abs
-        result.assignFromBits(abs.asBits)}
-      }
-    is(ALUOp.GreaterThan){result := Mux(sourceLeft > sourceRight,One,Zero)}
-    is(ALUOp.GreaterThanEqual){result := Mux(sourceLeft >= sourceRight,One,Zero)}
-    is(ALUOp.Min){result := Mux(sourceLeft > sourceRight,sourceRight,sourceLeft)}
-    is(ALUOp.Max){result := Mux(sourceLeft > sourceRight,sourceLeft,sourceRight)}
+    is(ALUOp.Increment){result := increase(sourceLeft)}
+    is(ALUOp.Decrement){result := decrease(sourceLeft)}
+    is(ALUOp.Add){result := add(sourceLeft,sourceRight)}
+    is(ALUOp.Sub){result := sub(sourceLeft,sourceRight)}
+    is(ALUOp.Mul){result := mul(sourceLeft,sourceRight)}
+    is(ALUOp.Abs){result := abs(sourceLeft)}
+    is(ALUOp.GreaterThan){result := Mux(gt(sourceLeft,sourceRight),constConvert(gen(),1),constConvert(gen(),0))}
+    is(ALUOp.GreaterThanEqual){result := Mux(gte(sourceLeft,sourceRight),constConvert(gen(),1),constConvert(gen(),0))}
+    is(ALUOp.Min){result := min(sourceLeft,sourceRight)}
+    is(ALUOp.Max){result := max(sourceLeft,sourceRight)}
   }
 }

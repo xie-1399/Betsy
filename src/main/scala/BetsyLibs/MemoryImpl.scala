@@ -7,7 +7,7 @@ package BetsyLibs
  ** Test Status : PASS :)      Version:0.1 **
  */
 
-import Betsy.Until.{BetsyModule, zero}
+import Betsy.Until.{BetsyModule, constConvert}
 import spinal.core._
 import spinal.lib._
 
@@ -45,9 +45,9 @@ class MemoryImpl[T <: Data](gen:HardType[T],depth:Long,ports:Int,
 
   impl match {
     case `RegistersBank` => { //when wen and ren at same time -> read first
-      val mem = Vec(Reg(gen()).init(zero(gen())),depth.toInt)
+      val mem = Vec(Reg(gen()).init(constConvert(gen(),0)),depth.toInt)
       for(idx <- 0 until ports) yield {
-        val rdata = Reg(gen()).init(zero(gen()))
+        val rdata = Reg(gen()).init(constConvert(gen(),0))
         io.Ports(idx).rdata := rdata
         when(io.Ports(idx).wen) {
           when(io.Ports(idx).ren) {

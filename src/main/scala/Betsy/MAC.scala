@@ -10,8 +10,9 @@ package Betsy
 
 import spinal.core._
 import Betsy.Until._
+import Operations._
 
-class MAC[T<: Data with Num[T]](gen:HardType[T],clip:Boolean = true,name:String = "") extends BetsyModule{
+class MAC[T<: Data with Num[T]](gen:HardType[T],name:String = "") extends BetsyModule{
 
   val io = new Bundle{
     val load =  in Bool()
@@ -22,20 +23,17 @@ class MAC[T<: Data with Num[T]](gen:HardType[T],clip:Boolean = true,name:String 
     val macOut = out(gen)
   }
 
-  val weight = Reg(gen()).init(zero(gen.craft())).setName(name + "inner_weight")
-  val macOut = Reg(gen()).init(zero(gen.craft())).setName(name + "inner_macOut")
+  val weight = Reg(gen()).init(constConvert(gen(),0)).setName(name + "inner_weight")
+  val macOut = Reg(gen()).init(constConvert(gen(),0)).setName(name + "inner_macOut")
 
-  io.passthrough := RegNext(io.mulInput).init(zero(gen.craft()))
+  io.passthrough := RegNext(io.mulInput).init(constConvert(gen(),0))
 
   when(io.load){ /* load the weight*/
     weight := io.addInput
     io.macOut := weight
   }.otherwise{
-    val macTemp = if(clip) {
-      upDown(mac(gen.craft(),io.mulInput,weight,io.addInput),gen()).resized /* clip the value */
-    } else {
-      mac(gen.craft(),io.mulInput,weight,io.addInput).resized    /* just overflow resize */
-    }
+    val macTemp = mac(io.mulInput,weight,io.addInput)
+    /* the mac out unit should be resized to adapt the bit width */
     macOut := macTemp
     io.macOut := macOut
   }
