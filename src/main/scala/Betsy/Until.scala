@@ -46,7 +46,7 @@ object Until{
     val const = gen match {
       case _: UInt => U(value, gen.getBitsWidth bits)
       case _: SInt => S(value, gen.getBitsWidth bits)
-      case _: AFix => AF(BigDecimal(value), BitCount(gen.asInstanceOf[AFix].intWidth), BitCount(gen.asInstanceOf[AFix].fracWidth), gen.asInstanceOf[AFix].signed)
+      case _: AFix => AF(BigDecimal(value), BitCount(gen.asInstanceOf[AFix].intWidth - 1), BitCount(gen.asInstanceOf[AFix].fracWidth), gen.asInstanceOf[AFix].signed)
       case _: Bits => B(value, gen.getBitsWidth bits)
       case _ => throw new Exception("constConvert : not support the data type!!!")
     }

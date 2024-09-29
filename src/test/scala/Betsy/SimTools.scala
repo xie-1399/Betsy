@@ -27,6 +27,23 @@ object SimTools {
     clip
   }
 
+  def clipValueForDouble(max: Double, min: Double, value: Double): Double = {
+    val clip = if (value >= max) {
+      max
+    }
+    else if (value < min) {
+      min
+    }
+    else {
+      value
+    }
+    clip
+  }
+
+  def compareDouble(m1: Double, m2: Double, exp: Int): Boolean = {
+    (m1 -  m2).abs < math.pow(2, exp)
+  }
+
   def reorderMatrix(array: Array[Array[Int]], orderChange: Boolean = true): Array[Int] = {
     val rows = array.length
     val cols = array(0).length

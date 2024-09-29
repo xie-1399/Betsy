@@ -10,6 +10,7 @@ package Betsy
 import spinal.core._
 import spinal.lib._
 import Betsy.Until._
+import scala.math
 
 // all the operations will get the right value(with carry)
 // the overflow will control the output in the range
@@ -21,22 +22,73 @@ object Operations {
 
   // Add
   def add[T <: Data with Num[T]](m1:T, m2:T, overflow:Boolean = true): T = {
-    val res = if(overflow) m1 +| m2 else m1 +^ m2
-    res
+    val res = (m1, m2) match {
+      case (m1: AFix, m2: AFix) => {
+        if(overflow){
+          (m1 + m2).sat(m1).truncated
+        }
+        else m1 + m2
+      }
+      case (m1: SInt, m2: SInt) => {
+        if(overflow) m1 +| m2 else m1 +^ m2
+      }
+      case (m1: UInt, m2: UInt) => {
+        if (overflow) m1 +| m2 else m1 +^ m2
+      }
+      case _ => {
+        assert(true, s"Only three data types, SInt, UInt and AFix are supported")
+      }
+    }
+    res.asInstanceOf[T]
   }
   // Sub
   def sub[T <: Data with Num[T]](m1: T, m2: T, overflow:Boolean = true): T = {
-    val res = if(overflow) m1 -| m2 else m1 -^ m2
-    res
+    val res = (m1, m2) match {
+      case (m1: AFix, m2: AFix) => {
+        if(overflow){
+          (m1 - m2).sat(m1).truncated
+        }
+        else m1 - m2
+      }
+      case (m1: SInt, m2: SInt) => {
+        if(overflow) m1 -| m2 else m1 -^ m2
+      }
+      case (m1: UInt, m2: UInt) => {
+        if (overflow) m1 -| m2 else m1 -^ m2
+      }
+      case _ => {
+        assert(true, s"Only three data types, SInt, UInt and AFix are supported")
+      }
+    }
+    res.asInstanceOf[T]
   }
   // Mul
   def mul[T <: Data with Num[T]](m1: T, m2: T, overflow:Boolean = true): T = {
     val cut_width = m1.getBitsWidth
-    val res = if(overflow){
-      (m1 * m2).sat(cut_width)
+    val res = (m1, m2) match {
+      case (m1: AFix, m2: AFix) => {
+        if(overflow){
+          (m1 * m2).sat(m1).truncated
+        }
+        else m1 * m2
+      }
+      case (m1: SInt, m2: SInt) => {
+        if(overflow){
+          (m1 * m2).sat(cut_width)
+        }
+        else m1 * m2
+      }
+      case (m1: UInt, m2: UInt) => {
+        if(overflow){
+          (m1 * m2).sat(cut_width)
+        }
+        else m1 * m2
+      }
+      case _ => {
+        assert(true, s"Only three data types, SInt, UInt and AFix are supported")
+      }
     }
-    else m1 * m2
-    res
+    res.asInstanceOf[T]
   }
   // Divide (no overflow control)
   def divide[T <: Data with Num[T]](m1: T, m2: T): T = {
@@ -44,32 +96,79 @@ object Operations {
     res
   }
   // Increase
-  def increase[T <: Data with Num[T]](source: T): T = {
-    val res = source +| constConvert(source,1)
-    res
+  def increase[T <: Data with Num[T]](source: T, overflow:Boolean = true): T = {
+    val res = source match {
+      case source: AFix => {
+        if (overflow) {
+          (source + constConvert(source, 1)).sat(source).truncated
+        }
+        else source +^ constConvert(source, 1)
+      }
+      case source: SInt => {
+        if (overflow) source +| constConvert(source, 1) else source +^ constConvert(source, 1)
+      }
+      case source: UInt => {
+        if (overflow) source +| constConvert(source, 1) else source +^ constConvert(source, 1)
+      }
+      case _ => {
+        assert(true, s"Only three data types, SInt, UInt and AFix are supported")
+      }
+    }
+    res.asInstanceOf[T]
   }
   // Decrease
-  def decrease[T <: Data with Num[T]](source: T): T = {
-    val res = source -| constConvert(source,1)
-    res
+  def decrease[T <: Data with Num[T]](source: T, overflow:Boolean = true): T = {
+    val res = source match {
+      case source: AFix => {
+        if (overflow) {
+          (source - constConvert(source, 1)).sat(source).truncated
+        }
+        else source -^ constConvert(source, 1)
+      }
+      case source: SInt => {
+        if (overflow) source -| constConvert(source, 1) else source -^ constConvert(source, 1)
+      }
+      case source: UInt => {
+        if (overflow) source -| constConvert(source, 1) else source -^ constConvert(source, 1)
+      }
+      case _ => {
+        assert(true, s"Only three data types, SInt, UInt and AFix are supported")
+      }
+    }
+    res.asInstanceOf[T]
   }
   // Abs
   def abs[T <: Data with Num[T]](source: T): T = {
     val res = source match {
-      case _:UInt => source
-      case _:SInt => {
+      case source: UInt => source
+      case source: SInt => {
         val abs = source.asInstanceOf[SInt].absWithSym
         val toSInt = S(0,1 bits) @@ abs.asSInt
         toSInt
       }
-      case _:AFix => {
-        val fix_abs = if(source.asInstanceOf[AFix].signed){
+      case source: AFix =>{
+        if(source.asInstanceOf[AFix].signed){
           //Todo
           //source.asInstanceOf[AFix].asUFix()
-        }else{
+          val maxRaw = source.asInstanceOf[AFix].maxRaw
+          val minRaw = source.asInstanceOf[AFix].minRaw
+          val expNumber = source.asInstanceOf[AFix].exp
+          var tmp = new AFix(maxRaw, minRaw, expNumber)
+          tmp.raw := ~source.asInstanceOf[AFix].raw
+          val bias = new AFix(maxRaw, minRaw, expNumber)
+          bias := math.pow(2, expNumber)
+          val max = new AFix(maxRaw, minRaw, expNumber)
+          max := source.asInstanceOf[AFix].maxValue.toDouble
+          tmp = tmp +| bias
+          Mux(source.isNegative(), Mux(!tmp.raw.msb, tmp, max), source)
+        } else {
           source
         }
       }
+      case _ => {
+        assert(true, s"Only three data types, SInt, UInt and AFix are supported")
+      }
+
     }
     res.asInstanceOf[T]
   }
