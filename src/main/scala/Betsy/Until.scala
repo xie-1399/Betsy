@@ -31,8 +31,6 @@ object Until{
     val reverse:Bool
   }
 
-
-  /***************** Arithmetic operations function *****************/
   /* if overflow the add max , will from the start to calculate */
   def wrappingAdd(s1:UInt,s2:UInt,overflow:Int):UInt = {
     require(overflow > 0,"overflow must great than 0!!!")
@@ -67,6 +65,5 @@ object Until{
     }
     resized.asInstanceOf[T]
   }
-  /***************** Arithmetic operations function ends *****************/
 }
 

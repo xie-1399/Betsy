@@ -19,7 +19,7 @@ object Operations {
 
   //Todo with AFix check and test
 
-  // Add with carry
+  // Add
   def add[T <: Data with Num[T]](m1:T, m2:T, overflow:Boolean = true): T = {
     val res = if(overflow) m1 +| m2 else m1 +^ m2
     res
