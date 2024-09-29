@@ -8,6 +8,7 @@ package Betsy
  */
 
 import spinal.core._
+import spinal.core.sim._
 import spinal.lib._
 import Betsy.Until._
 import scala.math
@@ -17,8 +18,6 @@ import scala.math
 
 
 object Operations {
-
-  //Todo with AFix check and test
 
   // Add
   def add[T <: Data with Num[T]](m1:T, m2:T, overflow:Boolean = true): T = {
@@ -90,11 +89,16 @@ object Operations {
     }
     res.asInstanceOf[T]
   }
-  // Divide (no overflow control)
-  def divide[T <: Data with Num[T]](m1: T, m2: T): T = {
-    val res = m1 / m2
-    res
-  }
+
+  // Divide (no overflow control) Todo with the fixed divede
+//  def divide[T <: Data with Num[T]](m1: T, m2: T): T = {
+//    val res = (m1, m2) match {
+//      case (m1: AFix, m2: AFix) => (m1 / m2).truncated
+//      case _ =>
+//    }
+//    res.asInstanceOf[T]
+//  }
+
   // Increase
   def increase[T <: Data with Num[T]](source: T, overflow:Boolean = true): T = {
     val res = source match {
@@ -148,8 +152,6 @@ object Operations {
       }
       case source: AFix =>{
         if(source.asInstanceOf[AFix].signed){
-          //Todo
-          //source.asInstanceOf[AFix].asUFix()
           val maxRaw = source.asInstanceOf[AFix].maxRaw
           val minRaw = source.asInstanceOf[AFix].minRaw
           val expNumber = source.asInstanceOf[AFix].exp
