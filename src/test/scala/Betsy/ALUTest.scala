@@ -86,5 +86,79 @@ class ALUTest extends AnyFunSuite {
     }
   }
 
+  test("AFix ") {
+    SIMCFG().compile {
+      val dut = new ALU(AFix(4 exp, -2 exp, true), numOps = 16, numRegisters = 1) /* no insert registers */
+      dut.registers.simPublic()
+      dut
+    }.doSimUntilVoid {
+      dut =>
+        SimTimeout(10 us)
+        dut.clockDomain.forkStimulus(10)
+        def testCase = 4096 * 4
+        def typeAFix = AFix(4 exp, -2 exp, true)
+        def intWidth = typeAFix.intWidth
+        def maxValue = typeAFix.maxValue.toDouble
+        def minValue = typeAFix.minValue.toDouble
+        def fracWidth = -1 * typeAFix.fracWidth
+        val sign = true
+
+        def ALUInit(): Unit = {
+          dut.io.input #= 0
+          dut.io.op #= 0
+          dut.io.dest #= 0
+          dut.io.sourceLeft #= 0
+          dut.io.sourceRight #= 0
+          dut.clockDomain.waitSampling()
+        }
+
+        ALUInit()
+        val inputs = if (sign) Array.fill(testCase) {math.pow(2, fracWidth) * Random.nextInt(math.pow(2, intWidth - fracWidth - 4).toInt - 1) - math.pow(2, intWidth - 1)}
+        else {Array.fill(testCase) {math.pow(2, fracWidth) * Random.nextInt(math.pow(2, intWidth - fracWidth).toInt - 1) - math.pow(2, intWidth - 1)}}
+
+        for (idx <- 0 until testCase) {
+          val arrayOp = Array(0, 1, 2, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)
+          val randOp = arrayOp(Random.nextInt(13))
+          val randLeft = Random.nextInt(2)
+          val randRight = Random.nextInt(2)
+          val randDest = Random.nextInt(2)
+          dut.io.op #= randOp
+          dut.io.sourceLeft #= randLeft
+          dut.io.sourceRight #= randRight
+          dut.io.dest #= randDest
+          dut.io.input #= inputs(idx)
+          dut.clockDomain.waitSampling()
+
+          val sourceLeftValue = if (randLeft == 0) {inputs(idx)} else {dut.registers(0).toDouble}
+          val sourceRightValue = if (randRight == 0) {inputs(idx)} else {dut.registers(0).toDouble}
+          val min = if (sourceLeftValue > sourceRightValue) {sourceRightValue} else {sourceLeftValue}
+          val max = if (sourceLeftValue > sourceRightValue) {sourceLeftValue} else {sourceRightValue}
+          val greater = sourceLeftValue > sourceRightValue
+          val greaterThan = sourceLeftValue >= sourceRightValue
+          randOp match {
+            case 0 => assert(compareDouble(dut.io.output.toDouble, inputs(idx), 0), "NoOp error !!!")
+            case 1 => assert(compareDouble(dut.io.output.toDouble, 0, 0), "Zero error !!!")
+            case 2 => assert(compareDouble(dut.io.output.toDouble, sourceLeftValue, 0), "Move error !!!")
+            case 6 => assert(compareDouble(dut.io.output.toDouble, clipValueForDouble(maxValue, minValue, sourceLeftValue + 1), 0), "Increment error !!!")
+            case 7 => assert(compareDouble(dut.io.output.toDouble, clipValueForDouble(maxValue, minValue, sourceLeftValue - 1), 0), "Decrement error !!!")
+            case 8 => assert(compareDouble(dut.io.output.toDouble, clipValueForDouble(maxValue, minValue, sourceLeftValue + sourceRightValue), 0), s"${dut.io.output.toDouble} /= ${clipValueForDouble(maxValue, minValue, sourceLeftValue + sourceRightValue)} -> Add error !!!")
+            case 9 => assert(compareDouble(dut.io.output.toDouble, clipValueForDouble(maxValue, minValue, sourceLeftValue - sourceRightValue), 0), s"${dut.io.output.toDouble} /= ${clipValueForDouble(maxValue, minValue, sourceLeftValue - sourceRightValue)} -> Sub error !!!")
+            case 10 => assert(compareDouble(dut.io.output.toDouble, clipValueForDouble(maxValue, minValue, sourceLeftValue * sourceRightValue), fracWidth), "Mul error !!!")
+            case 11 =>
+              if (sourceLeftValue.abs != math.pow(2, intWidth - 1)) {
+                assert(dut.io.output.toDouble == (sourceLeftValue.abs), s"${dut.io.output.toDouble} /= ${(sourceLeftValue.abs)} -> Abs error !!!")
+              }else{
+                assert(dut.io.output.toDouble == math.pow(2, intWidth - 1) - math.pow(2, fracWidth))
+              }
+            case 12 => assert(dut.io.output.toDouble == greater.toInt, "greater error !!!")
+            case 13 => assert(dut.io.output.toDouble == greaterThan.toInt, "greater than error !!!")
+            case 14 => assert(dut.io.output.toDouble == min, "min error !!!")
+            case 15 => assert(dut.io.output.toDouble == max, "max error !!!")
+            case _ =>
+          }
+        }
+        simSuccess()
+    }
+  }
 
 }
