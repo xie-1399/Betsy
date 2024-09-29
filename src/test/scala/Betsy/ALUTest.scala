@@ -117,8 +117,7 @@ class ALUTest extends AnyFunSuite {
         else {Array.fill(testCase) {math.pow(2, fracWidth) * Random.nextInt(math.pow(2, intWidth - fracWidth).toInt - 1) - math.pow(2, intWidth - 1)}}
 
         for (idx <- 0 until testCase) {
-          val arrayOp = Array(0, 1, 2, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)
-          val randOp = arrayOp(Random.nextInt(13))
+          val randOp = Random.nextInt(16)
           val randLeft = Random.nextInt(2)
           val randRight = Random.nextInt(2)
           val randDest = Random.nextInt(2)
@@ -131,6 +130,8 @@ class ALUTest extends AnyFunSuite {
 
           val sourceLeftValue = if (randLeft == 0) {inputs(idx)} else {dut.registers(0).toDouble}
           val sourceRightValue = if (randRight == 0) {inputs(idx)} else {dut.registers(0).toDouble}
+          val leftBoolValue = sourceLeftValue != 0
+          val rightBoolValue = sourceRightValue != 0
           val min = if (sourceLeftValue > sourceRightValue) {sourceRightValue} else {sourceLeftValue}
           val max = if (sourceLeftValue > sourceRightValue) {sourceLeftValue} else {sourceRightValue}
           val greater = sourceLeftValue > sourceRightValue
@@ -139,6 +140,9 @@ class ALUTest extends AnyFunSuite {
             case 0 => assert(compareDouble(dut.io.output.toDouble, inputs(idx), 0), "NoOp error !!!")
             case 1 => assert(compareDouble(dut.io.output.toDouble, 0, 0), "Zero error !!!")
             case 2 => assert(compareDouble(dut.io.output.toDouble, sourceLeftValue, 0), "Move error !!!")
+            case 3 => assert(dut.io.output.toDouble == (!leftBoolValue).toInt, "Not error !!!")
+            case 4 => assert(dut.io.output.toDouble == (leftBoolValue && rightBoolValue).toInt, "And error !!!")
+            case 5 => assert(dut.io.output.toDouble == (leftBoolValue || rightBoolValue).toInt, "Or error !!!")
             case 6 => assert(compareDouble(dut.io.output.toDouble, clipValueForDouble(maxValue, minValue, sourceLeftValue + 1), 0), "Increment error !!!")
             case 7 => assert(compareDouble(dut.io.output.toDouble, clipValueForDouble(maxValue, minValue, sourceLeftValue - 1), 0), "Decrement error !!!")
             case 8 => assert(compareDouble(dut.io.output.toDouble, clipValueForDouble(maxValue, minValue, sourceLeftValue + sourceRightValue), 0), s"${dut.io.output.toDouble} /= ${clipValueForDouble(maxValue, minValue, sourceLeftValue + sourceRightValue)} -> Add error !!!")
