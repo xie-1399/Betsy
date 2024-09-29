@@ -40,22 +40,6 @@ object SimTools {
     clip
   }
   // ignore the error between Double multiplication and AFix multiplication
-  def compareDouble(m1: Double, m2: Double, exp: Int): Boolean = {
-    (m1 -  m2).abs < math.pow(2, exp)
-  }
-
-  def clipValueForDouble(max: Double, min: Double, value: Double): Double = {
-    val clip = if (value >= max) {
-      max
-    }
-    else if (value < min) {
-      min
-    }
-    else {
-      value
-    }
-    clip
-  }
 
   def compareDouble(m1: Double, m2: Double, exp: Int): Boolean = {
     (m1 -  m2).abs < math.pow(2, exp)
