@@ -12,7 +12,7 @@ val spinalIdslPlugin = compilerPlugin("com.github.spinalhdl" %% "spinalhdl-idsl-
 lazy val projectname = (project in file("."))
   .settings(
     Compile / scalaSource := baseDirectory.value / "src" / "main" / "scala" ,
-    // Compile / unmanagedSourceDirectories += baseDirectory.value / "software" / "src",  // the row compiler
+    Compile / unmanagedSourceDirectories += baseDirectory.value / "software" / "src",  // the row compiler
     Compile / PB.protoSources := Seq(baseDirectory.value / "software"/ "protobuf"),
     Compile / PB.targets := Seq(
       scalapb.gen() -> (Compile / sourceManaged).value
