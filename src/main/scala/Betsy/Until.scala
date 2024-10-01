@@ -53,6 +53,8 @@ object Until{
     const.asInstanceOf[T]
   }
 
+  def zero[T <: Data](gen:T):T = constConvert(gen,0)
+
   // abandon the clip and upDown
   // make into the Operations
   // Todo

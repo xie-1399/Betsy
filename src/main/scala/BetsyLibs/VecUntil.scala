@@ -32,3 +32,29 @@ class VecAdder[T <: Data with Num[T]](gen:HardType[T],size:Int) extends BetsyMod
   io.left.ready := io.output.ready && io.right.valid
   io.right.ready := io.output.ready && io.left.valid
 }
+
+
+
+// more than 3 vectors add operation
+class MultiVecAdder[T <: Data with Num[T]](gen:HardType[T],size:Int,vecNum:Int) extends BetsyModule{
+  val io = new Bundle{
+    val inputs = slave Stream Vec(Vec(gen(),size),vecNum)
+    val outputs = master Stream Vec(gen(),size)
+  }
+  // combine logic for the plus
+  def plus(m1: Vec[T], m2: Vec[T]): Vec[T] = {
+    val res = cloneOf(m1)
+    res.zipWithIndex.foreach {
+      r =>
+        r._1 := add(m1(r._2), m2(r._2))
+    }
+    res
+  }
+  // one cycle later
+  val inter_reg = Vec(Reg(gen()).init(zero(gen())),size)
+  inter_reg := io.inputs.payload.reduceBalancedTree((op1, op2) => plus(op1, op2))
+
+  io.outputs.valid := RegNext(io.inputs.valid).init(False)
+  io.inputs.ready := io.outputs.ready
+  io.outputs.payload := inter_reg
+}

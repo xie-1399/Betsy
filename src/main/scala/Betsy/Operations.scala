@@ -11,6 +11,8 @@ import spinal.core._
 import spinal.core.sim._
 import spinal.lib._
 import Betsy.Until._
+import BetsyLibs.SIMCFG
+
 import scala.math
 
 // all the operations will get the right value(with carry)
@@ -90,14 +92,41 @@ object Operations {
     res.asInstanceOf[T]
   }
 
-  // Divide (no overflow control) Todo with the fixed divede
-//  def divide[T <: Data with Num[T]](m1: T, m2: T): T = {
-//    val res = (m1, m2) match {
-//      case (m1: AFix, m2: AFix) => (m1 / m2).truncated
-//      case _ =>
-//    }
-//    res.asInstanceOf[T]
-//  }
+  // Divide (no overflow control) Todo
+  def divide[T <: Data with Num[T]](m1: T, m2: T): T = {
+    val res = (m1, m2) match {
+      case (m1: UInt, m2: UInt) => (m1 / m2).resized
+      case (m1: SInt, m2: SInt) => (m1 / m2).resized
+      case (m1: AFix, m2: AFix) => {
+        val temp = (m1 / m2).asBits
+        val res = cloneOf(m1)
+        res.assignFromBits(temp)
+        res
+      }
+      case _ =>
+    }
+    res.asInstanceOf[T]
+  }
+
+  def rightShift[T <: Data with Num[T]](m:T, n:Int): T = {
+    val res = m match {
+      case m:AFix => m.asInstanceOf[AFix] >>| n
+      case m:UInt => (m.asInstanceOf[UInt] >> n).resized
+      case m:SInt => (m.asInstanceOf[SInt] >> n).resized
+      case _ => assert(true, s"Only three data types, SInt, UInt and AFix are supported")
+    }
+    res.asInstanceOf[T]
+  }
+
+  def leftShift[T <: Data with Num[T]](m: T, n: Int): T = {
+    val res = m match {
+      case m: AFix => (m.asInstanceOf[AFix] << n).sat(m).truncated
+      case m: UInt => (m.asInstanceOf[UInt] << n).resized
+      case m: SInt => (m.asInstanceOf[SInt] << n).resized
+      case _ => assert(true, s"Only three data types, SInt, UInt and AFix are supported")
+    }
+    res.asInstanceOf[T]
+  }
 
   // Increase
   def increase[T <: Data with Num[T]](source: T, overflow:Boolean = true): T = {
@@ -219,5 +248,33 @@ object Operations {
     val res = mul(mul(source,source),source)
     res
   }
+}
 
+
+class OperationsTest[T <: Data with Num[T]](gen:HardType[T]) extends Component{
+
+  val io = new Bundle{
+    val in1 = in (gen())
+    val in2 = in (gen())
+    val res = out (gen())
+  }
+
+  io.res := Operations.divide(io.in1,io.in2)
+
+}
+
+object OperationsTest extends App{
+
+  SIMCFG().compile{
+    val dut = new OperationsTest(AFix(7 exp, -8 exp, true))
+    dut
+  }.doSimUntilVoid{
+    dut =>
+      dut.clockDomain.forkStimulus(10)
+      dut.io.in1 #= -2.75
+      dut.io.in2 #= -2.75
+      dut.clockDomain.waitSampling()
+      println(dut.io.res.toDouble)
+      simSuccess()
+  }
 }
