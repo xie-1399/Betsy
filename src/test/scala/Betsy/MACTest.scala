@@ -7,7 +7,7 @@ import spinal.core.sim._
 
 import scala.util.Random
 
-// Todo add fixed point Mac
+
 class MACTest extends AnyFunSuite {
 
   test("SINT Clip"){

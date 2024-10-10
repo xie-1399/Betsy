@@ -6,7 +6,7 @@ from pathlib import Path
 import sys
 import onnx
 from onnx import version_converter, helper
-
+import onnxruntime
 
 wd = Path(__file__).parent.parent.resolve()
 sys.path.append(str(wd))
@@ -35,13 +35,15 @@ def convert(torch_model, input_data, weight_file,
                       onnx_file,
                       export_params=True,
                       opset_version=opset_version,
-                      do_constant_folding=True
+                      do_constant_folding=True,
+                      output_names=["Identity"]
                       )
     print("convert the onnx finish")
 
-    if forward:
-        output = torch_model(input_data)
-        print(f"the output is {output} ")
+#     if forward:
+#         onnxruntime_outputs = run(input_data, onnx_file)
+#         print(f"onnx output: {onnxruntime_outputs}")
+
     return 0
 
 
@@ -59,21 +61,13 @@ def opset_version_convert(onnx_file, opset_version, ir_version, new_onnx_file):
     print("convert version : " + str(original_model.opset_import[0].version))
 
 
-# a demo for the feed forward network to convert the onnx format
-def feed_forward_network_demo():
-    images = torch.randn(1, 28 * 28)
-    input_size = 784
-    hidden_size = 500
-    num_classes = 10
-    opset_version = 10  # raw compiler only support opset_version [9,10]
+# run with the onnx_model
+def run(torch_input, path):
+    ort_session = onnxruntime.InferenceSession(path, providers=['CPUExecutionProvider'])
 
-    model = FeedForwardNetwork.NeuralNet(input_size, hidden_size, num_classes)
-    print(model)
-    convert(model, images, weight_file="../checkpoint/FeedForwardNetwork.pth",
-            onnx_file="./FeedForwardNetwork.onnx", opset_version=opset_version)
+    def to_numpy(tensor):
+        return tensor.detach().cpu().numpy() if tensor.requires_grad else tensor.cpu().numpy()
 
-
-if __name__ == '__main__':
-
-    # feed_forward_network_demo()
-    opset_version_convert("../checkpoint/onnx/FeedForwardNetwork.onnx", 10, 5, "./new_FeedForwardNetwork.onnx")
+    onnxruntime_input = {k.name: to_numpy(v) for k, v in zip(ort_session.get_inputs(), torch_input)}
+    onnxruntime_outputs = ort_session.run(None, onnxruntime_input)
+    return onnxruntime_outputs

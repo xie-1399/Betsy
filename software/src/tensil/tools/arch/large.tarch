@@ -1,6 +1,6 @@
 {
     "data_type": "FP16BP8",
-    "array_size": 128,
+    "array_size": 64,
     "dram0_depth": 2097152,
     "dram1_depth": 2097152,
     "local_depth": 8192,

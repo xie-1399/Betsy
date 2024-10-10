@@ -28,10 +28,10 @@ case class Args(
 object Generator extends App{
   // Todo update the file path (can generate)
   val genArg = Args(
-    archFile = new File("/media/xxl/Betsy/software/src/tensil/tools/arch/normal.tarch"),
-    modelFile = new File("/media/xxl/Betsy/software/tensil-models-main/resnet20v2_cifar.onnx"),
-    outputNodes = Seq("Identity:0"),
-    targetDir = new File("/media/xxl/Betsy/software/src/tensil/tools/gen"),
+    archFile = new File("/home/xie/Betsy/software/src/tensil/tools/arch/normal.tarch"),
+    modelFile = new File("/home/xie/Betsy/model/checkpoint/onnx/Linear_64_256_10_op10.onnx"),
+    outputNodes = Seq("Identity"),
+    targetDir = new File("/home/xie/Betsy/software/src/tensil/tools/gen"),
     summary = true,
     instructionsSummary = true,
     writeProgramAssembly = true

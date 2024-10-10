@@ -10,8 +10,7 @@ import BetsyLibs.sim._
 
 class TopSim extends AnyFunSuite{
   val arch = Architecture.normal()
-  val instructionFile = "/media/xxl/Betsy/src/test/scala/Betsy/binary/resnet20v2_cifar_onnx_normal.txt"
-  def init(dut: Top[SInt], random:Boolean): Unit = {
+  def init[T <: Data with Num[T]](dut: Top[T], random:Boolean): Unit = {
     AxiInit(dut.io.activationBus)
     AxiInit(dut.io.weightBus)
     dut.io.instruction.valid #= false
@@ -20,6 +19,10 @@ class TopSim extends AnyFunSuite{
 
     val dram0 = Axi4MemorySimV2(dut.io.weightBus, dut.clockDomain, SimConfig.axiconfig)
     val dram1 = Axi4MemorySimV2(dut.io.activationBus, dut.clockDomain, SimConfig.axiconfig)
+
+//    dram0.memory.loadBinary(0, "")
+//    dram1.memory.loadBinary()
+
     if (random) {
       dram0.randomAlloc(0)
       dram1.randomAlloc(0)
@@ -29,8 +32,8 @@ class TopSim extends AnyFunSuite{
   }
 
 
-  //Todo using the fix point
   test("Linear"){
+
 
   }
 
@@ -41,11 +44,12 @@ class TopSim extends AnyFunSuite{
   // whole network
   test("resnet20_cifar") {
     SIMCFG().compile {
-      val dut = new Top(SInt(16 bits), arch = arch) // 64 * 64 and 16 bits
+      val dut = new Top(AFix(7 exp, -8 exp, true), arch = arch) // 64 * 64 and 16 bits
       dut
     }.doSimUntilVoid {
       dut =>
         dut.clockDomain.forkStimulus(10)
+        val instructionFile = "/home/xie/Betsy/src/test/scala/Betsy/binary/resnet20v2_cifar_onnx_normal.txt"
         val instructionBuffer: Array[BigInt] = Logger.readFile(instructionFile).map(BigInt(_, 2)).toArray
         println(instructionBuffer.length)
         init(dut, random = true)

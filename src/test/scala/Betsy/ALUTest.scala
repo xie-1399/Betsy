@@ -86,7 +86,7 @@ class ALUTest extends AnyFunSuite {
     }
   }
 
-  test("AFix ") {
+  test("AFix") {
     SIMCFG().compile {
       val dut = new ALU(AFix(4 exp, -2 exp, true), numOps = 16, numRegisters = 1) /* no insert registers */
       dut.registers.simPublic()

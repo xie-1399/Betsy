@@ -34,19 +34,20 @@ case class Architecture( dataType:String = "UInt_16",
   val dataWidth = dataType.split("_")(1).toInt
   require(dataWidth > 0, "the data width must > 0 !!!")
   val dataKind = dataType.split("_")(0)
-  require(dataKind == "SInt" || dataKind == "UInt", "Only Support (SInt,UInt) datatype, Please check the name!!!")
+  require(dataKind == "SInt" || dataKind == "UInt" || dataKind == "AFix", "Only Support (SInt,UInt,AFix) datatype, Please check the name!!!")
   require(isPow2(arraySize),"the array size should be pow of 2!!!")
   require(arraySize * dataWidth % bandWidth == 0, "external band width error !!!")
   override def sizeBytes: Double = dataWidth / 8
 }
 
-/* add more architecture examples here */
+/* add more architecture examples here
+* update the architecture to the fixed point data type*/
 
 object Architecture{
 
   def embeddings():Architecture = {
     val arch = Architecture(
-      dataType = "SInt_4",
+      dataType = "AFix_4",
       arraySize = 4,
       dram0Depth = 1024 * 1024, // 20 bits dram address
       dram1Depth = 1024 * 1024,
@@ -62,7 +63,7 @@ object Architecture{
   def tiny(): Architecture = {
     // 4 + 4 + 16 + 20 + 20 = 64
     val arch = Architecture(
-      dataType = "SInt_8",
+      dataType = "AFix_8",
       arraySize = 8,
       dram0Depth = 1024 * 1024,  // 20 bits dram address
       dram1Depth = 1024 * 1024,
@@ -78,7 +79,7 @@ object Architecture{
   // default config (overflow check)
   def normal():Architecture = {
     val arch = Architecture(
-      dataType = "SInt_16",
+      dataType = "AFix_16",
       arraySize = 64,
       dram0Depth = 1024 * 1024,
       dram1Depth = 1024 * 1024,
@@ -93,7 +94,7 @@ object Architecture{
 
   def large():Architecture = {
     val arch = Architecture(
-      dataType = "SInt_16",
+      dataType = "AFix_16",
       arraySize = 128,
       dram0Depth = 1024 * 1024 * 2, // 21 bits dram address
       dram1Depth = 1024 * 1024 * 2,

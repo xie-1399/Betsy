@@ -17,7 +17,7 @@ import scala.math
 
 // all the operations will get the right value(with carry)
 // the overflow will control the output in the range
-
+// Todo with division
 
 object Operations {
 
@@ -247,34 +247,5 @@ object Operations {
   def cube[T <: Data with Num[T]](source: T): T = {
     val res = mul(mul(source,source),source)
     res
-  }
-}
-
-
-class OperationsTest[T <: Data with Num[T]](gen:HardType[T]) extends Component{
-
-  val io = new Bundle{
-    val in1 = in (gen())
-    val in2 = in (gen())
-    val res = out (gen())
-  }
-
-  io.res := Operations.divide(io.in1,io.in2)
-
-}
-
-object OperationsTest extends App{
-
-  SIMCFG().compile{
-    val dut = new OperationsTest(AFix(7 exp, -8 exp, true))
-    dut
-  }.doSimUntilVoid{
-    dut =>
-      dut.clockDomain.forkStimulus(10)
-      dut.io.in1 #= -2.75
-      dut.io.in2 #= -2.75
-      dut.clockDomain.waitSampling()
-      println(dut.io.res.toDouble)
-      simSuccess()
   }
 }
