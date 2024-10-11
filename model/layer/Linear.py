@@ -85,10 +85,7 @@ def to_numpy(tensor):
 # running with the onnx model
 def onnx_running():
     onnx_file = "../checkpoint/onnx/Linear_64_256_10_op10.onnx"
-
-
     return
-
 
 
 if __name__ == '__main__':
@@ -96,13 +93,18 @@ if __name__ == '__main__':
     exponent_bits = 7
     mantissa_bits = 8
     Path = "../checkpoint/Linear_64_256_10.pth"
-    # (1) save the model random weight
-    model_fix = linearLayer()
+    # (1) save the model random weight to the fixed_point
+    model = linearLayer()
     print("saving the model weight ...")
-    torch.save(model_fix.state_dict(), Path)
-    print("saving the model weight down")
+    state_dict = model.state_dict()
+    for param_name in state_dict:
+        state_dict[param_name] = fixed_point_quantize(state_dict[param_name], wl=exponent_bits + mantissa_bits, fl=mantissa_bits, rounding="nearest")
+    model.load_state_dict(state_dict)
+    torch.save(model.state_dict(), Path)
+    print("saving the model weight to the fixed point ...")
+
     # (2) save the input as pt
-    fp_data = torch.randint(1, 16, (1, 64)).to(torch.float32)
+    fp_data = fixed_point_quantize(torch.randint(1, 16, (1, 64)).to(torch.float32), wl=exponent_bits + mantissa_bits, fl=mantissa_bits, rounding="nearest")
     torch.save(fp_data, "../checkpoint/Linear_64_256_10.pt")
 
     # (3) inference and compare the fp result with fixed point result
@@ -118,7 +120,11 @@ if __name__ == '__main__':
 #         for name in model.state_dict():
 #           print(name)
 #           print(model.state_dict()[name])
-        print("quantization results:" + str(model(fp_data)))
+        result = model(fp_data)
+        with open("linear_result.txt", "w") as f:
+            print("write the result to the file")
+            f.write(str(result))
+        print("quantization results:" + str(result))
 
     # (4) convert it to the onnx
     linear_onnx()

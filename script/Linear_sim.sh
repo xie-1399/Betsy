@@ -4,8 +4,11 @@
 # run all the unit test in the Betsy
 # Author xxl  Time:2024.6.5  Version:1.0
 
-sbt test  # for all test running --all , with error logs show in which test
+# first running the Linear.py
+python3 ../model/layer/Linear.py
 
+# then generate the instruction files
 
+# convert it to the txt
 
-          # single test with parameters
+# running the simulation

@@ -4,7 +4,11 @@
 # the file is used to convert the instruction binary to the txt format -> test for the simulation
 
 import argparse
+import pickle
 
+'''
+usage :  python3 BinaryHandler.py --input ../software/src/tensil/tools/gen/Linear_64_256_10_op10_onnx_normal.tprog --output ./Linear_64_256_10_op10_onnx_normal.txt --len 64
+'''
 
 # read the binary file
 def read_binary_file(input_file):
@@ -35,14 +39,21 @@ def process_binary_file(input_file_path, output_file_path, width):
     print(f"Process {input_file_path} File to {output_file_path} Successfully !")
 
 
+# convert the pt file to the binary file
+def process_pt_bin(pt_file):
+    model = torch.load(pt_file)
+    model_bytes = pickle.dumps(model)
+
+    print(model_bytes)
+
+
+
 # here is a useful example for convert file...
-
-
 if __name__ == '__main__':
     # demo : python3 BinaryHandler.py --input XXX --output XXX --len XXX
     parser = argparse.ArgumentParser()
-    parser.add_argument('--input', type=str,help='Llama model to load')
-    parser.add_argument('--output', type=str,help='evaluation dataset')
-    parser.add_argument('--len', type=int,help='model sequence length')  #instruction length bits(default is 64)
+    parser.add_argument('--input', type=str,help='inst file')
+    parser.add_argument('--output', type=str,help='output file')
+    parser.add_argument('--len', type=int,help='instruction length')  #instruction length bits(default is 64)
     args = parser.parse_args()
     process_binary_file(args.input, args.output, args.len)
