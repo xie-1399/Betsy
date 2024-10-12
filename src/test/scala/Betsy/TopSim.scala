@@ -22,7 +22,10 @@ class TopSim extends AnyFunSuite{
 
     // load the weight data into the dram1 , load the activation data into the dram0
     dram1.memory.loadBinary(0, "/home/xie/Betsy/software/src/tensil/tools/gen/Linear_64_256_10_op10_onnx_normal.tdata")
+
+    // input
     dram0.memory.loadBinary(0,"")
+    // dram0.memory.read()
 
     println("load the memory finish!")
     if (random) {
@@ -33,7 +36,12 @@ class TopSim extends AnyFunSuite{
     dram1.start()
   }
 
+  // AFIX weight + activation
+  // 0.125
 
+  // 0.125 , Afix
+  // 确定 编码的表示方式
+  //
   test("Linear"){
     SIMCFG().compile {
       val dut = new Top(AFix(7 exp, -8 exp, true), arch = arch) // 64 * 64 and 16 bits
