@@ -1,0 +1,35 @@
+[0] 0 DataMove(<-) Local(0) DRAM1(0)@2^2 63(+1)
+[1] 0 DataMove(<-) Local(64) DRAM1(1)@2^2 63(+1)
+[2] 0 DataMove(<-) Local(128) DRAM1(2)@2^2 63(+1)
+[3] 0 DataMove(<-) Local(192) DRAM1(3)@2^2 63(+1)
+[4] 0 DataMove(<-) Local(256) DRAM0(0)
+[5] 0 LoadWeights Local(0) 63(+1)
+[6] 0 LoadWeights Zeroes
+[7] 0 MatMul Local(256) Acc(0)
+[8] 0 LoadWeights Local(64) 63(+1)
+[9] 0 LoadWeights Zeroes
+[10] 0 MatMul Local(256) Acc(1)
+[11] 0 LoadWeights Local(128) 63(+1)
+[12] 0 LoadWeights Zeroes
+[13] 0 MatMul Local(256) Acc(2)
+[14] 0 LoadWeights Local(192) 63(+1)
+[15] 0 LoadWeights Zeroes
+[16] 0 MatMul Local(256) Acc(3)
+[17] 0 DataMove(<-) Local(257) Acc(0) 3(+1)
+[18] 0 DataMove(->) Local(257) DRAM0(1) 3(+1)
+[19] 0 DataMove(<-) Local(0) DRAM1(256) 255(+1)
+[20] 0 DataMove(<-) Local(256) DRAM0(1) 3(+1)
+[21] 0 LoadWeights Local(0) 63(+1)
+[22] 0 LoadWeights Zeroes
+[23] 0 MatMul Local(256) Acc(0)
+[24] 0 LoadWeights Local(64) 63(+1)
+[25] 0 LoadWeights Zeroes
+[26] 0 MatMul(Acc) Local(257) Acc(0)
+[27] 0 LoadWeights Local(128) 63(+1)
+[28] 0 LoadWeights Zeroes
+[29] 0 MatMul(Acc) Local(258) Acc(0)
+[30] 0 LoadWeights Local(192) 63(+1)
+[31] 0 LoadWeights Zeroes
+[32] 0 MatMul(Acc) Local(259) Acc(0)
+[33] 0 DataMove(<-) Local(260) Acc(0)
+[34] 0 DataMove(->) Local(260) DRAM0(0)

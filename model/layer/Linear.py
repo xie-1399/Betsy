@@ -21,17 +21,6 @@ A simple linear layer inference (FP16 and Fixed Point)
 # onnx == 1.15.0 onnx_runtime == 1.17.0
 
 
-'''
-(1) define the linear model with pytorch
-
-(2) define the model with FixedPoint for test
-
-(3) save the weight and input data / convert the model to onnx
-
-(4) compare 3 results for raw/FixedPoint/onnx
-
-'''
-
 class linearLayerFP(nn.Module):
     def __init__(self, quantization: bool = True, loss: bool = False, exponent_bits=8, mantissa_bits=8):
         super().__init__()

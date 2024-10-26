@@ -45,7 +45,7 @@ class Top[T <: Data with Num[T]](gen:HardType[T],arch: Architecture,log:Boolean 
     val rspPayload = Reg(Bits(arch.arraySize * arch.dataWidth bits)).init(0)
 
     val dram0 = decode.io.dram0.toAxi4(
-      axi4Config = getWeightBusConfig(arch),
+      axi4Config = getActivationBusConfig(arch),
       arValid = decode.io.dram0.valid && (!decode.io.dram0.write),
       awValid = decode.io.dram0.valid && decode.io.dram0.write,
       address = decode.io.dram0offset.offset,
