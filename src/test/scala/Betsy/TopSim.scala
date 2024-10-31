@@ -5,6 +5,7 @@ import spinal.core._
 import spinal.core.sim._
 import BetsyLibs._
 import BetsyLibs.sim._
+import scala.collection.mutable.ArrayBuffer
 // test all kinds of models like resnet/yolo in lots of systolic array config
 // first get the all instruction
 
@@ -21,14 +22,24 @@ class TopSim extends AnyFunSuite{
     val dram1 = Axi4MemorySimV2(dut.io.activationBus, dut.clockDomain, SimConfig.axiconfig)
 
     // load the weight data into the dram1 , load the activation data into the dram0
-    dram1.memory.loadBinary(0, "/home/xie/Betsy/software/src/tensil/tools/gen/Linear_64_256_10_op10_onnx_normal.tdata")
+    dram1.memory.loadBinary(0, "/home/zhangtr/NPU/Betsy/software/src/tensil/tools/gen/Linear_64_256_10_op10_onnx_normal.tdata")
 
     // input
 //    for(idx <- 0 to 63){
 //
 //    }
-    val inputs = (0 to 63).map(_.toByte).toArray
-    dram0.memory.writeArray(0,inputs)
+    val numInputs = (0 to 63).map(_.toByte).toArray
+
+//    val numInputs = Array.fill(64)(1).map(_.toByte)
+    val zeroArray = new Array[Int](64).map(_.toByte)
+    val inputs = new Array[Byte](128)
+    numInputs.zip(zeroArray).zipWithIndex.foreach(tuple => {
+      inputs(2 * tuple._2) = tuple._1._2
+      inputs(2 * tuple._2 + 1) = tuple._1._1
+    })
+
+    println(inputs)
+    dram0.memory.writeArray(0,inputs.toArray)
     // dram0.memory.loadBinary(0,"")
 
     println("load the memory finish!")
@@ -47,7 +58,7 @@ class TopSim extends AnyFunSuite{
     }.doSimUntilVoid {
       dut =>
         dut.clockDomain.forkStimulus(10)
-        val instructionFile = "/home/xie/Betsy/src/test/scala/Betsy/binary/Linear_64_256_10_op10_onnx_normal.txt"
+        val instructionFile = "/home/zhangtr/NPU/Betsy/src/test/scala/Betsy/binary/Linear_64_256_10_op10_onnx_normal.txt"
         val instructionBuffer: Array[BigInt] = Logger.readFile(instructionFile).map(BigInt(_, 2)).toArray
         println(instructionBuffer.length)
         init(dut)
@@ -75,7 +86,7 @@ class TopSim extends AnyFunSuite{
     }.doSimUntilVoid {
       dut =>
         dut.clockDomain.forkStimulus(10)
-        val instructionFile = "/home/xie/Betsy/src/test/scala/Betsy/binary/resnet20v2_cifar_onnx_normal.txt"
+        val instructionFile = "/home/zhangtr/NPU/Betsy/src/test/scala/Betsy/binary/resnet20v2_cifar_onnx_normal.txt"
         val instructionBuffer: Array[BigInt] = Logger.readFile(instructionFile).map(BigInt(_, 2)).toArray
         println(instructionBuffer.length)
         init(dut, random = true)

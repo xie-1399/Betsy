@@ -86,14 +86,21 @@ if __name__ == '__main__':
     model = linearLayer()
     print("saving the model weight ...")
     state_dict = model.state_dict()
+    # print(state_dict)
     for param_name in state_dict:
         state_dict[param_name] = fixed_point_quantize(state_dict[param_name], wl=exponent_bits + mantissa_bits, fl=mantissa_bits, rounding="nearest")
+        torch.set_printoptions(threshold=float('Inf'))
+        with open(f"{param_name}.txt", "w") as file:
+            print(state_dict[param_name], file=file)
     model.load_state_dict(state_dict)
     torch.save(model.state_dict(), Path)
     print("saving the model weight to the fixed point ...")
 
     # (2) save the input as pt
-    fp_data = fixed_point_quantize(torch.randint(1, 16, (1, 64)).to(torch.float32), wl=exponent_bits + mantissa_bits, fl=mantissa_bits, rounding="nearest")
+    # fp_data = fixed_point_quantize(torch.randint(1, 16, (1, 64)).to(torch.float32), wl=exponent_bits + mantissa_bits, fl=mantissa_bits, rounding="nearest")
+    fp_data = fixed_point_quantize(torch.arange(0, 64, dtype=torch.float32).reshape(1, 64),
+                                   wl=exponent_bits + mantissa_bits, fl=mantissa_bits, rounding="nearest")
+    print(fp_data)
     torch.save(fp_data, "../checkpoint/Linear_64_256_10.pt")
 
     # (3) inference and compare the fp result with fixed point result
