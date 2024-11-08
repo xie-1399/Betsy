@@ -39,11 +39,6 @@ def convert(torch_model, input_data, weight_file,
                       output_names=["Identity"]
                       )
     print("convert the onnx finish")
-
-#     if forward:
-#         onnxruntime_outputs = run(input_data, onnx_file)
-#         print(f"onnx output: {onnxruntime_outputs}")
-
     return 0
 
 

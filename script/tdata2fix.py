@@ -34,7 +34,8 @@ def write_to_text_file(fixed_point_values, output_filename):
             file.write(f"{value}\n")
 
 # Example usage
-input_filename = 'Linear_64_256_10_op10_onnx_normal.bin'  # Replace with your file path
+
+input_filename = 'Linear_64_256_10_onnx_normal.bin'  # Replace with your file path
 output_filename = 'fixed_point_numbers.txt'  # Output text file
 
 fixed_point_numbers = read_fixed_point_numbers(input_filename)

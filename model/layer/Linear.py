@@ -9,11 +9,11 @@ sys.path.append("..")
 from untils.convert_onnx import convert, opset_version_convert
 from onnx import version_converter, helper
 import onnxruntime
-
+import argparse
+import os
 '''
 A simple linear layer inference (FP16 and Fixed Point)
 '''
-
 # simple linear class demo with FP16 and fixed point value
 # the quantization supports different float points way
 # loss : show the fixed point value compare to the float point
@@ -44,7 +44,6 @@ class linearLayerFP(nn.Module):
         out = fixed_point_quantize(self.output(hidden), wl=self.wl, fl=self.fl, rounding="nearest") if self.quantization else self.output(hidden)
         return out
 
-
 # the simple linear layer
 class linearLayer(nn.Module):
     def __init__(self):
@@ -56,72 +55,78 @@ class linearLayer(nn.Module):
         out = self.output(hidden)
         return out
 
-
 # convert the onnx to the onnx
-def linear_onnx():
-    fp_data = torch.load("../checkpoint/Linear_64_256_10.pt")
+def linear_onnx(activation_path, weight_path, onnx_path):
+    fp_data = torch.load(activation_path)
     opset_version = 10  # raw compiler only support opset_version [9,10]
     model = linearLayer()
-    convert(model, fp_data, weight_file="../checkpoint/Linear_64_256_10.pth",
-            onnx_file="../checkpoint/onnx/Linear_64_256_10.onnx", opset_version=opset_version)
-    opset_version_convert("../checkpoint/onnx/Linear_64_256_10.onnx", 10, 5, "../checkpoint/onnx/Linear_64_256_10_op10.onnx")
+    convert(model, fp_data, weight_file=weight_path,
+            onnx_file=onnx_path, opset_version=opset_version)
+    opset_version_convert(onnx_path, 10, 5, onnx_path)
 
 
 def to_numpy(tensor):
     return tensor.detach().cpu().numpy() if tensor.requires_grad else tensor.cpu().numpy()
 
-
-# running with the onnx model
-def onnx_running():
-    onnx_file = "../checkpoint/onnx/Linear_64_256_10_op10.onnx"
-    return
-
+'''
+python3 Linear.py --exp 7 --man 8 --benchmark
+'''
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="linear layer test parameters")
+    parser.add_argument('--exp', type=int, default=7, help="the fixed point exp bit width")
+    parser.add_argument('--man', type=int, default=8, help="the fixed point mantissa bit width")
+    parser.add_argument('--path', type=str, default="./temp/", help="all generate checkpoint and files path")
+    parser.add_argument('--benchmark', action='store_true', help="running the float answers")
 
-    exponent_bits = 7
-    mantissa_bits = 8
-    Path = "../checkpoint/Linear_64_256_10.pth"
+    args = parser.parse_args()
+
+    exponent_bits = args.exp
+    mantissa_bits = args.man
+    path = args.path
+    weight_path = path + "Linear_64_256_10.pth"
+    activation_path = path + "Linear_64_256_10.pt"
+    result_path = path + "linear_result.txt"
+    onnx_path = path + "Linear_64_256_10.onnx"
+
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+
     # (1) save the model random weight to the fixed_point
     model = linearLayer()
-    print("saving the model weight ...")
+    print("saving the model weight...")
     state_dict = model.state_dict()
-    # print(state_dict)
     for param_name in state_dict:
+    # saving the weight as fixed point
         state_dict[param_name] = fixed_point_quantize(state_dict[param_name], wl=exponent_bits + mantissa_bits, fl=mantissa_bits, rounding="nearest")
         torch.set_printoptions(threshold=float('Inf'))
-        with open(f"{param_name}.txt", "w") as file:
-            print(state_dict[param_name], file=file)
+        with open(f"{path + param_name}.txt", "w") as file:
+            file.write(str(state_dict[param_name]))
+            file.close()
     model.load_state_dict(state_dict)
-    torch.save(model.state_dict(), Path)
-    print("saving the model weight to the fixed point ...")
+    torch.save(model.state_dict(), weight_path)
 
     # (2) save the input as pt
-    # fp_data = fixed_point_quantize(torch.randint(1, 16, (1, 64)).to(torch.float32), wl=exponent_bits + mantissa_bits, fl=mantissa_bits, rounding="nearest")
     fp_data = fixed_point_quantize(torch.arange(0, 64, dtype=torch.float32).reshape(1, 64),
                                    wl=exponent_bits + mantissa_bits, fl=mantissa_bits, rounding="nearest")
-    print(fp_data)
-    torch.save(fp_data, "../checkpoint/Linear_64_256_10.pt")
+    torch.save(fp_data, activation_path)
+    with open(f"{path}activation.txt", "w") as file:
+        file.write(str(fp_data))
+        file.close()
 
     # (3) inference and compare the fp result with fixed point result
     print("generate linear layer and compare with the fixed_point...")
     with torch.no_grad():
-        model = linearLayerFP(loss=True, exponent_bits=exponent_bits, mantissa_bits=mantissa_bits)
-        model.load_state_dict(torch.load(Path))
-        fp_data = torch.load("../checkpoint/Linear_64_256_10.pt")
+        model = linearLayerFP(loss=args.benchmark, exponent_bits=exponent_bits, mantissa_bits=mantissa_bits)
+        model.load_state_dict(torch.load(weight_path))
+        fp_data = torch.load(activation_path)
         if torch.cuda.is_available():
             model = model.to("cuda")
             fp_data = fp_data.to("cuda")
-          # show weight value
-#         for name in model.state_dict():
-#           print(name)
-#           print(model.state_dict()[name])
         result = model(fp_data)
-        with open("linear_result.txt", "w") as f:
-            print("write the result to the file")
+        with open(result_path, "w") as f:
             f.write(str(result))
         print("quantization results:" + str(result))
 
     # (4) convert it to the onnx
-    linear_onnx()
+    linear_onnx(activation_path, weight_path, onnx_path)
 
