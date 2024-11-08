@@ -478,8 +478,8 @@ class Decode(arch: Architecture)(implicit layOut: InstructionLayOut) extends Bet
     ** if accumulate will output and Memory -> Array -> Acc*/
     val ismatMul = instruction.valid && instruction.payload.opcode === Opcode.MatMul
     val matMulArgs = MatMulArgs.fromBits(op0, op1, op2)
-    val zeroes = flags(0)
-    val accumulate = flags(1)
+    val zeroes = flags(1)
+    val accumulate = flags(0)
     val matMulError = ismatMul && !MatMulFlags.isValid(flags.asUInt)
 
     when(ismatMul) {

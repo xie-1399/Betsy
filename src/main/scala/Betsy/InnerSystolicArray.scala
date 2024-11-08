@@ -34,7 +34,7 @@ class InnerSystolicArray[T <: Data with Num[T]](gen:HardType[T],height:Int,width
   /* connect the first row */
   for(j <- 0 until width){
     mac(0)(j).io.load := io.load
-    mac(0)(j).io.mulInput := Delay(io.input(j),j,init = constConvert(gen(),0))
+    mac(0)(j).io.mulInput := Delay(io.input.reverse(j),j,init = constConvert(gen(),0))
     if(j > 0){
       mac(0)(j).io.addInput := mac(0)(j - 1).io.macOut
     }

@@ -28,7 +28,7 @@ class TopSim extends AnyFunSuite{
 //    for(idx <- 0 to 63){
 //
 //    }
-    val numInputs = ArrayBuffer.range(63, 0, -1).map(_.toByte).toArray
+    val numInputs = ArrayBuffer.range(0, 64, 1).map(_.toByte).toArray
 
 //    val numInputs = Array.fill(64)(1).map(_.toByte)
     val zeroArray = new Array[Int](64).map(_.toByte)
