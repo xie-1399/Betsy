@@ -57,7 +57,8 @@ case class MemControl(depth:Long,maskWidth:Int = -1) extends Bundle with Size wi
     }
     axi4.w.valid := wValid
     axi4.w.data := writePayload
-    axi4.w.setStrb()
+    // axi4.w.setStrb()
+    axi4.w.strb.setAll()
     axi4.w.last := (axi4.w.fire && wCounter === len)
     axi4.b.ready := True
     axi4
