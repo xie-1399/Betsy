@@ -8,19 +8,16 @@ import BetsyLibs.sim._
 
 import java.io.File
 import scala.collection.mutable.ArrayBuffer
-// test all kinds of models like resnet/yolo in lots of systolic array config
-// first get the all instruction
 
 class TopSim extends AnyFunSuite{
   val arch = Architecture.normal()
-  def init[T <: Data with Num[T]](dut: Top[T], random:Boolean = false, path:String=""): Unit = {
+
+  def init[T <: Data with Num[T]](dut: Top[T], dram0:Axi4MemorySimV2, dram1:Axi4MemorySimV2, random:Boolean = false, path:String=""){
     AxiInit(dut.io.activationBus)
     AxiInit(dut.io.weightBus)
     dut.io.instruction.valid #= false
     dut.io.instruction.payload.randomize()
     dut.clockDomain.waitSampling()
-    val dram0 = Axi4MemorySimV2(dut.io.weightBus, dut.clockDomain, SimConfig.axiconfig)
-    val dram1 = Axi4MemorySimV2(dut.io.activationBus, dut.clockDomain, SimConfig.axiconfig)
     // load the weight data into the dram1 , load the activation data into the dram0
     dram1.memory.loadBinary(0, path)
     val numInputs = (0 to 63).map(_.toByte).toArray
@@ -47,11 +44,14 @@ class TopSim extends AnyFunSuite{
     }.doSimUntilVoid {
       dut =>
         dut.clockDomain.forkStimulus(10)
+        val dram0 = Axi4MemorySimV2(dut.io.activationBus, dut.clockDomain, SimConfig.axiconfig)
+        val dram1 = Axi4MemorySimV2(dut.io.weightBus, dut.clockDomain, SimConfig.axiconfig)
+
         val rootDirectory = new File(".").getCanonicalPath
         val instructionFile = rootDirectory + "/temp/Linear_64_256_10_onnx_normal.txt"
         val instructionBuffer: Array[BigInt] = Logger.readFile(instructionFile).map(BigInt(_, 2)).toArray
         println(instructionBuffer.length)
-        init(dut,path = rootDirectory + "/temp/Linear_64_256_10_onnx_normal.tdata")
+        init(dut,dram0 = dram0, dram1 = dram1, path = rootDirectory + "/temp/Linear_64_256_10_onnx_normal.tdata")
         var pc = 0
         while (pc < instructionBuffer.length) {
           dut.io.instruction.valid #= true
@@ -60,34 +60,24 @@ class TopSim extends AnyFunSuite{
           pc += 1
           println(s"current pc : $pc")
         }
+        // read the finally results
+        val results = dram0.memory.readArray(0.toLong, 20.toLong)
+        println(results(0))
         simSuccess()
     }
   }
 
-  test("Conv with relu"){
+  test("Convolution"){
 
   }
 
   // whole network
-  test("resnet20_cifar") {
+  test("resnet20") {
     SIMCFG().compile {
       val dut = new Top(AFix(7 exp, -8 exp, true), arch = arch) // 64 * 64 and 16 bits
       dut
     }.doSimUntilVoid {
       dut =>
-        dut.clockDomain.forkStimulus(10)
-        val instructionFile = "/home/zhangtr/NPU/Betsy/src/test/scala/Betsy/binary/resnet20v2_cifar_onnx_normal.txt"
-        val instructionBuffer: Array[BigInt] = Logger.readFile(instructionFile).map(BigInt(_, 2)).toArray
-        println(instructionBuffer.length)
-        init(dut, random = true)
-        var pc = 0
-        while(pc < instructionBuffer.length){
-          dut.io.instruction.valid #= true
-          dut.io.instruction.payload #= instructionBuffer(pc)
-          dut.clockDomain.waitSamplingWhere(dut.io.instruction.ready.toBoolean)
-          pc += 1
-          println(s"current pc : $pc")
-        }
         simSuccess()
     }
   }

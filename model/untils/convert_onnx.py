@@ -6,12 +6,9 @@ from pathlib import Path
 import sys
 import onnx
 from onnx import version_converter, helper
-import onnxruntime
 
 wd = Path(__file__).parent.parent.resolve()
 sys.path.append(str(wd))
-
-from mlp import FeedForwardNetwork
 
 """
 convert pytorch model -> onnx
@@ -54,15 +51,3 @@ def opset_version_convert(onnx_file, opset_version, ir_version, new_onnx_file):
 
     onnx.save(original_model, new_onnx_file)
     print("convert version : " + str(original_model.opset_import[0].version))
-
-
-# run with the onnx_model
-def run(torch_input, path):
-    ort_session = onnxruntime.InferenceSession(path, providers=['CPUExecutionProvider'])
-
-    def to_numpy(tensor):
-        return tensor.detach().cpu().numpy() if tensor.requires_grad else tensor.cpu().numpy()
-
-    onnxruntime_input = {k.name: to_numpy(v) for k, v in zip(ort_session.get_inputs(), torch_input)}
-    onnxruntime_outputs = ort_session.run(None, onnxruntime_input)
-    return onnxruntime_outputs

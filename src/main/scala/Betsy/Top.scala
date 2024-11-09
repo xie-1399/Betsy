@@ -74,8 +74,8 @@ class Top[T <: Data with Num[T]](gen:HardType[T],arch: Architecture,log:Boolean 
     when(dram0.r.last || dram1.r.last){
       rspCounter.clear()
     }
-    dram0 >> io.weightBus
-    dram1 >> io.activationBus
+    dram1 >> io.weightBus
+    dram0 >> io.activationBus
     decode.io.dram0.ready := dram0.r.last || dram0.b.fire
     decode.io.dram1.ready := dram1.r.last || dram1.b.fire
 

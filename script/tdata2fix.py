@@ -1,3 +1,6 @@
+
+import argparse
+
 def read_fixed_point_numbers(filename):
     fixed_point_values = []
     with open(filename, 'rb') as file:
@@ -34,11 +37,16 @@ def write_to_text_file(fixed_point_values, output_filename):
             file.write(f"{value}\n")
 
 # Example usage
+if __name__ == '__main__':
+    # python3 tdata2fix.py --input XX --output XX
 
-input_filename = 'Linear_64_256_10_onnx_normal.bin'  # Replace with your file path
-output_filename = 'fixed_point_numbers.txt'  # Output text file
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--input', type=str,help='inst file')
+    parser.add_argument('--output', type=str,help='output file')
+    args = parser.parse_args()
 
-fixed_point_numbers = read_fixed_point_numbers(input_filename)
-write_to_text_file(fixed_point_numbers, output_filename)
+    fixed_point_numbers = read_fixed_point_numbers(args.input)
+    write_to_text_file(fixed_point_numbers, args.output)
+    print(f"Fixed-point numbers have been written to {args.output}")
 
-print(f"Fixed-point numbers have been written to {output_filename}")
+

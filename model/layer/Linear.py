@@ -8,7 +8,6 @@ import sys
 sys.path.append("..")
 from untils.convert_onnx import convert, opset_version_convert
 from onnx import version_converter, helper
-import onnxruntime
 import argparse
 import os
 '''
@@ -18,7 +17,7 @@ A simple linear layer inference (FP16 and Fixed Point)
 # the quantization supports different float points way
 # loss : show the fixed point value compare to the float point
 # the output check for the linear / using the fixed point
-# onnx == 1.15.0 onnx_runtime == 1.17.0
+# onnx == 1.15.0
 
 
 class linearLayerFP(nn.Module):

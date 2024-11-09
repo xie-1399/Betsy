@@ -1,8 +1,9 @@
 #!/bin/bash
-
 # Betsy follow the MiT Licence.(c) xxl, All rights reserved
 # run the linear layer test in the Betsy
 # Author xxl  Time:2024.6.5  Version:1.0
+
+set -e
 
 parent_dir=$(dirname "$(pwd)")
 cd $parent_dir/model/layer
@@ -20,10 +21,10 @@ python3 binaryhandler.py --input ../temp/Linear_64_256_10_onnx_normal.tprog --ou
 echo "convert the instruction"
 
 # convert the tdata to the binary
-# cd $parent_dir
-# cp temp/Linear_64_256_10_onnx_normal.tdata temp/Linear_64_256_10_onnx_normal.bin
-# cd script
-# python tdata2fix.py
+cd $parent_dir
+cp temp/Linear_64_256_10_onnx_normal.tdata temp/Linear_64_256_10_onnx_normal.bin
+cd script
+python3 tdata2fix.py --input ../temp/Linear_64_256_10_onnx_normal.bin --output ../temp/tdata.bin
 
 
 # running the simulation
