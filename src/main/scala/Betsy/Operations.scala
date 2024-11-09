@@ -26,7 +26,7 @@ object Operations {
     val res = (m1, m2) match {
       case (m1: AFix, m2: AFix) => {
         if(overflow){
-          (m1 + m2).sat(m1).truncated
+          (m1 + m2).truncated(saturation = false, overflow=true ,rounding = RoundType.ROUNDUP)
         }
         else m1 + m2
       }
@@ -47,7 +47,7 @@ object Operations {
     val res = (m1, m2) match {
       case (m1: AFix, m2: AFix) => {
         if(overflow){
-          (m1 - m2).sat(m1).truncated
+          (m1 - m2).truncated(saturation = false, overflow=true ,rounding = RoundType.ROUNDUP)
         }
         else m1 - m2
       }
@@ -69,7 +69,7 @@ object Operations {
     val res = (m1, m2) match {
       case (m1: AFix, m2: AFix) => {
         if(overflow){
-          (m1 * m2).sat(m1).truncated
+          (m1 * m2).truncated(saturation = false, overflow=true ,rounding = RoundType.ROUNDUP)
         }
         else m1 * m2
       }

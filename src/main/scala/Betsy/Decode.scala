@@ -21,7 +21,6 @@ import Architecture._
  * notice the IO Bandwidth for the request value */
 
 // Todo with all instructions format check in the asm
-
 case class dramAddressOffset(addressWith:Int) extends Bundle {
   val offset = UInt(addressWith bits)
 }

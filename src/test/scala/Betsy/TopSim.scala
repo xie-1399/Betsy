@@ -20,6 +20,7 @@ class TopSim extends AnyFunSuite{
     dut.clockDomain.waitSampling()
     // load the weight data into the dram1 , load the activation data into the dram0
     dram1.memory.loadBinary(0, path)
+    // val numInputs = Array.fill(64){1}.map(_.toByte)
     val numInputs = (0 to 63).map(_.toByte).toArray
     val zeroArray = new Array[Int](64).map(_.toByte)
     val inputs = new Array[Byte](128)
@@ -62,7 +63,21 @@ class TopSim extends AnyFunSuite{
         }
         // read the finally results
         val results = dram0.memory.readArray(0.toLong, 20.toLong)
-        println(results(0))
+        val res = ArrayBuffer[Double]()
+        for(idx <- 0 until 10){
+          val head = if(results(idx * 2 + 1) >= 0) "0"*(8 - results(idx * 2 + 1).toBinaryString.length) + results(idx * 2 + 1).toBinaryString else results(idx * 2 + 1).toBinaryString.takeRight(8)
+          val tail = if(results(idx * 2) >= 0) "0"*(8 - results(idx * 2).toBinaryString.length) + results(idx * 2).toBinaryString else results(idx * 2).toBinaryString.takeRight(8)
+          res.append(SimTools.convertToFixedPoint(head+tail,7,8))
+        }
+        val refs = Logger.readFile(rootDirectory + "/temp/linear_result.txt").toArray.map(_.toDouble)
+        refs.foreach(r => print(r.toString + " "))
+        println()
+        res.foreach(r => print(r.toString + " "))
+        println()
+        val res_array = res.toArray
+        val errors = refs.zip(res_array).map { case (a, b) => Math.abs(a - b) }
+        val averageError = errors.sum / errors.length
+        println(s"average Error: $averageError")
         simSuccess()
     }
   }

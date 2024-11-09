@@ -37,7 +37,6 @@ class linearLayerFP(nn.Module):
         if self.quantization:
             self.hidden.weight = Parameter(fixed_point_quantize(self.hidden.weight, wl=self.wl, fl=self.fl, rounding="nearest"))
             self.output.weight = Parameter(fixed_point_quantize(self.output.weight, wl=self.wl, fl=self.fl, rounding="nearest"))
-
         x = fixed_point_quantize(x, wl=self.wl, fl=self.fl, rounding="nearest") if self.quantization else x
         hidden = fixed_point_quantize(self.hidden(x), wl=self.wl, fl=self.fl, rounding="nearest") if self.quantization else self.hidden(x)
         out = fixed_point_quantize(self.output(hidden), wl=self.wl, fl=self.fl, rounding="nearest") if self.quantization else self.output(hidden)
@@ -105,8 +104,10 @@ if __name__ == '__main__':
     torch.save(model.state_dict(), weight_path)
 
     # (2) save the input as pt
+    # if set all activation to 1
     fp_data = fixed_point_quantize(torch.arange(0, 64, dtype=torch.float32).reshape(1, 64),
                                    wl=exponent_bits + mantissa_bits, fl=mantissa_bits, rounding="nearest")
+    # fp_data = fixed_point_quantize(torch.ones(1,64), wl=exponent_bits + mantissa_bits, fl=mantissa_bits, rounding="nearest")
     torch.save(fp_data, activation_path)
     with open(f"{path}activation.txt", "w") as file:
         file.write(str(fp_data))
@@ -123,7 +124,8 @@ if __name__ == '__main__':
             fp_data = fp_data.to("cuda")
         result = model(fp_data)
         with open(result_path, "w") as f:
-            f.write(str(result))
+            for value in result.flatten():
+                f.write(str(value.item()) + "\n")
         print("quantization results:" + str(result))
 
     # (4) convert it to the onnx

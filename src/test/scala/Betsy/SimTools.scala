@@ -150,6 +150,19 @@ object SimTools {
     mergedArray
   }
 
+  def convertToFixedPoint(binaryString: String, exp:Int, man:Int): Double = {
+    require(binaryString.forall(c => c == '0' || c == '1'), "Input must be a binary string")
+    val signBit = binaryString.head
+    val isNegative = signBit == '1'
+    val integerPartBits = binaryString.slice(1, 1+exp)
+    val fractionalPartBits = binaryString.slice(1+exp, 1+exp+man)
+    val integerPart = Integer.parseInt(integerPartBits, 2) - (if (isNegative) math.pow(2, exp).toInt else 0)
+    val fractionalPart = fractionalPartBits.zipWithIndex.map { case (bit, index) =>
+      if (bit == '1') 1.0 / math.pow(2, index + 1) else 0.0
+    }.sum
+    val result = integerPart + fractionalPart
+    if (isNegative && integerPart == 0) -fractionalPart else result
+  }
 }
 
 /* with a stream queue simulation usage */

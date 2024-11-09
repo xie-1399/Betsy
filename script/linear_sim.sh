@@ -19,6 +19,7 @@ sbt 'runMain tensil.tools.Generator normal Linear_64_256_10.onnx'
 cd script
 python3 binaryhandler.py --input ../temp/Linear_64_256_10_onnx_normal.tprog --output ../temp/Linear_64_256_10_onnx_normal.txt --len 64
 echo "convert the instruction"
+python3 binaryhandler.py --input ../temp/Linear_64_256_10_onnx_normal.tdata --output ../temp/tdata.txt --len 16
 
 # convert the tdata to the binary
 cd $parent_dir
