@@ -44,7 +44,7 @@ object Generator extends App{
     archFile = new File(rootDirectory + "/software/src/tensil/tools/arch/normal.tarch"),
     modelFile = new File(rootDirectory + "/temp/" + args(1)),
     outputNodes = Seq("Identity"),
-    targetDir = new File(rootDirectory + "/temp/"),
+    targetDir = new File(rootDirectory + "/temp/" + args(1).split("/")(0)),
     summary = true,
     instructionsSummary = true,
     writeProgramAssembly = true

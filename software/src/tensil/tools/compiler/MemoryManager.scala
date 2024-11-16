@@ -199,19 +199,7 @@ class MemoryManager(
       weightsGroupSize: Option[Int] = None,
       transposeWeights: Boolean = false
   ): (MemoryObject, Option[MemoryObject]) = {
-    val biasObject =
-      if (biasName.isDefined) {
-        val resolvedBiasName = biasName.get
 
-        if (freeableAllocator.hasObject(resolvedBiasName))
-          Some(
-            freeableAllocator.consumeObject(resolvedBiasName, Nil)
-          )
-        else
-          Some(mkConstObject(resolvedBiasName, constsDataStream))
-
-      } else
-        None
 
     val resolvedWeightsName = weightsName
 
@@ -228,7 +216,18 @@ class MemoryManager(
           groupSize = weightsGroupSize,
           transpose = transposeWeights
         )
+    val biasObject =
+      if (biasName.isDefined) {
+        val resolvedBiasName = biasName.get
 
+        if (freeableAllocator.hasObject(resolvedBiasName))
+          Some(
+            freeableAllocator.consumeObject(resolvedBiasName, Nil)
+          )
+        else
+          Some(mkConstObject(resolvedBiasName, constsDataStream))
+      } else
+        None
     (weightsObject, biasObject)
   }
 
